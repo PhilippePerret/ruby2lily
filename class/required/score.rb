@@ -13,16 +13,41 @@ class Score
   # -------------------------------------------------------------------
   #   Classe
   # -------------------------------------------------------------------
+
+  # Toutes les valeurs par défaut pour les scores à imprimer
+  DEFAULT_VALUES = {
+    :title  => "Partition sans titre",
+    :time   => '4/4'
+  }
   
   # -------------------------------------------------------------------
   #   Instance
   # -------------------------------------------------------------------
   @path_ruby_score = nil  # Le path complet du fichier ruby de
-                          # référence
+                          # référence (le score en ruby)
+  
+  @title      = nil   # Titre du morceau courant
+  @subtitle   = nil   # Sous-titre du morceau courant
+  @composer   = nil   # Auteur (compositeur) du morceau courant
+  @parolier   = nil   # Parolier du morceau courant (si paroles)
+  @tune       = nil   # Tonalité
+  @time       = nil   # Signature
+  @tempo      = nil   # Tempo de référence
+  @base_tempo = nil   # Durée de la note tempo de référence (noire)
+  
   def initialize params = nil
     
   end
   
+  # === Méthode de définitions === #
+  def set data
+    data.each { |prop, val| instance_variable_set("@#{prop}", val) }
+    # Quelques valeurs par défaut
+    Score::DEFAULT_VALUES.each do |prop, valdef|
+      next unless instance_variable_get("@#{prop}").nil?
+      instance_variable_set("@#{prop}", valdef)
+    end
+  end
   
   # === Méthodes pour le fichier lilypond === #
   
