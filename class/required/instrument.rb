@@ -11,12 +11,20 @@ class Instrument
   # -------------------------------------------------------------------
   #   Classe
   # -------------------------------------------------------------------
+
+  # Les types d'instrument
+  # @todo: il faudrait qu'ils y soient tous, puisqu'un contrôle est
+  # effectué ET que chaque instrument doit répondre à sa classe.
+  # @todo: peut-être serait-il possible d'utiliser une même classe
+  # pour plusieurs instruments, comme par exemple la portée piano pour
+  # la harpe et le xylophone.
   TYPES = {
-    :chant  => {},
-    :piano  => {},
-    :drum   => {},
-    :corde  => {},
-    :cuivre => {}
+    :Voice    => {},
+    :Cuivre   => {},
+    :Piano    => {},
+    :Strings  => {},
+    :Bass     => {},
+    :Drums    => {}
   }
   
   # -------------------------------------------------------------------
@@ -28,10 +36,9 @@ class Instrument
   # -------------------------------------------------------------------
   #   Instance
   # -------------------------------------------------------------------
+  @name       = nil   # Le nom (capitales) du musicien (constante) tel
+                      # que défini dans le def-hash @orchestre
   @data       = nil   # Les data telles que définies dans @orchestre
-  @type       = nil   # Le type (p.e. 'piano', 'chant', etc.)
-  @instrument = nil   # L'instrument, c'est-à-dire la constante contenant
-                      # l'instance Instrument courante.
   @ton        = nil   # La tonalité de la portée. C'est la tonalité du 
                       # morceau, par défaut, sauf pour les instruments
                       # transpositeur (p.e. sax en sib)

@@ -59,7 +59,7 @@ class Liby
     #   nil et lève une erreur en cas d'échec
     def score_ruby_to_score_lilypond
       begin
-        analyze_orchestre
+
       rescue Exception => e
         fatal_error e.message
       else
@@ -67,19 +67,11 @@ class Liby
       end
     end
     
-    # =>  Analyse de l'orchestre défini dans le score ruby
-    #     (@rappel: par la variable @orchestre ou @orchestra)
-    def analyze_orchestre
-      require path_score_ruby
-      # puts "• path_score_ruby: #{path_score_ruby}"
-      fatal_error(:orchestre_undefined) if @orchestre.nil? && @orchestra.nil?
-      ORCHESTRE.compose( @orchestre || @orchestra )
-    end
-
     # => Message de fin de conversion
     def end_conversion
       # @todo: pour le moment :
       puts "Fichier converti avec succès".as_blue
+      true
     end
     
     # => Retourne le chemin d'accès complet au score ruby

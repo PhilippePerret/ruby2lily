@@ -12,9 +12,9 @@ describe "ruby2lily.rb" do
   end
 end
 
-describe "La commande `ruby2lily'" do
+describe "La commande `ruby2lily' avec des erreurs" do
 	def error_sans_color err
-		err[7..-5]
+		err.strip[7..-5]
 	end
 	before(:all) do
 
@@ -32,15 +32,51 @@ describe "La commande `ruby2lily'" do
 		res = `#{cmd}`.strip
 		error_sans_color(res).should == err
 	end
-	it "doit exister avec une erreur si l'orchestre n'est pas défini" do
-	  path_bad_orch = 'test/score/orchestre_undefined'
-		cmd = PATH_RUBY2LILY + " '#{path_bad_orch}'"
-		
+end
+
+describe "La commande `ruby2lily' sans erreur" do
+	
+	# =>	Appel ruby2lily en ligne de commande
+	# 		et place le résultat (donc tout le texte généré par le programme
+	# 		avec les messages) dans @res
+	def as_ligne_commande
+		cmd = PATH_RUBY2LILY + " '#{@good_score}'"
+		@res = `#{cmd}`
 	end
-	it "doit réussir avec une bonne ligne de commande et un bon score" do
-	  good_score = 'partition_test.rb'
-		cmd = PATH_RUBY2LILY + " '#{good_score}'"
-		res = `#{cmd}`
-		res.should === true
+	
+	# => 	Simule l'appel en ligne de commande, mais charge en fait le
+	# 		module, ce qui permet d'avoir toutes les valeurs définies
+	def simule_ligne_commande
+		# On simule l'appel du module avec un argument
+		ARGV.clear
+		ARGV << @good_score
+		load File.join(BASE_LILYPOND, 'ruby2lily.rb')
+	end
+
+	before(:all) do
+	  @good_score = 'partition_test.rb'
+	end
+	describe "Appel en ligne de commande" do
+	  before(:all) do
+	    as_ligne_commande
+	  end
+		it "doit renvoyer un message de succès" do
+			@res.should =~ /Fichier converti avec succès/	  
+		end
+	end
+	describe "Simulation de l'appel en ligne de commande" do
+	  before(:all) do
+			simule_ligne_commande
+	  end
+		it "doit définir les musiciens de l'orchestre" do
+			defined?(SALLY).should be_true
+			Kernel::SALLY.class.should == Voice
+			defined?(PIANO).should be_true
+			PIANO.class.should == Piano
+			defined?(BATTERIE).should be_true
+			BATTERIE.class.should == Drums
+			defined?(BASSE).should be_true
+			BASSE.class.should == Bass
+		end
 	end
 end

@@ -22,6 +22,11 @@ RSpec.configure do |config|
     # À faire avant chaque describe
   }
   
+  # Pour afficher un message de débuggage
+  def debug txt
+    STDOUT.write "::débug:: #{txt}\n"
+  end
+  
   def iv_set(objet, hash)
     hash.each do |k, v|
       objet.instance_variable_set("@#{k}", v)

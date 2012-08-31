@@ -4,12 +4,12 @@
 
 @orchestre = <<-HDEF
 
-    instrument  type      clef      ton
+    name        instrument  clef      ton
   -------------------------------------------------------------------
-    CHANT       Chant     -         G
-    PIANO       Piano     -         -
-    BASSE       Bass      -         -
-    BATTERIE    Drum      -         -
+    SALLY       Voice       -         G
+    PIANO       Piano       -         -
+    BASSE       Bass        -         -
+    BATTERIE    Drums       -         -
   -------------------------------------------------------------------
   
 HDEF

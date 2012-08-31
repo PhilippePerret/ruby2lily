@@ -126,13 +126,6 @@ describe Liby do
 	    Liby.should respond_to :score_ruby_to_score_lilypond
 	  end
 	
-		# :analyze_orchestre
-		it "Liby doit répondre à :analyze_orchestre" do
-		  Liby.should respond_to :analyze_orchestre
-			# @note: la composition de l'orchestre est testée par
-			# orchestre_spec.rb
-		end
-	
 		it "Liby doit répondre à :end_conversion" do
 		  Liby.should respond_to :end_conversion
 		end
