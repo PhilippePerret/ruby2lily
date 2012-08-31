@@ -18,8 +18,6 @@ Liby::analyze_command_line
 # Le score
 SCORE     = Score::new
 # L'orchestre pour la partition
-# 
-# @note: il sera défini par Liby ci-dessous
 ORCHESTRE = Orchestre::new
 
 # Chargement du score
@@ -29,6 +27,21 @@ load Liby::path_score_ruby
 # Composition de l'orchestre
 # ---------------------------
 ORCHESTRE::compose @orchestre
+
+# Définition de la partition (Score)
+# -----------------------------------
+# @note: on reprend les données définies dans le score (si elles le
+# sont)
+SCORE::set(
+  :title      => @title       || @titre,
+  :subtitle   => @subtitle    || @soustitre,
+  :composer   => @composer    || @compositeur,
+  :author     => @author      || @parolier,
+  :tune       => @tune        || @ton,
+  :time       => @time        || @signature,
+  :tempo      => @tempo,
+  :base_tempo => @base_tempo
+)
 
 # Transformation du score ruby en score lilypond
 # -----------------------------------------------

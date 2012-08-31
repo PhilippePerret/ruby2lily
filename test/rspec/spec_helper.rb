@@ -9,6 +9,8 @@ RSpec.configure do |config|
   $: << File.join(BASE_LILYPOND, 'class', 'required')
   $: << File.join(BASE_LILYPOND, 'class', 'optional')
   
+  # Chargement des constantes
+  require File.join(BASE_LILYPOND, 'module', 'constants.rb')
   # Chargement de toutes les librairies requises
   Dir["#{DIR_CLASS_LILYPOND}/required/**/*.rb"].each { |lib| require lib }
   
