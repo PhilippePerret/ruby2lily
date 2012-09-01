@@ -3,15 +3,17 @@
 # 
 class String
   
-  RED     = 31
-  GREEN   = 32
-  BLUE    = 34
-  YELLOW  = 43
-  CYAN    = 36
-  PURPLE  = 35
-  BROWN   = 33
-  GRAY    = 37
-  EOC     = "\e[0m"              # Pour "End Of Color"
+  unless defined? PURPLE # tests
+    RED     = 31
+    GREEN   = 32
+    BLUE    = 34
+    YELLOW  = 43
+    CYAN    = 36
+    PURPLE  = 35
+    BROWN   = 33
+    GRAY    = 37
+    EOC     = "\e[0m"              # Pour "End Of Color"
+  end
   
   def as_blue params = nil
     print_color BLUE, params
@@ -137,7 +139,7 @@ class String
       when '1', 'oui', 'yes', 'y' then true
       when '0', 'non', 'no',  'n' then false
       when '-', 'null'            then nil
-      else self
+      else self.gsub(/_/, ' ')
       end
     when 'N'  then self.to_i
     when 'S'  then self.to_s

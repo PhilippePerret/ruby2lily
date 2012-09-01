@@ -23,6 +23,8 @@ describe Chord do
 	  before(:each) do
 	    @chord = Chord::new
 	  end
+	
+		# :to_s
 		it "doit répondre à :to_s" do
 			@chord.should respond_to :to_s
 		end
@@ -33,6 +35,15 @@ describe Chord do
 		it ":to_s doit renvoyer la bonne valeur avec une durée spécifiée" do
 			@c = Chord::new "c e g"
 			@c.to_s(4).should == "<c e g>4"
+		end
+		
+		# :with_duree
+		it "doit répondre à :with_duree" do
+		  @chord.should respond_to :with_duree
+		end
+		it ":with_duree doit renvoyer la bonne valeur" do
+			@c = Chord::new "c e g"
+			@c.with_duree(4).should == "<c e g>4"
 		end
 	end
 end

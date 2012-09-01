@@ -14,6 +14,12 @@ class Liby
       :path_lily_undefined        => "Impossible de définir le chemin au fichier Lilypond…",
       :lilyfile_does_not_exists   => "Le fichier Lilypond du score n'existe pas…"
     }
+    
+    # table de conversion des signes ruby vers lilypond
+    SIGN_RUBY_TO_SIGN_LILY = {
+      'b' => 'es', 'bb' => 'eses', '#' => 'is', '##' => 'isis'
+    }
+    
   end
   @@path_ruby_score   = nil   # Le path au fichier du score ruby user
   @@path_lily_file    = nil   # path au fichier lilypond
@@ -55,6 +61,23 @@ class Liby
       @@path_ruby_score = pscore
     end
     
+    # -------------------------------------------------------------------
+    #   Traitement des notes et signes envoyés par ruby
+    # -------------------------------------------------------------------
+    
+    # =>  Return +notes_ruby+ en remplaçant les "b" par des "es" et les
+    #     "#" par des "is"
+    # @param  notes_ruby    Les notes ruby, en string ("c eb d#") ou
+    #                       ou Array (["c", "eb", "d#"])
+    def notes_ruby_to_notes_lily notes_ruby
+      is_array = notes_ruby.class == Array
+      notes_ruby = notes_ruby.join(' • ') if is_array
+      notes_lily = notes_ruby.gsub(/\b([a-g])([b#]{1,2})/){
+        $1 + Liby::SIGN_RUBY_TO_SIGN_LILY[$2]
+      }
+      notes_lily = notes_lily.split(' • ') if is_array
+      notes_lily
+    end
     # -------------------------------------------------------------------
     #   Conversion Ruby -> Lilypond
     # -------------------------------------------------------------------

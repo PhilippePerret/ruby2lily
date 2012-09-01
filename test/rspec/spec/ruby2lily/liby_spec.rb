@@ -7,6 +7,10 @@ require 'liby'
 describe Liby do
 	# @note: seule la classe est utilisée (singleton)
 	
+	before(:all) do
+	  SCORE = Score::new unless defined? SCORE
+	  ORCHESTRE = Orchestre::new unless defined? ORCHESTRE
+	end
 	# -------------------------------------------------------------------
 	# 	Constantes
 	# -------------------------------------------------------------------
@@ -64,6 +68,27 @@ describe Liby do
 		end
 	end
 	
+	# -------------------------------------------------------------------
+	# 	Traitement des notes données
+	# 
+	# 	Principe : les notes données par ruby ne sont pas les mêmes que
+	# 	par lilypond, par exemple, le '#' peut être donné par ruby, mais
+	# 	transformé en 'is' pour lilypond. Toutes ces méthodes s'occupent
+	# 	de ces changements
+	# -------------------------------------------------------------------
+	describe "Méthodes de transformation des notes et signes" do
+	  it "doit répondre à :notes_ruby_to_notes_lily" do
+	    Liby.should respond_to :notes_ruby_to_notes_lily
+	  end
+		it ":notes_ruby_to_notes_lily doit renvoyer un bon résultat" do
+			paires = {
+				"a#" => "ais", "bb" => "bes", "c##" => "cisis", "dbb" => "deses"
+			}
+			paires.each do |cruby, clily|
+				Liby.notes_ruby_to_notes_lily(cruby).should == clily
+			end
+		end
+	end
 	# -------------------------------------------------------------------
 	# 	Méthodes path
 	# -------------------------------------------------------------------

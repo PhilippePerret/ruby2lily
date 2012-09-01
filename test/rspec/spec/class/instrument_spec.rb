@@ -70,7 +70,7 @@ describe Instrument do
 		# -------------------------------------------------------------------
 		describe "Définition de la partition" do
 			before(:each) do
-			  iv_set(@instru, :notes => nil)
+			  iv_set(@instru, :notes => "")
 			end
 			# :add
 		  it "doit répondre à la méthode :add" do
@@ -85,6 +85,7 @@ describe Instrument do
 			  @instru.should respond_to :add_as_string
 			end
 			it ":add_as_string doit ajouter les notes" do
+				notes = "a b c"
 				iv_set(@instru, :notes => "")
 			  @instru.add notes
 				iv_get(@instru, :notes).should == notes
@@ -97,8 +98,11 @@ describe Instrument do
 			  @instru.should respond_to :add_as_chord
 			end
 			it ":add_as_chord doit ajouter l'accord" do
+				accord = Chord::new ["c", "eb", "g"]
 			  @instru.add accord
-				iv_get(@instru, :notes).should == accord
+				iv_get(@instru, :notes).should == "<c ees g>"
+				@instru.add accord, :duree => 4
+				iv_get(@instru, :notes).should == "<c ees g> <c ees g>4"
 			end
 			
 			# :add_as_motif
@@ -106,8 +110,9 @@ describe Instrument do
 			  @instru.should respond_to :add_as_motif
 			end
 			it ":add_as_motif doit ajouter le motif" do
+				motif = Motif::new "a( b c b a)"
 			  @instru.add motif
-				iv_get(@instru, :notes).should == motif
+				iv_get(@instru, :notes).should == "a( b c b a)"
 			end
 		end
 
@@ -125,7 +130,8 @@ describe Instrument do
 			it ":as_lilypond_score doit retourner un code valide" do
 			  score = @instru.as_lilypond_score
 				score.class.should == String
-				score.should == ""
+				score.should == "\\new Staff {\n\\relative c'' {\n\t\\clef \"treble\"\n\t\\time 4/4\n\n}\n}\n"
+				pending "Un test plus poussé est nécessaire"
 			end
 			
 			# :staff_header
@@ -135,13 +141,13 @@ describe Instrument do
 			it ":staff_header doit retourner le bon code" do
 				iv_set(@instru, :staff => Staff::new )
 			  code = @instru.staff_header
-				code.should == "\t\\clef \"treble\"\n\t\\time \"4/4\"\n"
+				code.should == "\t\\clef \"treble\"\n\t\\time 4/4\n"
 				data = {:time => '6/8', :clef => 'F'}
 				iv_set(@instru, :staff => Staff::new(data))
 				staff = iv_get(@instru, :staff)
 				debug "staff: #{staff.inspect}"
 			  code = @instru.staff_header
-				code.should == "\t\\clef \"bass\"\n\t\\time \"6/8\"\n"
+				code.should == "\t\\clef \"bass\"\n\t\\time 6/8\n"
 			end
 			
 			# :staff_content
@@ -149,8 +155,9 @@ describe Instrument do
 			  @instru.should respond_to :staff_content
 			end
 			it ":staff_content doit retourner le bon code" do
+				iv_set(@instru, :notes => "a( b c)")
 			  @instru.staff_content.should_not == ""
-				pending "à implémenter"
+				@instru.staff_content.should =~ /a\( b c\)/
 			end
 		end # -> score lilypond
 

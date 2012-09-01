@@ -97,11 +97,11 @@ describe Staff do
 		end
 		it ":mark_time doit retourner la bonne valeur" do
 			SCORE = Score::new unless defined? SCORE
-			@s.mark_time.should == "\t\\time \"4/4\""
+			@s.mark_time.should == "\t\\time 4/4"
 		  iv_set(@s, :time => "4/4")
-			@s.mark_time.should == "\t\\time \"4/4\""
+			@s.mark_time.should == "\t\\time 4/4"
 		  iv_set(@s, :time => "12/8")
-			@s.mark_time.should == "\t\\time \"12/8\""
+			@s.mark_time.should == "\t\\time 12/8"
 		end
 		
 		# :mark_key (armure)
@@ -111,9 +111,9 @@ describe Staff do
 		it ":mark_key doit retourner la bonne valeur" do
 		  iv_set(SCORE, :key => nil)
 			@s.mark_key.should be_nil
-			iv_set(SCORE, :key => "ab-")
-			@s.mark_key.should == "\t\\key aes \\minor"
-			iv_set(SCORE, :key => "c")
+			iv_set(SCORE, :key => "Ab")
+			@s.mark_key.should == "\t\\key aes \\major"
+			iv_set(SCORE, :key => "C")
 			@s.mark_key.should be_nil
 		end
 	end

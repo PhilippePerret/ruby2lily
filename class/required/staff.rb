@@ -122,16 +122,8 @@ class Staff
   
   # => Return l'armure pour la partition
   def mark_key
-    return nil if SCORE.key.nil? || SCORE.key == "c"
-    dkey = SCORE.key.split("")
-    is_minor = dkey.count == 3 && (dkey[2] == "-" || dkey[2] == "m")
-    majmin = is_minor ? 'minor' : 'major'
-    alteration =  case dkey[1]
-                  when nil then ""
-                  when 'b', 'ß' then "es"
-                  when '#', 'd' then "is"
-                  end
-    note = "#{dkey[0]}#{alteration}"
-    "\t\\key #{note} \\#{majmin}"
+    return nil if SCORE.key.nil? || SCORE.key == "C"
+    data_key = LINote::TONALITES[SCORE.key]
+    "\t\\key #{data_key['llp']} \\major"
   end
 end

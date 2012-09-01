@@ -7,8 +7,8 @@ class Bass < Instrument
   # -------------------------------------------------------------------
   
   def initialize data = nil
-    
     super( data )
+    @clef = "F"
   end
   
 end

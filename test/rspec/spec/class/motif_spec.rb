@@ -5,6 +5,9 @@ require 'spec_helper'
 require 'motif'
 
 describe Motif do
+	before(:all) do
+	  SCORE = Score::new unless defined? SCORE
+	end
   describe "Instanciation" do
     it "sans argument doit laisser un motif vide" do
       @m = Motif::new
@@ -34,5 +37,34 @@ describe Motif do
 		  iv_set(@m, :motif => "c d e")
 			@m.to_s(1).should == "c1 d1 e1"
 		end
+	end
+	
+	describe "Transformation du motif" do
+	  before(:each) do
+	    @m = Motif::new "bb g f e,4 bb8"
+	  end
+		it "doit répondre à :moins" do
+		  @m.should respond_to :moins
+		end
+		it ":moins doit donner le motif avec les demi-tons en moins" do
+			iv_set(SCORE, :key => nil)
+		  @m.moins(1).should == "a fis e ees,4 a8"
+			@m.moins(2).should == "aes f ees d,4 aes8"
+			iv_set(SCORE, :key => 'G')
+		  @m.moins(1).should == "a fis e dis,4 a8"
+			@m.moins(2).should == "gis f dis d,4 gis8"
+		end
+		it "doit répondre à :plus" do
+		  @m.should respond_to :plus
+		end
+		it ":plus doit donner le motif supérieur" do
+			iv_set(SCORE, :key => nil)
+		  @m.plus(1).should == "b aes fis f,4 b8"
+			@m.plus(2).should == "c a g fis,4 c8"
+			iv_set(SCORE, :key => 'Bb')
+		  @m.plus(1).should == "b aes ges f,4 b8"
+			@m.plus(2).should == "c a g ges,4 c8"
+		end
+	
 	end
 end

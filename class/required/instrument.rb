@@ -40,7 +40,7 @@ class Instrument
   # -------------------------------------------------------------------
   @name       = nil   # Le nom (capitales) du musicien (constante) tel
                       # que défini dans le def-hash @orchestre
-  @data       = nil   # Les data telles que définies dans @orchestre
+  @data       = nil   # Les data telles que définies dans l'orchestre
   @ton        = nil   # La tonalité de la portée. C'est la tonalité du 
                       # morceau, par défaut, sauf pour les instruments
                       # transpositeur (p.e. sax en sib)
@@ -55,12 +55,11 @@ class Instrument
                       # cours du morceau
                       
   def initialize data = nil
-    @data = data
-    # puts "data : #{data.inspect}"
+    @data   = data
+    @notes  = ""
     data.each do |prop, value|
       instance_variable_set("@#{prop}", value)
     end unless data.nil?
-    @notes = ""
   end
   
   # => Retourne un accord (instance Accord) de l'instrument
@@ -71,7 +70,7 @@ class Instrument
   
   # => Retourne les accords de l'instrument spécifiés par +params+
   def accords params
-    
+    @chords ||= {}
   end
   alias :chords :accords
   
@@ -81,7 +80,7 @@ class Instrument
   end
   # => Retourne les motifs de l'instrument spécifiés par +params+
   def motifs params
-    
+    @motifs ||= {}
   end
   
   # => Retourne une mesure (instance Mesure) de l'instrument
@@ -108,11 +107,14 @@ class Instrument
   #         - Un motif (instance Motif)
   #         - Un hash complexe pouvant définir dans quelles mesures il
   #           faut ajouter la séquence (rare).
-  def add some
+  # @param  params    Hash contenant des valeurs pour modifier les 
+  #                   motifs ou les accords (à commencer par la durée,
+  #                   spécifiée par :duree => <duree lilypond>)
+  def add some, params = nil
     case some.class.to_s
-    when 'String' then  add_as_string some
-    when 'Motif'  then  add_as_motif  some
-    when 'Chord'  then  add_as_chord  some
+    when 'String' then  add_as_string Liby::notes_ruby_to_notes_lily(some)
+    when 'Motif'  then  add_as_motif  some, params
+    when 'Chord'  then  add_as_chord  some, params
     when 'Hash'   then raise "Les hash ne sont pas encore traités"
     else
       raise fatal_error(Instrument::ERRORS[:type_ajout_unknown])
@@ -121,16 +123,17 @@ class Instrument
   
   # => Ajoute la chose comme liste de notes
   def add_as_string str
-    (@notes << " #{str}").strip
+    @notes += " #{str}"
+    @notes = @notes.strip
   end
   # => Ajoute la chose comme accord
   # @param  chord     Instance Chord de l'accord
   # @param  duree     Durée (lilypond) optionnelle
   # 
   # @todo: des vérifications de la validaté des paramètres
-  def add_as_chord chord, duree = nil
-    n = chord.to_s
-    n += duree unless duree.nil?
+  def add_as_chord chord, params = nil
+    params ||= {}
+    n = chord.with_duree(params[:duree])
     add_as_string n
   end
   
@@ -139,9 +142,11 @@ class Instrument
   # @param  duree     Durée (lilypond) optionnelle
   # 
   # @todo: des vérifications de la validaté des paramètres
-  def add_as_motif motif, duree = nil
+  def add_as_motif motif, params = nil
     n = motif.to_s
-    n += duree unless duree.nil?
+    unless params.nil? || params[:duree].nil?
+      n += params[:duree]
+    end
     add_as_string n
   end
   

@@ -19,18 +19,23 @@ class Chord
   #                   basse à la plus haute
   #                   Peut-être un hash (non utilisé encore)
   def initialize params = nil
-    case params.class.to_s
-    when "Array"  then @chord = params
-    when "String" then @chord = params.split(" ")
-    else @chord = [] end
+    @chord = 
+      case params.class.to_s
+      when "Array"  
+        Liby::notes_ruby_to_notes_lily(params)
+      when "String" 
+        Liby::notes_ruby_to_notes_lily(params.split(" "))
+      else [] end
   end
   
   # =>  Retourne l'accord comme string. Si +duree+ est fournie, elle est
-  #     ajoutée
+  #     ajoutée (sinon, ce sera la durée précédente)
   def to_s duree = nil
     return nil if @chord.empty?
     str = "<#{@chord.join(' ')}>"
     str += duree.to_s unless duree.nil?
     str
   end
+  alias :with_duree :to_s
+  
 end

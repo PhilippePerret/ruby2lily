@@ -40,7 +40,7 @@ class Score
   @subtitle   = nil   # Sous-titre du morceau courant
   @composer   = nil   # Auteur (compositeur) du morceau courant
   @parolier   = nil   # Parolier du morceau courant (si paroles)
-  @key        = nil   # Tonalité
+  @key        = nil   # Tonalité (une valeur de clé de LINote::TONALITES)
   @time       = nil   # Signature
   @tempo      = nil   # Tempo de référence
   @base_tempo = nil   # Durée de la note tempo de référence (durée llp)

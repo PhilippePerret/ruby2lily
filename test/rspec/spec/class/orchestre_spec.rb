@@ -87,7 +87,7 @@ EOC
 			iv_set(@o, :instruments => [])
 		  score = @o.as_lilypond_score
 			# Sans rien préciser d'autre, le code doit être :
-			score.should == "\t\\clef \"treble\"\n\t\\time \"4/4\"\n"
+			score.should == "\t\\clef \"treble\"\n\t\\time 4/4\n"
 		end
 		it "doit répondre à :polyphonique?" do
 		  @o.should respond_to :polyphonique?

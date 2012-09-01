@@ -10,24 +10,47 @@
 
 % Informations score
 \header {
-	composer = "Philippe Perret"
 }
 
 % Score
-{	\clef "treble"
-	\time "4/4"
-	\key g \major
-c d e f
+{	<<\new Staff {
+\new Staff {
+\relative c'' {
 	\clef "treble"
-	\time "4/4"
-	\key g \major
-c d e f
+	\time 4/4
+
+}
+}
+
+}
+\new Staff {
+\new Staff {
+\relative c'' {
 	\clef "treble"
-	\time "4/4"
-	\key g \major
-c d e f
+	\time 4/4
+
+}
+}
+
+}
+\new Staff {
+\new Staff {
+\relative c'' {
+	\clef "bass"
+	\time 4/4
+
+}
+}
+
+}
+\new Staff {
+\new Staff {
+\relative c'' {
 	\clef "treble"
-	\time "4/4"
-	\key g \major
-c d e f
+	\time 4/4
+
+}
+}
+
+}	>>
 }
