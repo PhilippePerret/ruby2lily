@@ -15,14 +15,14 @@ require File.join(BASE_LILYPOND, 'module', 'handy_methods.rb')
 # --------------------------------
 Liby::analyze_command_line
 
-# Le score
+# Le score (défini par l'utilisateur et final)
 SCORE     = Score::new
 # L'orchestre pour la partition
 ORCHESTRE = Orchestre::new
 
 # Chargement du score
 # =====================
-load Liby::path_score_ruby
+load Liby::path_ruby_score
 
 # Composition de l'orchestre
 # ---------------------------

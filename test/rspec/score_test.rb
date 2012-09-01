@@ -1,0 +1,2 @@
+# Partition ruby
+@orchestre = ''

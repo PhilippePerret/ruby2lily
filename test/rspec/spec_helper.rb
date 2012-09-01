@@ -29,6 +29,14 @@ RSpec.configure do |config|
     STDOUT.write "::débug:: #{txt}\n"
   end
   
+  # => Initialise les paths principales liby (score ruby, score
+  # lilypond et pdf)
+  def init_all_paths_liby
+		cv_set(Liby, :path_lily_file 	=> nil)
+		cv_set(Liby, :path_pdf_file 	=> nil)
+		cv_set(Liby, :path_ruby_score => nil)			
+  end
+  
   def iv_set(objet, hash)
     hash.each do |k, v|
       objet.instance_variable_set("@#{k}", v)
