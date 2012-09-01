@@ -12,21 +12,22 @@ class Instrument
   #   Classe
   # -------------------------------------------------------------------
 
-  # Les types d'instrument
-  # @todo: il faudrait qu'ils y soient tous, puisqu'un contrôle est
-  # effectué ET que chaque instrument doit répondre à sa classe.
-  # @todo: peut-être serait-il possible d'utiliser une même classe
-  # pour plusieurs instruments, comme par exemple la portée piano pour
-  # la harpe et le xylophone.
-  TYPES = {
-    :Voice    => {},
-    :Cuivre   => {},
-    :Piano    => {},
-    :Strings  => {},
-    :Bass     => {},
-    :Drums    => {}
-  }
-  
+  unless defined?(Instrument::TYPES)
+    # Les types d'instrument
+    # @todo: il faudrait qu'ils y soient tous, puisqu'un contrôle est
+    # effectué ET que chaque instrument doit répondre à sa classe.
+    # @todo: peut-être serait-il possible d'utiliser une même classe
+    # pour plusieurs instruments, comme par exemple la portée piano pour
+    # la harpe et le xylophone.
+    TYPES = {
+      :Voice    => {},
+      :Cuivre   => {},
+      :Piano    => {},
+      :Strings  => {},
+      :Bass     => {},
+      :Drums    => {}
+    }
+  end
   # -------------------------------------------------------------------
   #   La classe
   # -------------------------------------------------------------------

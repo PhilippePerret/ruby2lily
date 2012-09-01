@@ -55,7 +55,8 @@ class Score::Sheet
     def score
       c = "% Score"
       c += "\n{"  # @todo: relative si nécessaire
-      # @todo: ici la partition
+      # @todo: ici la partition. Pour le moment, des notes par défault
+      c += "\n\tc'' d e f g"
       c += "\n}"
     end
     

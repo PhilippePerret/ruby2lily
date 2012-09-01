@@ -6,13 +6,14 @@
 
 class Note
   
-  ANGLO_TO_ITAL = {'a' => 'la', 'b' => 'si', 'c' => 'do', 'd' => 'ré', 'e' => 'mi', 'f' => 'fa', 'g' => 'sol'}
-  ITAL_TO_ANGLO = ANGLO_TO_ITAL.invert
+  unless defined?(Note::ANGLO_TO_ITAL)
+    ANGLO_TO_ITAL = {'a' => 'la', 'b' => 'si', 'c' => 'do', 'd' => 'ré', 'e' => 'mi', 'f' => 'fa', 'g' => 'sol'}
+    ITAL_TO_ANGLO = ANGLO_TO_ITAL.invert
   
-  ERRORS = {
-    :bad_octave => "L'octave doit être un nombre compris entre -8 et 8"
-  }
-  
+    ERRORS = {
+      :bad_octave => "L'octave doit être un nombre compris entre -8 et 8"
+    }
+  end
   # -------------------------------------------------------------------
   #   Classe
   # -------------------------------------------------------------------

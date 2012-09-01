@@ -14,7 +14,7 @@ describe Score::Sheet do
 	# -------------------------------------------------------------------
 	describe "Construction du score" do
 		before(:all) do
-			SCORE = Score::new
+			SCORE = Score::new unless defined? SCORE
 		  @path_score_ruby = Liby.send('find_path_score', 'partition_test')
 			cv_set(Liby, :path_ruby_score => @path_score_ruby)
 			@path_score_lily = Liby::path_lily_file
@@ -58,7 +58,7 @@ describe Score::Sheet do
 	# -------------------------------------------------------------------
 	describe "Méthodes pour le code du score Lilypond" do
 		before(:all) do
-		  SCORE = Score::new
+		  SCORE = Score::new unless defined? SCORE
 		end
 		it "doit répondre à :entete" do
 		  @sh.should respond_to :entete

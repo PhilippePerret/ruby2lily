@@ -37,6 +37,9 @@ describe Liby do
 		it "L'erreur :path_lily_undefined doit exister" do
 		  @derrs.should have_key :path_lily_undefined
 		end
+		it "L'erreur :lilyfile_does_not_exists doit exister" do
+		  @derrs.should have_key :lilyfile_does_not_exists
+		end
 	end
 	
 	# -------------------------------------------------------------------
@@ -87,7 +90,8 @@ describe Liby do
 		
 		def same_path_with_extension path, ext
 			folder	= File.dirname(path)
-			fichier	= File.basename(path, File.extname(path)) + ".#{ext}"
+			ext = ".#{ext}" unless ext == ""
+			fichier	= File.basename(path, File.extname(path)) + ext
 			File.join(folder, fichier)
 		end
 	  it "doit répondre à path_ruby_score" do
@@ -120,7 +124,16 @@ describe Liby do
 			cv_set(Liby, :path_ruby_score => p)
 			Liby.path_pdf_file.should == same_path_with_extension(p, 'pdf')
 		end
-	
+		it "doit répondre à :path_affixe_file" do
+		  Liby.should respond_to :path_affixe_file
+		end
+		it ":path_affixe_file doit renvoyer la bonne valeur" do
+			init_all_paths_liby
+		  Liby.path_affixe_file.should be_nil
+			p = File.expand_path('./partition_ruby.rb')
+			cv_set(Liby, :path_ruby_score => p)
+			Liby.path_affixe_file.should == same_path_with_extension(p, "")
+		end
 	end
 	# -------------------------------------------------------------------
 	# 	Analyse des arguments
@@ -153,10 +166,35 @@ describe Liby do
 	# 	Conversion du score ruby vers le score lilypond
 	# -------------------------------------------------------------------
 	describe "conversion score rb -> score ly" do
+		before(:each) do
+		  init_all_paths_liby
+		end
+		after(:each) do
+		  File.unlink @path_pdf unless @path_pdf.nil? || !File.exists?(@path_pdf)
+		end
 	  it "Liby doit répondre à :score_ruby_to_score_lilypond" do
 	    Liby.should respond_to :score_ruby_to_score_lilypond
 	  end
 
+		it "Liby doit répondre à :generate_pdf" do
+		  Liby.should respond_to :generate_pdf
+		end
+		it ":generate_pdf doit produire le pdf" do
+		  score_ruby = File.join(BASE_LILYPOND, 'partition_test')
+			cv_set(Liby, :path_ruby_score => score_ruby )
+			@path_pdf = Liby::path_pdf_file
+			File.unlink @path_pdf if File.exists? @path_pdf
+			File.exists?(@path_pdf).should be_false
+			
+			Liby::score_ruby_to_score_lilypond
+			code_ly = File.read(Liby::path_lily_file)
+			debug "---------\npath_ruby_score: #{Liby::path_ruby_score}" +
+						"\npath_lily_file: #{Liby::path_lily_file}" +
+			 			"\nCode score lilypond :\n#{code_ly}" +
+						"\n-------------\n"
+			Liby::generate_pdf
+			File.exists?(@path_pdf).should be_true
+		end
 		it "Liby doit répondre à :end_conversion" do
 		  Liby.should respond_to :end_conversion
 		end

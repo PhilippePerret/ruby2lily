@@ -4,19 +4,22 @@
 # C'est la classe qui chapeaute tout le processus
 # 
 class Liby
-  USAGE   = "@usage:\n\t$ ./ruby2lily.rb <path/to/score/ruby> <options>"
-  ERRORS  = {
-    :arg_path_file_ruby_needed  => "Le path du score ruby doit être donné en premier argument.\n#{USAGE}",
-    :arg_score_ruby_unfound     => "Le score '\#{path}' est introuvable",
-    :orchestre_undefined        => "Le score doit définir l'orchestre (@orchestre = ...)",
+  unless defined?(Liby::USAGE)
+    USAGE   = "@usage:\n\t$ ./ruby2lily.rb <path/to/score/ruby> <options>"
+    ERRORS  = {
+      :arg_path_file_ruby_needed  => "Le path du score ruby doit être donné en premier argument.\n#{USAGE}",
+      :arg_score_ruby_unfound     => "Le score '\#{path}' est introuvable",
+      :orchestre_undefined        => "Le score doit définir l'orchestre (@orchestre = ...)",
     
-    :path_lily_undefined        => "Impossible de définir le chemin au fichier Lilypond…"
-  }
+      :path_lily_undefined        => "Impossible de définir le chemin au fichier Lilypond…",
+      :lilyfile_does_not_exists   => "Le fichier Lilypond du score n'existe pas…"
+    }
+  end
+  @@path_ruby_score   = nil   # Le path au fichier du score ruby user
+  @@path_lily_file    = nil   # path au fichier lilypond
+  @@path_pdf_file     = nil   # Path au fichier pdf du score
+  @@path_affixe_file  = nil   # Affixe (utile pour commande lilypond)
   
-  @@path_ruby_score = nil   # Le path au fichier du score ruby user
-  @@path_lily_file  = nil   # path au fichier lilypond
-  @@path_pdf_file   = nil   # Path au fichier pdf du score
- 
   class << self
 
     # =>  Produit une erreur fatale d'identifiant +id_err+ avec les
@@ -71,6 +74,17 @@ class Liby
       end
     end
     
+    # => Produit le pdf et l'ouvre
+    def generate_pdf
+      begin
+        raise( :lilyfile_does_not_exists ) unless File.exists?( path_lily_file )
+        `lilypond --output='#{path_affixe_file}' '#{path_lily_file}'`
+        `open  '#{path_pdf_file}'`
+      rescue Exception => e
+        fatal_error e.message
+      end
+    end
+    
     # => Message de fin de conversion
     def end_conversion
       # @todo: pour le moment :
@@ -91,16 +105,20 @@ class Liby
     def path_pdf_file
       @@path_pdf_file ||= path_of_extension( 'pdf' )
     end
+    def path_affixe_file
+      @@path_affixe_file ||= path_of_extension
+    end
     # => Retourne le path courant avec l'extension +extension+
     # 
     # Cette méthode part du principe que tous les fichiers d'un même
     # score (partition) possède le même path, à la différence de 
     # l'extension près.
-    def path_of_extension extension
+    def path_of_extension extension = ""
       return nil if path_ruby_score.nil?
       folder  = File.dirname(@@path_ruby_score)
       affixe  = File.basename(@@path_ruby_score, '.rb')
-      File.join(folder, "#{affixe}.#{extension}")
+      extension = ".#{extension}" unless extension == ""
+      File.join(folder, "#{affixe}#{extension}")
     end
   end # / class << self
 

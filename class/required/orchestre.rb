@@ -4,11 +4,13 @@
 
 class Orchestre
   
-  ERRORS = {
-    :undefined_name       => "Le nom du musicien doit être toujours défini",
-    :unknown_instrument   => "L'instrument \#{instrument} est inconnu…",
-    :instrument_undefined => "L'instrument n'est pas défini, pour #{name}…"
-  }
+  unless defined?(Orchestre::ERRORS)
+    ERRORS = {
+      :undefined_name       => "Le nom du musicien doit être toujours défini",
+      :unknown_instrument   => "L'instrument \#{instrument} est inconnu…",
+      :instrument_undefined => "L'instrument n'est pas défini, pour #{name}…"
+    }
+  end
   # -------------------------------------------------------------------
   #   Classe
   # -------------------------------------------------------------------

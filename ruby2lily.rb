@@ -7,7 +7,7 @@
 # 
 
 # Définition préliminaire (initiliasation)
-BASE_LILYPOND = File.dirname(__FILE__)
+BASE_LILYPOND = File.dirname(__FILE__) unless defined? BASE_LILYPOND
 require File.join(BASE_LILYPOND, 'module', 'init.rb')
 require File.join(BASE_LILYPOND, 'module', 'handy_methods.rb')
 
@@ -16,7 +16,7 @@ require File.join(BASE_LILYPOND, 'module', 'handy_methods.rb')
 Liby::analyze_command_line
 
 # Le score (défini par l'utilisateur et final)
-SCORE     = Score::new
+SCORE     = Score::new  unless defined? SCORE # during tests
 # L'orchestre pour la partition
 ORCHESTRE = Orchestre::new
 
@@ -47,7 +47,9 @@ SCORE::set(
 # -----------------------------------------------
 Liby::score_ruby_to_score_lilypond
 
-
+# Génération du pdf
+# ------------------
+Liby::generate_pdf
 
 # Message de fin
 # --------------

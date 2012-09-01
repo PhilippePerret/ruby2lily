@@ -35,6 +35,9 @@ describe "La commande `ruby2lily' avec des erreurs" do
 end
 
 describe "La commande `ruby2lily' sans erreur" do
+	after(:each) do
+	  File.unlink @path_pdf unless @path_pdf.nil? || !File.exists?(@path_pdf)
+	end
 	
 	# =>	Appel ruby2lily en ligne de commande
 	# 		et place le résultat (donc tout le texte généré par le programme
@@ -55,6 +58,7 @@ describe "La commande `ruby2lily' sans erreur" do
 
 	before(:all) do
 	  @good_score = 'partition_test.rb'
+		@path_pdf		= 'partition_test.pdf'
 	end
 	describe "Appel en ligne de commande" do
 	  before(:all) do

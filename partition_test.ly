@@ -15,4 +15,5 @@
 
 % Score
 {
+	c'' d e f g
 }

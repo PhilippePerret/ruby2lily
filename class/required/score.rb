@@ -14,20 +14,21 @@ class Score
   #   Classe
   # -------------------------------------------------------------------
 
-  # Les préférences pour le score courant
-  # (même si c'est une constante de classe)
-  PREFERENCES = {
-    :no_title => false,     # Mettre à true pour ne pas afficher le titre
+  unless defined?(Score::DEFAULT_VALUES)
+    # Les préférences pour le score courant
+    # (même si c'est une constante de classe)
+    PREFERENCES = {
+      :no_title => false,     # Mettre à true pour ne pas afficher le titre
     
-    :end_end_end => nil     # juste pour sans virgule
-  }
+      :end_end_end => nil     # juste pour sans virgule
+    }
   
-  # Toutes les valeurs par défaut pour les scores à imprimer
-  DEFAULT_VALUES = {
-    :title  => "Partition sans titre",
-    :time   => '4/4'
-  }
-  
+    # Toutes les valeurs par défaut pour les scores à imprimer
+    DEFAULT_VALUES = {
+      :title  => "Partition sans titre",
+      :time   => '4/4'
+    }
+  end
   # -------------------------------------------------------------------
   #   Instance
   # -------------------------------------------------------------------

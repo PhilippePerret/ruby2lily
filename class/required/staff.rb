@@ -3,19 +3,20 @@
 # 
 class Staff
 
-  CLE_FR_TO_EN = {
-    'sol' => 'treble',
-    'ut3' => 'alto',
-    'ut4' => 'tenor',
-    'fa'  => 'bass'
-  }
-  CLE_EN_TO_FR = CLE_FR_TO_EN.invert
+  unless defined?(Staff::CLE_FR_TO_EN)
+    CLE_FR_TO_EN = {
+      'sol' => 'treble',
+      'ut3' => 'alto',
+      'ut4' => 'tenor',
+      'fa'  => 'bass'
+    }
+    CLE_EN_TO_FR = CLE_FR_TO_EN.invert
   
-  ERRORS = {
-    :bad_tempo_value  => "Mauvaise valeur pour le tempo",
-    :bad_value_clef   => "Mauvaise valeur pour la clé (soit #{CLE_FR_TO_EN.keys.join(', ')}, soit #{CLE_FR_TO_EN.values.join(', ')})"
-  }
-  
+    ERRORS = {
+      :bad_tempo_value  => "Mauvaise valeur pour le tempo",
+      :bad_value_clef   => "Mauvaise valeur pour la clé (soit #{CLE_FR_TO_EN.keys.join(', ')}, soit #{CLE_FR_TO_EN.values.join(', ')})"
+    }
+  end
   
   # -------------------------------------------------------------------
   #   L'instance
