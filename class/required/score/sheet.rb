@@ -55,8 +55,9 @@ class Score::Sheet
     def score
       c = "% Score"
       c += "\n{"  # @todo: relative si nécessaire
-      # @todo: ici la partition. Pour le moment, des notes par défault
-      c += "\n\tc'' d e f g"
+      c += "\t<<" if ORCHESTRE.polyphonique?
+      c += ORCHESTRE::as_lilypond_score
+      c += "\t>>" if ORCHESTRE.polyphonique?
       c += "\n}"
     end
     

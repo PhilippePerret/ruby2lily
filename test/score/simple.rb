@@ -1,0 +1,21 @@
+@title    = "Partita"
+@composer = "J.S. Bach"
+@opus     = "1"
+@tempo    = 120
+@time     = "6/8"
+
+def orchestre
+  <<-ORC
+
+      name    instrument    clef    tune
+    -------------------------------------------------------------------
+      GIT1    Guitar        -       -
+    -------------------------------------------------------------------
+    
+  ORC
+end
+
+def score
+  GIT1.add "c8( b c d c b)"
+  GIT1.add "a( g f e f g)"
+end

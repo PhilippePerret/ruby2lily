@@ -7,6 +7,14 @@ require 'score/sheet'
 describe Score::Sheet do
 	before(:all) do
 	  @sh = Score::Sheet
+	  SCORE 		= Score::new unless defined? SCORE
+		ORCHESTRE = Orchestre::new unless defined? ORCHESTRE
+		@orch_str = <<-EOO
+				name		instrument	clef		ton
+				CHANT		Voice				-				-
+				PIANO		Piano				-				-
+		EOO
+		ORCHESTRE.compose @orch_str
 	end
 	
 	# -------------------------------------------------------------------
@@ -57,9 +65,6 @@ describe Score::Sheet do
 	# 	version, compositeur, etc.
 	# -------------------------------------------------------------------
 	describe "Méthodes pour le code du score Lilypond" do
-		before(:all) do
-		  SCORE = Score::new unless defined? SCORE
-		end
 		it "doit répondre à :entete" do
 		  @sh.should respond_to :entete
 		end

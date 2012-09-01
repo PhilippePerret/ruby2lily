@@ -32,18 +32,18 @@ class Score
   # -------------------------------------------------------------------
   #   Instance
   # -------------------------------------------------------------------
-  attr_reader :title, :opus, :subtitle, :composer, :parolier, :tune, :time,
-              :tempo, :base_tempo
+  attr_reader :title, :opus, :subtitle, :composer, :parolier, :key, 
+              :time, :tempo, :base_tempo
               
   @title      = nil   # Titre du morceau courant
   @opus       = nil   # Opus (sans "Op. ")
   @subtitle   = nil   # Sous-titre du morceau courant
   @composer   = nil   # Auteur (compositeur) du morceau courant
   @parolier   = nil   # Parolier du morceau courant (si paroles)
-  @tune       = nil   # Tonalité
+  @key        = nil   # Tonalité
   @time       = nil   # Signature
   @tempo      = nil   # Tempo de référence
-  @base_tempo = nil   # Durée de la note tempo de référence (noire)
+  @base_tempo = nil   # Durée de la note tempo de référence (durée llp)
   
   def initialize params = nil
     

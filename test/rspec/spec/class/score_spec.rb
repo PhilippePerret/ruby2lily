@@ -62,7 +62,7 @@ describe Score do
 					:title => "Titre de la partition",
 					:composer => "Le compositeur",
 					:author		=> "L'auteur des paroles",
-					:tune			=> G,
+					:key			=> G,
 					:subtitle	=> nil
 				}
 			  @s.set data

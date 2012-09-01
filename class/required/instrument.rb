@@ -22,8 +22,9 @@ class Instrument
     TYPES = {
       :Voice    => {},
       :Cuivre   => {},
-      :Piano    => {},
       :Strings  => {},
+      :Piano    => {},
+      :Guitar   => {},
       :Bass     => {},
       :Drums    => {}
     }
@@ -47,12 +48,19 @@ class Instrument
                       # G (sol), F (fa), U3 (ut 3e ligne), 
                       # U4 (ut 4e ligne)
   
+  @staff      = nil   # Instance Staff pour la construction de la portée
+                      # de l'instrument
+  
+  @notes      = nil   # La liste String des notes de l'instrument au 
+                      # cours du morceau
+                      
   def initialize data = nil
     @data = data
     # puts "data : #{data.inspect}"
     data.each do |prop, value|
       instance_variable_set("@#{prop}", value)
     end unless data.nil?
+    @notes = ""
   end
   
   # => Retourne un accord (instance Accord) de l'instrument
@@ -87,4 +95,110 @@ class Instrument
     
   end
   alias :measures :mesures
+  
+  # -------------------------------------------------------------------
+  #   Méthodes de définition de la partition de l'instrument
+  # -------------------------------------------------------------------
+  
+  # => Ajoute l'élément +some+ à la partition de l'instrument
+  # 
+  # @param  some   
+  #         Peut-être :
+  #         - String des notes à ajouter, p.e. "c2 bb | c4 d d d"
+  #         - Un motif (instance Motif)
+  #         - Un hash complexe pouvant définir dans quelles mesures il
+  #           faut ajouter la séquence (rare).
+  def add some
+    case some.class.to_s
+    when 'String' then  add_as_string some
+    when 'Motif'  then  add_as_motif  some
+    when 'Chord'  then  add_as_chord  some
+    when 'Hash'   then raise "Les hash ne sont pas encore traités"
+    else
+      raise fatal_error(Instrument::ERRORS[:type_ajout_unknown])
+    end
+  end
+  
+  # => Ajoute la chose comme liste de notes
+  def add_as_string str
+    (@notes << " #{str}").strip
+  end
+  # => Ajoute la chose comme accord
+  # @param  chord     Instance Chord de l'accord
+  # @param  duree     Durée (lilypond) optionnelle
+  # 
+  # @todo: des vérifications de la validaté des paramètres
+  def add_as_chord chord, duree = nil
+    n = chord.to_s
+    n += duree unless duree.nil?
+    add_as_string n
+  end
+  
+  # => Ajoute la chose comme motif
+  # @param  motif     Instance Motif du motif
+  # @param  duree     Durée (lilypond) optionnelle
+  # 
+  # @todo: des vérifications de la validaté des paramètres
+  def add_as_motif motif, duree = nil
+    n = motif.to_s
+    n += duree unless duree.nil?
+    add_as_string n
+  end
+  
+  # -------------------------------------------------------------------
+  #   Méthodes de construction du score Lilypond
+  # -------------------------------------------------------------------
+
+  # => Return le code lilypond pour l'instrument (hors accolades)
+  # 
+  # @param  params    Les paramètres (non utilisés encore, mais à 
+  #                   l'avenir, permettra par exemple de définir les
+  #                   mesures à prendre)
+  # 
+  # @note: le code renvoyé est sans accolades, il est donc ajouté
+  # "{" et "}" autour du retour lorsqu'il y a plusieurs instruments par
+  # exemple.
+  # @todo: dans l'avenir, c'est cette méthode ou équivalente dans chaque
+  # type d'instrument qui devra le faire, pour pouvoir ajouter des
+  # définitions.
+  # -------------------------------------------------------------------
+  # @principe
+  #   On passe en revue chaque mesure de l'instrument et on crée le
+  #   code.
+  # -------------------------------------------------------------------
+  def as_lilypond_score params = nil
+    @staff = Staff::new(
+                        :clef         => @clef, 
+                        :tempo        => SCORE.tempo, 
+                        :base_tempo   => SCORE.base_tempo,
+                        :octave_clef  => @octave_clef
+                        )
+
+    score  = "\\new Staff {\n" +
+             "\\relative c'' {\n" + 
+             staff_header
+    score += staff_content
+    score += "\n}\n}\n"
+    return score
+  end
+  
+  # => Return l'entête de la portée (clé, tempo, signature)
+  def staff_header
+    header = ""
+    header += @staff.mark_clef  + "\n"
+    header += @staff.mark_time  + "\n"
+    key = @staff.mark_key
+    header += "#{key}\n" unless key.nil?
+    tempo = @staff.mark_tempo
+    header += "#{tempo}\n" unless tempo.nil?
+    header
+  end
+  
+  # => Return le contenu des notes de l'instrument
+  # 
+  # @note : pour le moment, on ne fait que retourner les notes mémorisées
+  # mais à l'avenir un traitement plus sérieux devra peut-être être fait.
+  def staff_content
+    @notes
+  end
 end

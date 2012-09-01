@@ -26,7 +26,8 @@ load Liby::path_ruby_score
 
 # Composition de l'orchestre
 # ---------------------------
-ORCHESTRE::compose @orchestre
+ORCHESTRE::compose orchestre 
+  # @note: `orchestre' est une méthode de la partition
 
 # Définition de la partition (Score)
 # -----------------------------------
@@ -37,7 +38,7 @@ SCORE::set(
   :subtitle   => @subtitle    || @soustitre,
   :composer   => @composer    || @compositeur,
   :author     => @author      || @parolier,
-  :tune       => @tune        || @ton,
+  :key        => @key         || @tune || @ton,
   :time       => @time        || @signature,
   :tempo      => @tempo,
   :base_tempo => @base_tempo
@@ -45,6 +46,7 @@ SCORE::set(
 
 # Transformation du score ruby en score lilypond
 # -----------------------------------------------
+score # une méthode de la partition
 Liby::score_ruby_to_score_lilypond
 
 # Génération du pdf

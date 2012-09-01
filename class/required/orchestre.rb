@@ -20,6 +20,8 @@ class Orchestre
   # -------------------------------------------------------------------
   @data_orchestre   = nil   # Les data complètes de l'orchestre
   @tonalite_defaut  = nil   # Tonalité par défaut (la première trouvée)
+  @instruments      = nil   # Liste des instruments (constantes qui 
+                            # sont des instances d'instruments)
   
   def initialize
   end
@@ -28,6 +30,8 @@ class Orchestre
     
     Liby::fatal_error(:orchestre_undefined) if orchestre_str.nil?
     
+    @instruments = []
+    
     # puts "--> Orchestre::compose"
     @data_orchestre = orchestre_str.to_array
 
@@ -35,20 +39,27 @@ class Orchestre
     # puts "@data_orchestre: #{@data_orchestre.inspect}"
     # # = /débug =
     
-    # On cherche le premier ton défini
-    @tonalite_defaut = nil
-    @data_orchestre.each do |data|
-      if data[:ton] != nil
-        @tonalite_defaut = data[:ton]
-        break
+    # On cherche le premier ton défini si le ton n'a pas été défini
+    # dans les données
+    if SCORE.key.nil?
+      @data_orchestre.each do |data|
+        if data[:ton] != nil
+          @tonalite_defaut = data[:ton]
+          break
+        end
       end
+    else
+      @tonalite_defaut = SCORE.key
     end
     # On transforme chaque instruments en classe Instrument qui sera
     # contenu par une constante.
     @data_orchestre.each do |d_instrument|
       # Le nom (= la constante qui sera utilisée)
       name        = d_instrument[:name]
-      Liby::fatal_error(Orchestre::ERRORS[:undefined_name]) if name.nil?
+      if name.nil?
+        Liby::fatal_error(Orchestre::ERRORS[:undefined_name]) 
+      end
+      
       # L'instrument (qui définira la classe du musicien)
       instrument  = d_instrument.delete(:instrument)
       if instrument.nil?
@@ -62,8 +73,32 @@ class Orchestre
       # On transforme les membres de l'orchestre en constantes globales
       cmd = "#{name} = #{instrument}::new(#{d_instrument.inspect})"
       Kernel.class_eval cmd
+      
+      # On ajoute cet instrument à la liste des instruments
+      @instruments << eval("#{name}")
     end
     
+  end # / compose
+  
+  # => Return le code du score au format lilypond (hors accolades)
+  # 
+  # Le code est construit en passant en revue tous les instruments de
+  # l'orchestre
+  def as_lilypond_score
+    score = if polyphonique?
+              @instruments.collect do |instrument|
+                "\\new Staff {\n" + instrument.as_lilypond_score + "\n}"
+              end
+            else
+              @instruments.collect do |instrument| 
+                instrument.as_lilypond_score
+              end
+            end
+    score.join("\n")
   end
   
+  # => Return true si l'orchestre comprend plusieurs instruments
+  def polyphonique?
+    @instruments.count > 1
+  end
 end

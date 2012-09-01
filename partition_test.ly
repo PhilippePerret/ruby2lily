@@ -14,6 +14,20 @@
 }
 
 % Score
-{
-	c'' d e f g
+{	\clef "treble"
+	\time "4/4"
+	\key g \major
+c d e f
+	\clef "treble"
+	\time "4/4"
+	\key g \major
+c d e f
+	\clef "treble"
+	\time "4/4"
+	\key g \major
+c d e f
+	\clef "treble"
+	\time "4/4"
+	\key g \major
+c d e f
 }

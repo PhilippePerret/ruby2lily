@@ -2,23 +2,31 @@
 # La partition test
 # 
 # @todo: peut-être l'appeler 'score_example.rb' pour s'en servir
-# comme exemple.
+# comme exemple à proposer pour une nouvelle partition.
 # 
+def page
+  @title      = "Partition à l'essai"     # Titre du morceau
+  # @subtitle   = "Seulement pour essai"    # Sous-titre (if any)
+  @composer   = "Philippe Perret"         # Compositeur
+  # @parolier   = "Philippe Perret"         # Parolier (if any)
+  @ton        = G                         # Tonalité
+  @time       = "4/4"
+end
 
-@title      = "Partition à l'essai"     # Titre du morceau
-# @subtitle   = "Seulement pour essai"    # Sous-titre (if any)
-@composer   = "Philippe Perret"         # Compositeur
-# @parolier   = "Philippe Perret"         # Parolier (if any)
-@ton        = G                         # Tonalité
+def orchestre
+  <<-HDEF
 
-@orchestre = <<-HDEF
+      name        instrument  clef      ton
+    -------------------------------------------------------------------
+      SALLY       Voice       -         -
+      PIANO       Piano       -         -
+      BASSE       Bass        -         -
+      BATTERIE    Drums       -         -
+    -------------------------------------------------------------------
 
-    name        instrument  clef      ton
-  -------------------------------------------------------------------
-    SALLY       Voice       -         G
-    PIANO       Piano       -         -
-    BASSE       Bass        -         -
-    BATTERIE    Drums       -         -
-  -------------------------------------------------------------------
+  HDEF
+end
+
+def score
   
-HDEF
+end

@@ -5,6 +5,9 @@ require 'spec_helper'
 require 'orchestre'
 
 describe Orchestre do
+	before(:all) do
+	  SCORE = Score::new unless defined? SCORE
+	end
   # -------------------------------------------------------------------
 	# La classe
 	# -------------------------------------------------------------------
@@ -43,26 +46,58 @@ describe Orchestre do
 			expect{res = @o.compose(nil)}.to raise_error SystemExit
 		end
 		it ":compose doit lever une erreur s'il manque le nom (constante)" do
-		  code = "@orchestre = <<-DEFH\n" +
-							"name\tinstrument\tclef\tton\n" +
-							"-\tPiano\tU4\tG\n"
-							"DEFH"
+		  code = 	"name\tinstrument\tclef\tton\n" +
+							"-\tPiano\tU4\tG"
 			expect{res = @o.compose(code)}.to raise_error SystemExit
 			# @todo: avec l'erreur : Orchestre::ERRORS[:undefined_name]
 		end
 		it ":compose doit lever une erreur si l'instrument n'est pas défini" do
-			code = 	"@orchestre = <<-DEFH\n" +
-							"name\tinstrument\tclef\tton\n" +
-							"FAUX\t-\t-\t-\nDEFH"
+			code = 	"name\tinstrument\tclef\tton\n" +
+							"FAUX\t-\t-\t-"
 			expect{res = @o.compose(code)}.to raise_error SystemExit
 			# @todo: avec l'erreur : Orchestre::ERRORS[:instrument_undefined]
 		end
 		it ":compose doit lever une erreur si un instrument n'existe pas" do
-			code = 	"@orchestre = <<-DEFH\n" +
-							"name\tinstrument\tclef\tton\n" +
-							"FAUX\tbadinstrument\t-\t-\nDEFH"
+			code = 	"name\tinstrument\tclef\tton\n" +
+							"FAUX\tbadinstrument\t-\t-"
 			expect{res = @o.compose(code)}.to raise_error SystemExit
 		 	# @todo: avec l'erreur : Orchestre::ERRORS[:unknown_instrument]
+		end
+		it ":compose doit ajouter les instruments à la liste de l'orchestre" do
+		  code = <<-EOC
+
+		name		instrument		clef			ton
+	-------------------------------------------------------------------
+		STING		Voice					-					F
+		JEAN		Piano					-					-
+
+EOC
+			@o.compose( code.strip )
+			iv_get(@o, :instruments).should == [STING, JEAN]
+		end
+	end
+	describe "L'instance" do
+	  before(:each) do
+	    @o = Orchestre::new
+	  end
+		it "doit répondre à :score" do
+		  @o.should respond_to :as_lilypond_score
+		end
+		it ":as_lilypond_score doit renvoyer la partition au format lilypond" do
+			iv_set(@o, :instruments => [])
+		  score = @o.as_lilypond_score
+			# Sans rien préciser d'autre, le code doit être :
+			score.should == "\t\\clef \"treble\"\n\t\\time \"4/4\"\n"
+		end
+		it "doit répondre à :polyphonique?" do
+		  @o.should respond_to :polyphonique?
+		end
+		it ":polyphonique? doit renvoyer la bonne valeur" do
+		  iv_set(@o, :instruments => [1])
+			@o.should_not be_polyphonique
+			iv_set(@o, :instruments => [1,2,3])
+			@o.should be_polyphonique
+			iv_set(@o, :instruments => nil)
 		end
 	end
 end

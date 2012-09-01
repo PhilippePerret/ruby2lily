@@ -57,12 +57,12 @@ describe Staff do
 			@s.should respond_to :to_lilipond
 		end
 		it ":to_llp doit retourner la bonne valeur" do
-			code_llp = "{\n}"
+			code_llp = "{\n\t\\clef \"treble\"\n}"
 		  @s.to_llp.should == code_llp
 			@s.tempo = 120
-			@s.to_llp.should == "{\n\t\\tempo 4 = 120\n}"
+			@s.to_llp.should == "{\n\t\\clef \"treble\"\n\t\\tempo 4 = 120\n}"
 			@s.tempo = "Moderato"
-			@s.to_llp.should == "{\n\t\\tempo \"Moderato\" 4 = 120\n}"
+			@s.to_llp.should == "{\n\t\\clef \"treble\"\n\t\\tempo \"Moderato\" 4 = 120\n}"
 			@s.clef = "treble"
 			@s.to_llp.should == "{\n\t\\clef \"treble\"\n\t\\tempo \"Moderato\" 4 = 120\n}"
 		end
@@ -86,11 +86,35 @@ describe Staff do
 		  @s.should respond_to :mark_clef
 		end
 		it ":mark_clef doit retourner la bonne valeur" do
-		  @s.mark_clef.should be_nil
-			@s.clef = "treble"
 			@s.mark_clef.should == "\t\\clef \"treble\""
 			@s.clef = "fa"
 			@s.mark_clef.should == "\t\\clef \"bass\""
+		end
+		
+		# :mark_time
+		it "doit répondre à :mark_time" do
+		  @s.should respond_to :mark_time
+		end
+		it ":mark_time doit retourner la bonne valeur" do
+			SCORE = Score::new unless defined? SCORE
+			@s.mark_time.should == "\t\\time \"4/4\""
+		  iv_set(@s, :time => "4/4")
+			@s.mark_time.should == "\t\\time \"4/4\""
+		  iv_set(@s, :time => "12/8")
+			@s.mark_time.should == "\t\\time \"12/8\""
+		end
+		
+		# :mark_key (armure)
+		it "doit répondre à :mark_key" do
+		  @s.should respond_to :mark_key
+		end
+		it ":mark_key doit retourner la bonne valeur" do
+		  iv_set(SCORE, :key => nil)
+			@s.mark_key.should be_nil
+			iv_set(SCORE, :key => "ab-")
+			@s.mark_key.should == "\t\\key aes \\minor"
+			iv_set(SCORE, :key => "c")
+			@s.mark_key.should be_nil
 		end
 	end
 end

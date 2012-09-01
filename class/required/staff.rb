@@ -6,9 +6,13 @@ class Staff
   unless defined?(Staff::CLE_FR_TO_EN)
     CLE_FR_TO_EN = {
       'sol' => 'treble',
+      'G'   => 'treble',
       'ut3' => 'alto',
+      'U3'  => 'alto',
       'ut4' => 'tenor',
-      'fa'  => 'bass'
+      'U4'  => "tenor",
+      'fa'  => 'bass',
+      'F'   => 'bass'
     }
     CLE_EN_TO_FR = CLE_FR_TO_EN.invert
   
@@ -28,7 +32,21 @@ class Staff
                           # entier correspondant à la durée lilipond)
   @clef         = nil     # La clé
   @octave_clef  = nil     # Le nombre d'octaves modifiant la clé
+  @time         = nil     # La signature
   
+  def initialize data = nil
+    unless data.nil?
+      if data.has_key?( :tempo ) && !data[:tempo].nil?
+        self.tempo= data[:tempo] 
+      end
+      @base_tempo   = data[:base_tempo]
+      if data.has_key?( :clef ) && !data[:clef].nil?
+        self.clef= data[:clef]
+      end
+      @octave_clef  = data[:octave_clef]
+      @time         = data[:time]
+    end
+  end
   # => Définit le tempo
   # @param  valeur      Soit un nombre (métronome), soit une valeur
   #                     string comme "Andante", "Allegro", etc.
@@ -55,12 +73,13 @@ class Staff
     elsif CLE_EN_TO_FR.has_key? cle.to_s
       @clef = cle.to_s
     else
+       @clef = nil
       raise ERRORS[:bad_value_clef]
     end
     if octave.nil?
-      octave_clef = "4"
+      @octave_clef = nil
     else
-      octave_clef = octave
+      @octave_clef = octave
     end
   end
   
@@ -92,7 +111,27 @@ class Staff
   
   # => Retourne la marque pour la clé dans la portée
   def mark_clef
-    return nil if @clef.nil?
-    "\t\\clef \"#{@clef}\""
+    "\t\\clef \"#{@clef || 'treble'}\""
+  end
+  
+  # => Return la signature pour la partition lilypond
+  def mark_time
+    @time ||= SCORE.time || "4/4"
+    "\t\\time #{@time}" # warning: pas de guillemets
+  end
+  
+  # => Return l'armure pour la partition
+  def mark_key
+    return nil if SCORE.key.nil? || SCORE.key == "c"
+    dkey = SCORE.key.split("")
+    is_minor = dkey.count == 3 && (dkey[2] == "-" || dkey[2] == "m")
+    majmin = is_minor ? 'minor' : 'major'
+    alteration =  case dkey[1]
+                  when nil then ""
+                  when 'b', 'ß' then "es"
+                  when '#', 'd' then "is"
+                  end
+    note = "#{dkey[0]}#{alteration}"
+    "\t\\key #{note} \\#{majmin}"
   end
 end
