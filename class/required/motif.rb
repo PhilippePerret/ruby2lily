@@ -28,7 +28,23 @@ class Motif
     end
     return @motif unless params.has_key?(:duree) && params[:duree]!=nil
     params[:duree] = params[:duree].to_s
-    @motif.split(' ').collect{ |e| e + params[:duree]}.join(' ')
+    @motif.split(' ').collect{ |e| ("#{e}#{params[:duree]}")}.join(' ')
+  end
+  
+  # => Méthode d'addition de motif
+  # 
+  # @param  motif   Le motif à ajouter (mais peut très bien être un
+  #                 simple string).
+  # @param  params  Paramètres supplémentaire. 
+  #                 Cf. `change_objet_ou_new_instance'
+  def + motif, params = nil
+    new_motif = "#{@motif} #{motif.to_s} "
+    change_objet_ou_new_instance new_motif, params, true
+  end
+  
+  # => Méthode de multiplication de motif
+  def *( nombre_fois )
+    @motif * nombre_fois
   end
   
   # -------------------------------------------------------------------
@@ -100,7 +116,7 @@ class Motif
     start   = params.has_key?( :start ) ? "\\#{params[:start]} " : ''
     markin  = for_crescendo ? '\<' : '\>'
     markout = params.has_key?( :end   ) ? " \\#{params[:end]}" : '\!'
-    motif_leg = start + pose_first_and_last_note( markin, markout )
+    motif_leg = "#{start}#{pose_first_and_last_note(markin, markout)}"
     change_objet_ou_new_instance motif_leg, params, true
   end
   

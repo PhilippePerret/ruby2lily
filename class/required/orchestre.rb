@@ -85,16 +85,7 @@ class Orchestre
   # Le code est construit en passant en revue tous les instruments de
   # l'orchestre
   def to_lilypond
-    score = if polyphonique?
-              @instruments.collect do |instrument|
-                "\\new Staff {\n" + instrument.to_lilypond + "\n}"
-              end
-            else
-              @instruments.collect do |instrument| 
-                instrument.to_lilypond
-              end
-            end
-    score.join("\n")
+    @instruments.collect{|instrument|instrument.to_lilypond}.join("\n")
   end
   
   # => Return true si l'orchestre comprend plusieurs instruments

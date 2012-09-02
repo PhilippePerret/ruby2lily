@@ -97,7 +97,7 @@ describe Instrument do
 			  @instru.add notes
 				iv_get(@instru, :notes).should == notes
 				@instru.add "fb b##"
-				iv_get(@instru, :notes).should == notes + " fes bisis"
+				iv_get(@instru, :notes).should == notes << " fes bisis"
 			end
 			
 			# :add_as_chord
@@ -138,7 +138,7 @@ describe Instrument do
 			  score = @instru.to_lilypond
 				score.class.should == String
 				score.should == 
-					"\\new Staff {\n\t\\relative c'' {\n\t\t\\clef \"treble\"\n\t\t\\time 4/4\n\t\t\n\t}\n}\n"
+					"\\new Staff {\n\t\\relative c'' {\n\t\t\\clef \"treble\"\n\t\t\\time 4/4\n\t\t\n\t}\n}"
 				pending "Un test plus poussé est nécessaire"
 			end
 			

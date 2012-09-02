@@ -3,6 +3,34 @@
 # 
 class String
   
+  # -------------------------------------------------------------------
+  #   Redéfinitions propres à Ruby2Lily
+  # -------------------------------------------------------------------
+  
+  def *( nombre )
+    t = ""
+    nombre.times { |i| t  << "#{self} " }
+    t
+  end
+  
+  # Pour remplacer "*" modifiée ci-dessus
+  def fois nombre
+    t = ""
+    nombre.times.each { |i| t << self }
+    t
+  end
+  
+  # ATTENTION ! Cette méthode posera des problèmes à tout code du
+  # programme qui utilise "+" pour concatener des chaines
+  # Si vraiment ça pose trop de problèmes, essayer de la définir que
+  # le temps de l'analyse du score…
+  def + valeur
+    self << ' ' << valeur.to_s
+  end
+  
+  # -------------------------------------------------------------------
+  #   Common
+  # -------------------------------------------------------------------
   unless defined? PURPLE # tests
     RED     = 31
     GREEN   = 32
@@ -31,9 +59,9 @@ class String
   def print_color code_couleur, params = nil
     params ||= {}
     style = "0"
-    style += ";1" unless params[:bold].nil?
-    style += ";4" unless params[:underline].nil?
-    style += ";7" unless params[:reverse].nil?
+    style = "#{style};1" unless params[:bold].nil?
+    style = "#{style};4" unless params[:underline].nil?
+    style = "#{style};7" unless params[:reverse].nil?
     "\e[#{style};#{code_couleur}m#{self}#{EOC}"
   end
   
@@ -53,7 +81,7 @@ class String
     self.split(/[^a-z0-9]/i).map{|w| w.capitalize}.join
   end
   def decamelize # "BlaBla" => "bla_bla"
-    self.gsub(/^([A-Z])/){$1.downcase}.gsub(/([A-Z])/){'_' + $1}.downcase
+    self.gsub(/^([A-Z])/){$1.downcase}.gsub(/([A-Z])/){'_' << $1}.downcase
   end
 
   

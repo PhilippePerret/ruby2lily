@@ -48,6 +48,25 @@ describe Motif do
 	    @m = Motif::new "bb g f e,4 bb8"
 	  end
 	
+		# : +
+		it "doit répondre à :+" do
+		  repond_a :+
+		end
+		it ":+ permet d'additionner des motifs" do
+		  @m1 = Motif::new "c d e"
+			@m2 = Motif::new "f g a"
+			(@m1 + @m2).to_s.should == "c d e f g a "
+		end
+		
+		# :*
+		it "doit répondre à :*" do
+		  repond_a :*
+		end
+		it ":* permet de multiplier des motifs" do
+		  @m1 = "a b c"
+			(@m1 * 3).should == "a b c a b c a b c "
+		end
+		
 		# :pose_first_and_last_note
 		it "doit répondre à :pose_first_and_last_note" do
 		  repond_a :pose_first_and_last_note

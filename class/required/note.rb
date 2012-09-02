@@ -97,9 +97,8 @@ class Note
   
   # => Définit la marque de durée (longueur et pointage)
   def mark_duration
-    mk = @duration.to_s
-    mk += "." if @dotted
-    mk
+    dotte = @dotted ? "." : ""
+    "#{@duration.to_s}#{dotte}"
   end
   # => Définit la marque de l'octave pour l'affichage
   def mark_octave
@@ -134,7 +133,7 @@ class Note
     else
       if modifier.class == Fixnum
         oper = modifier > 0 ? "'" : ","
-        @it + (oper * modifier.abs)
+        "#{@it}#{oper.fois(modifier.abs)}"
       else
         raise "Le paramètre de :to_8 doit être un nombre, false ou nil"
       end

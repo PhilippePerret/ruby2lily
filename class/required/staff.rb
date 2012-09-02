@@ -89,15 +89,11 @@ class Staff
   
   # => Retourne le code Lilipond pour la portée
   def to_llp
-    llp = []
-    llp << "{"
-    # ... ici le traitement
-    tempo = mark_tempo
-    clef  = mark_clef
-    llp << clef   unless clef.nil?
-    llp << tempo  unless tempo.nil?
-    llp << "}"
-    llp.join("\n")
+    clef    = mark_clef
+    mclef   = clef.nil? ? "" : "\n#{clef}"
+    tempo   = mark_tempo
+    mtempo  = tempo.nil? ? "" : "\n#{tempo}"
+    "{#{mclef}#{mtempo}\n}"
   end
   alias :to_lilipond :to_llp
   

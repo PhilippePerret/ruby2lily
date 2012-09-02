@@ -33,9 +33,12 @@ class Chord
   def to_s duree = nil
     return nil if @chord.empty?
     str = "<#{@chord.join(' ')}>"
-    str += duree.to_s unless duree.nil?
-    str
+    str = "#{str}#{duree.to_s}" unless duree.nil?
+    "#{str.strip} "
   end
   alias :with_duree :to_s
-  
+
+  def []( params = nil)
+    self.to_s params
+  end
 end

@@ -14,16 +14,12 @@
 
 % Score
 {	<<\new Staff {
-\new Staff {
 	\relative c'' {
 		\clef "treble"
 		\time 4/4
 		
 	}
 }
-
-}
-\new Staff {
 \new PianoStaff <<
 	\new Staff {
 		\relative c'' {
@@ -32,7 +28,6 @@
 			
 		}
 	}
-	
 	\new Staff {
 		\relative c' {
 			\clef "bass"
@@ -40,10 +35,7 @@
 			
 		}
 	}
-	
 >>
-}
-\new Staff {
 \new Staff {
 	\relative c' {
 		\clef "bass"
@@ -51,16 +43,11 @@
 		
 	}
 }
-
-}
-\new Staff {
 \new Staff {
 	\relative c'' {
 		\clef "treble"
 		\time 4/4
 		
 	}
-}
-
 }	>>
 }

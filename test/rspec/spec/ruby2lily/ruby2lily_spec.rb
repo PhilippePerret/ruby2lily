@@ -22,12 +22,12 @@ describe "La commande `ruby2lily' avec des erreurs" do
   it "doit exiter avec une erreur si absence du path du score" do
 		cmd = PATH_RUBY2LILY
 		err = Liby::ERRORS[:arg_path_file_ruby_needed].strip
-		res = `#{cmd}`.strip
+		res = `#{cmd}`
 		error_sans_color(res).should =~ /#{Regexp.escape(err)}/
   end
 	it "doit exiter avec une erreur si path incorrect" do
 		bad_path = "mauvais/path.rb"
-		cmd = PATH_RUBY2LILY + " '#{bad_path}'"
+		cmd = "#{PATH_RUBY2LILY} '#{bad_path}'"
 		err = Liby::error( :arg_score_ruby_unfound, :path => bad_path ).strip
 		res = `#{cmd}`.strip
 		error_sans_color(res).should =~ /#{Regexp.escape(err)}/
@@ -43,7 +43,7 @@ describe "La commande `ruby2lily' sans erreur" do
 	# 		et place le résultat (donc tout le texte généré par le programme
 	# 		avec les messages) dans @res
 	def as_ligne_commande
-		cmd = PATH_RUBY2LILY + " '#{@good_score}'"
+		cmd = "#{PATH_RUBY2LILY} '#{@good_score}'"
 		@res = `#{cmd}`
 	end
 	

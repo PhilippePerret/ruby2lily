@@ -42,12 +42,10 @@ class Piano < Instrument
   #   Méthodes vers Lilypond
   # -------------------------------------------------------------------
   def to_lilypond
-    c = []
-    c << "\\new PianoStaff <<"
-    c << "\t" + droite.to_lilypond.gsub(/\n/, "\n\t")
-    c << "\t" + gauche.to_lilypond.gsub(/\n/, "\n\t")
-    c << ">>"
-    c.join("\n")
+    "\\new PianoStaff <<"                               \
+    << "\n\t#{droite.to_lilypond.gsub(/\n/, "\n\t")}"   \
+    << "\n\t#{gauche.to_lilypond.gsub(/\n/, "\n\t")}"   \
+    << "\n>>"
   end
   
 end

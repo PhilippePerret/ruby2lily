@@ -12,9 +12,9 @@ class Score::Sheet
     def build
       score = Liby::LIScore
       score::create
-      score::write entete   + "\n\n"
-      score::write version  + "\n\n"
-      score::write header   + "\n\n"
+      score::write entete   << "\n\n"
+      score::write version  << "\n\n"
+      score::write header   << "\n\n"
       score::write self.score
       score::close
     end
@@ -28,12 +28,12 @@ class Score::Sheet
     def entete
       r   = "\n"
       rt  = "\n\t"
-      "%{" + 
-      r+  "-- Fichier lilypond réalisé par ruby2lily" +
-      r+  "-- https://github.com/PhilippePerret/ruby2lily.git" +
-      r+
-      r+  "-- Ruby score:" +
-      rt+ "#{Liby::path_ruby_score}" +
+      "%{" <<
+      r<<  "-- Fichier lilypond réalisé par ruby2lily" <<
+      r<<  "-- https://github.com/PhilippePerret/ruby2lily.git" <<
+      r<<
+      r<<  "-- Ruby score:" <<
+      rt<< "#{Liby::path_ruby_score}" <<
       "\n%}"
     end
     def version
@@ -44,23 +44,23 @@ class Score::Sheet
       r  = "\n"     # raccourci
       rt = "\n\t"   # idem
       h =   "% Informations score"
-      h +=  r+"\\header {"
+      h =  h << r << "\\header {"
       [ code_title, code_composer, code_arranger, code_opus, code_meter, 
         code_description
       ].each do |val|
-        h += rt + val unless val.nil?
+        h = h << rt << val unless val.nil?
       end
-      h += r + "}"
+      h = h << r << "}"
     end
     
     # => Return le code complet de la partition
     def score
-      c = "% Score"
-      c += "\n{"  # @todo: relative si nécessaire
-      c += "\t<<" if ORCHESTRE.polyphonique?
-      c += ORCHESTRE::to_lilypond
-      c += "\t>>" if ORCHESTRE.polyphonique?
-      c += "\n}"
+      markin  = ORCHESTRE.polyphonique? ? "\t<<"  : ""
+      markout = ORCHESTRE.polyphonique? ? "\t>>"      : ""
+      # Code retourné :
+      "% Score" << "\n{" <<
+      markin << ORCHESTRE::to_lilypond << markout << 
+      "\n}"
     end
     
     # => Renvoie le code (hors tabulation) pour le titre

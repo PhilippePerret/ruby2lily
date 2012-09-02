@@ -24,6 +24,7 @@ class Instrument
       :Cuivre   => {},
       :Strings  => {},
       :Piano    => {},
+      :Cello    => {},
       :Guitar   => {},
       :Bass     => {},
       :Drums    => {}
@@ -124,8 +125,7 @@ class Instrument
   
   # => Ajoute la chose comme liste de notes
   def add_as_string str
-    @notes += " #{str}"
-    @notes = @notes.strip
+    @notes = "#{@notes} #{str}".strip
   end
   # => Ajoute la chose comme accord
   # @param  chord     Instance Chord de l'accord
@@ -146,7 +146,7 @@ class Instrument
   def add_as_motif motif, params = nil
     n = motif.to_s
     unless params.nil? || params[:duree].nil?
-      n += params[:duree]
+      n = "#{n}#{params[:duree]}"
     end
     add_as_string n
   end
@@ -180,24 +180,24 @@ class Instrument
                         :octave_clef  => @octave_clef
                         )
 
-    score  = "\\new Staff {\n" +
-             "\t\\#{mark_relative} {\n" + 
-             ("\n" + staff_header).gsub(/\n/, "\n\t")[1..-1]
-    score += ("\n" + staff_content).gsub(/\n/, "\n\t")[1..-1]
-    score += "\n\t}\n}\n"
-    return score
+    "\\new Staff {"                                   \
+    << "\n\t\\#{mark_relative} {"                     \
+    << "\n#{staff_header}".gsub(/\n/, "\n\t")         \
+    << "\n#{staff_content}".gsub(/\n/, "\n\t")[1..-1] \
+    << "\n\t}\n}"
   end
   
   # => Return l'entête de la portée (clé, tempo, signature)
   def staff_header
-    header = ""
-    header += @staff.mark_clef  + "\n"
-    header += @staff.mark_time  + "\n"
-    key = @staff.mark_key
-    header += "#{key}\n" unless key.nil?
-    tempo = @staff.mark_tempo
-    header += "#{tempo}\n" unless tempo.nil?
-    header
+    key     = @staff.mark_key
+    tempo   = @staff.mark_tempo
+    mkey    = key.nil? ? "" : key
+    mtempo  = tempo.nil? ? "" : tempo
+
+    # Code retourné : 
+    @staff.mark_clef    << "\n"  \
+    << @staff.mark_time << "\n"  \
+    << mkey << mtempo
   end
   
   # => Return le contenu des notes de l'instrument
