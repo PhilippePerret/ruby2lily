@@ -217,21 +217,6 @@ describe Note do
 				  iv_set(@n, :duration => 2, :dotted => true )
 					@n.mark_duration.should == "2."
 				end
-			  it ":to_llp, :to_lilipond" do
-			    @n.should respond_to :to_llp
-					@n.should respond_to :to_lilipond
-			  end
-				it ":to_llp doit renvoyer la bonne valeur" do
-					Note::octave_courant = 3
-				  iv_set(@n, {:it => 'd', :octave => 2, :duration => 4, :rest => false, :dotted => false})
-					@n.to_llp.should == "d,4"
-				  iv_set(@n, {:it => 'e', :octave => 4, :duration => 1})
-					@n.to_llp.should == "e'1"
-					@n.to_rest
-					@n.to_llp.should == 'r1'
-					@n.to_pointee
-					@n.to_llp.should == 'r1.'
-				end
 			end
 	  end
 	end

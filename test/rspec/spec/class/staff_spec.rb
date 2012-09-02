@@ -97,6 +97,7 @@ describe Staff do
 		end
 		it ":mark_time doit retourner la bonne valeur" do
 			SCORE = Score::new unless defined? SCORE
+			iv_set(SCORE, :time => nil)
 			@s.mark_time.should == "\t\\time 4/4"
 		  iv_set(@s, :time => "4/4")
 			@s.mark_time.should == "\t\\time 4/4"

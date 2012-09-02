@@ -89,7 +89,6 @@ describe Piano do
 			
 		}
 	}
-	
 	\\new Staff {
 		\\relative c' {
 			\\clef "bass"
@@ -97,7 +96,6 @@ describe Piano do
 			
 		}
 	}
-	
 >>
 EOC
 		  @piano.to_lilypond.strip.should == code.strip
