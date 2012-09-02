@@ -35,12 +35,19 @@ class Liby
     SIGN_RUBY_TO_SIGN_LILY = {
       'b' => 'es', 'bb' => 'eses', '#' => 'is', '##' => 'isis'
     }
-    
-  end
+  
+    COMMAND_LIST = {
+      :generate => {}
+    }
+  end # / si les constantes sont déjà définies (tests)
+  
   @@path_ruby_score   = nil   # Le path au fichier du score ruby user
   @@path_lily_file    = nil   # path au fichier lilypond
   @@path_pdf_file     = nil   # Path au fichier pdf du score
   @@path_affixe_file  = nil   # Affixe (utile pour commande lilypond)
+  
+  @@is_commande       = nil   # Mis à true si c'est une commande
+  @@options           = nil   # Options de la ligne de commande
   
   class << self
 
@@ -49,29 +56,20 @@ class Liby
     def fatal_error id_err, params = nil
       err = error( id_err, params )
       puts err.to_s.as_red
+      if err === true
+        begin
+          raise
+        rescue Exception => e
+          debug "\nERREUR FATAL_ERROR (err = true):\n#{e.message}"
+        end
+      end
       raise SystemExit, err 
-        # `err' est ajouté simplement pour catcher facilement l'erreur
-        #  dans les tests par :
-        #  expect{ ... }.to raise_error(SystemExit, <err>)
-                            
-      # # Ne fonctionne pas :
-      # raise LibyError, error( id_err, params )
-      
-      # Fonctionne mais ne permet pas (pour le moment) de récupérer
-      # l'erreur
-      # begin
-      #   raise LibyError, error( id_err, params )
-      # rescue Exception => e
-      #   puts e.to_s.as_red
-      #   exit
-      # end
     end
     
     # =>  Formate l'erreur d'identifiant +id_err+ avec les arguments
     #     +params+ et renvoie l'erreur:String formatée.
     def error id_err, params = nil
-      err = if ERRORS.has_key? id_err
-              ERRORS[id_err.to_sym]
+      err = if ERRORS.has_key? id_err then ERRORS[id_err.to_sym]
             else id_err end
               
       params.each do |arg, val|
@@ -86,10 +84,32 @@ class Liby
     # 
     def analyze_command_line
       tested = ARGV[0]
-      fatal_error :arg_path_file_ruby_needed if tested.nil?
-      pscore = find_path_score tested
-      fatal_error(:arg_score_ruby_unfound, :path => tested) if pscore.nil?
-      @@path_ruby_score = pscore
+      @@is_commande = !tested.nil? && COMMAND_LIST.has_key?( tested.to_sym )
+      options_from_command_line
+      if commande?
+        Liby::Command::new(tested).run
+      else
+        fatal_error :arg_path_file_ruby_needed if tested.nil?
+        pscore = find_path_score tested
+        fatal_error(:arg_score_ruby_unfound, :path => tested) if pscore.nil?
+        @@path_ruby_score = pscore
+      end
+    end
+    
+    # => Relève les options de la ligne de commande
+    def options_from_command_line
+      options = []
+      ARGV.each do |membre|
+        options << membre if membre.start_with? '-'
+      end
+      options = nil if options.empty?
+      @@options = options
+    end
+    
+    # =>  Retourne true si c'est une commande qui est demandée, pas la
+    #     conversion du fichier ruby
+    def commande?
+      @@is_commande == true
     end
     
     # -------------------------------------------------------------------
@@ -104,7 +124,7 @@ class Liby
       is_array = notes_ruby.class == Array
       notes_ruby = notes_ruby.join(' • ') if is_array
       notes_lily = notes_ruby.gsub(/\b([a-g])([b#]{1,2})/){
-        $1 + Liby::SIGN_RUBY_TO_SIGN_LILY[$2]
+        $1 << Liby::SIGN_RUBY_TO_SIGN_LILY[$2]
       }
       notes_lily = notes_lily.split(' • ') if is_array
       notes_lily
@@ -119,6 +139,7 @@ class Liby
     #   true en cas de succès
     #   nil et lève une erreur en cas d'échec
     def score_ruby_to_score_lilypond
+      return nil if commande?
       begin
         Score::Sheet::build
       rescue Exception => e
@@ -190,7 +211,7 @@ class Liby
     #   -> le chemin d'accès absolu si le fichier est trouvé
     #   -> nil si le fichier n'est pas trouvé
     def self.find_path_score path_rel
-      path_rel += '.rb' unless path_rel.end_with? '.rb'
+      path_rel = "#{path_rel}.rb" unless path_rel.end_with? '.rb'
       path = File.expand_path(path_rel)
       return path if File.exists? path
       path = File.expand_path(File.join('.', path_rel))

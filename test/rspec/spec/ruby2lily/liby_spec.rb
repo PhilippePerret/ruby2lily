@@ -21,6 +21,9 @@ describe Liby do
 		it "USAGE doit exister" do
 		  defined?(Liby::USAGE).should be_true
 		end
+		it "COMMAND_LIST doit exister" do
+		  defined?(Liby::COMMAND_LIST).should be_true
+		end
 	end
 	# -------------------------------------------------------------------
 	# 	Liste des erreurs
@@ -29,20 +32,16 @@ describe Liby do
 		before(:all) do
 		  @derrs = Liby::ERRORS
 		end
-	  it "L'erreur :arg_path_file_ruby_needed doit exister" do
-	    @derrs.should have_key :arg_path_file_ruby_needed
-	  end
-		it "L'erreur :arg_score_ruby_unfound doit exister" do
-	  	@derrs.should have_key :arg_score_ruby_unfound
-		end
-		it "L'erreur :orchestre_undefined doit exister" do
-		  @derrs.should have_key :orchestre_undefined
-		end
-		it "L'erreur :path_lily_undefined doit exister" do
-		  @derrs.should have_key :path_lily_undefined
-		end
-		it "L'erreur :lilyfile_does_not_exists doit exister" do
-		  @derrs.should have_key :lilyfile_does_not_exists
+		[
+			:arg_path_file_ruby_needed,
+			:arg_score_ruby_unfound,
+			:orchestre_undefined,
+			:path_lily_undefined,
+			:lilyfile_does_not_exists
+		].each do |cle_erreur|
+			it "l'erreur :#{cle_erreur} doit exister" do
+				Liby::ERRORS.should have_key cle_erreur
+			end
 		end
 	end
 	
@@ -68,6 +67,88 @@ describe Liby do
 		end
 	end
 	
+	# -------------------------------------------------------------------
+	# 	Analyse des arguments
+	# -------------------------------------------------------------------
+	describe "Analyse des arguments" do
+		def define_command_line_with_options
+			path_score = 'partition_test.rb'
+			ARGV.clear
+			ARGV << path_score
+			ARGV << "-fpng"
+			ARGV << "--option voir"
+		end
+		before(:each) do
+		  init_all_paths_liby
+		end
+		it "Liby doit répondre à :analyze_command_line" do
+		  Liby.should respond_to :analyze_command_line
+		end
+		it ":analyze_command_line doit exiter avec des mauvais arguments" do
+		  ARGV.clear
+			path_score = "path/to/score/ruby.rb"
+			ARGV << path_score
+			expect{Liby.analyze_command_line}.to raise_error
+			cv_get(Liby, :path_ruby_score).should be_nil
+		end
+		it ":analyze_command_line doit définir @@score_ruby si premier argument OK" do
+			path_score = 'partition_test.rb'
+			plily = File.expand_path(File.join(BASE_LILYPOND, path_score))
+			ARGV.clear
+			ARGV << path_score
+			Liby.analyze_command_line
+			cv_get(Liby, :path_ruby_score).should == plily
+		end
+		it ":analyze_command_line doit reconnaître une commande" do
+			ARGV.clear
+			ARGV << "generate" << "blank"
+			Liby.analyze_command_line
+			Liby.commande?.should be_true
+		end
+		
+		it "doit répondre à :options_from_command_line" do
+		  Liby.should respond_to :options_from_command_line
+		end
+		it ":options_from_command_line doit relever les options" do
+			define_command_line_with_options
+		  cv_set(Liby, :options => nil)
+			Liby::options_from_command_line
+			opts = cv_get(Liby, :options)
+			opts.should_not be_nil
+			opts.class.should == Array
+			opts.should == ["-fpng", "--option voir"]
+		end
+	end
+	
+	# -------------------------------------------------------------------
+	# 	Lilypondage ou commande
+	# -------------------------------------------------------------------
+	describe "Lilypondage ou commande" do
+		def define_a_commande
+		  ARGV.clear
+			ARGV << "generate"
+			ARGV << "blank"
+		end
+		def define_a_lilypondage
+			path_score = 'partition_test.rb'
+			plily = File.expand_path(File.join(BASE_LILYPOND, path_score))
+			ARGV.clear
+			ARGV << path_score
+		end
+		before(:each) do
+			define_a_commande
+		end
+		it "doit répondre à :commande?" do
+		  Liby.should respond_to :commande?
+		end
+	  it ":commande? doit rendre true si c'est une commande" do
+			Liby.analyze_command_line
+			Liby.commande?.should be_true
+			define_a_lilypondage
+			Liby.analyze_command_line
+			Liby.commande?.should be_false
+	  end
+	end
 	# -------------------------------------------------------------------
 	# 	Traitement des notes données
 	# 
@@ -116,7 +197,7 @@ describe Liby do
 		def same_path_with_extension path, ext
 			folder	= File.dirname(path)
 			ext = ".#{ext}" unless ext == ""
-			fichier	= File.basename(path, File.extname(path)) + ext
+			fichier	= File.basename(path, File.extname(path)) << ext
 			File.join(folder, fichier)
 		end
 	  it "doit répondre à path_ruby_score" do
@@ -160,32 +241,6 @@ describe Liby do
 			Liby.path_affixe_file.should == same_path_with_extension(p, "")
 		end
 	end
-	# -------------------------------------------------------------------
-	# 	Analyse des arguments
-	# -------------------------------------------------------------------
-	describe "Analyse des arguments" do
-		before(:each) do
-		  init_all_paths_liby
-		end
-		it "Liby doit répondre à :analyze_command_line" do
-		  Liby.should respond_to :analyze_command_line
-		end
-		it ":analyze_command_line doit exiter avec des mauvais arguments" do
-		  ARGV.clear
-			path_score = "path/to/score/ruby.rb"
-			ARGV << path_score
-			expect{Liby.analyze_command_line}.to raise_error
-			cv_get(Liby, :path_ruby_score).should be_nil
-		end
-		it ":analyze_command_line doit définir @@score_ruby si premier argument OK" do
-			path_score = 'partition_test.rb'
-			plily = File.expand_path(File.join(BASE_LILYPOND, path_score))
-			ARGV.clear
-			ARGV << path_score
-			Liby.analyze_command_line
-			cv_get(Liby, :path_ruby_score).should == plily
-		end
-	end
 	
 	# -------------------------------------------------------------------
 	# 	Conversion du score ruby vers le score lilypond
@@ -200,6 +255,10 @@ describe Liby do
 	  it "Liby doit répondre à :score_ruby_to_score_lilypond" do
 	    Liby.should respond_to :score_ruby_to_score_lilypond
 	  end
+		it ":score_ruby_to_score_lilypond ne doit rien faire si c'est une commande" do
+		  cv_set(Liby, :is_commande => true)
+			Liby::score_ruby_to_score_lilypond.should be_nil
+		end
 
 		it "Liby doit répondre à :generate_pdf" do
 		  Liby.should respond_to :generate_pdf
