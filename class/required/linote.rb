@@ -14,7 +14,7 @@ class LINote
     # Table de correspondance entre la note en string ("g") et la valeur
     # entière
     NOTE_STR_TO_INT = {
-      "deses" => 0,               "c"   => 0,
+      "deses" => 0, "bis"   => 0, "c"   => 0,
       "cis"   => 1,               "des" => 1, 
       "eeses" => 2, "cisis" => 2, "d"   => 2,
       "dis"   => 3, "feses" => 3, "ees" => 3,
@@ -135,6 +135,7 @@ class LINote
   # => Return la note montée de +demitons+ demi-tons
   # cf. `moins' pour les arguments
   def plus demitons, params = nil
+    debug "\n@note_str:#{@note_str} - @note_int:#{@note_int} - demitons:#{demitons} - params:#{params.inspect}"
     LINote::note_str_in_context(@note_int + demitons, params)
   end
   
