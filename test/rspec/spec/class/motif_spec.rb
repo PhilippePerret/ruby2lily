@@ -20,6 +20,12 @@ describe Motif do
 		it "avec argument string doit définir un motif" do
 		  @m = Motif::new "a b c"
 			iv_get(@m, :motif).should == "a b c"
+			iv_get(@m, :octave).should 	== 2
+		end
+		it "avec argument hash pour définir le motif et l'octave" do
+		  @m = Motif::new :motif => "d b a", :octave => 4
+			iv_get(@m, :motif).should 	== "d b a"
+			iv_get(@m, :octave).should 	== 4
 		end
   end
 	describe "L'instance" do
@@ -35,11 +41,67 @@ describe Motif do
 		end
 		it ":to_s doit renvoyer le motif s'il est défini" do
 		  iv_set(@m, :motif => "a b c")
-			@m.to_s.should == "a b c"
+			@m.to_s.should == "\\relative c'' { a b c }"
 		end
 		it ":to_s doit renvoyer le motif avec une durée si elle est définie" do
 		  iv_set(@m, :motif => "c d e")
-			@m.to_s(1).should == "c1 d1 e1"
+			@m.to_s(1).should == "\\relative c'' { c1 d1 e1 }"
+		end
+		it ":to_s doit renvoyer le motif à la bonne hauteur d'octave" do
+		  iv_set(@m, :motif => "c d e")
+			@m.to_s(:octave => -2).should == "\\relative c,, { c d e }"
+		end
+		it ":to_s doit renvoyer la bonne valeur avec deux motifs de même octave" do
+		  @m1 = Motif::new :motif => "a a a", :octave => 3
+		  @m2 = Motif::new :motif => "b b b", :octave => 3
+			(@m1 + @m2).to_s.should == "\\relative c''' { a a a b b b }"
+		end
+		it ":to_s doit renvoyer la bonne valeur avec deux motifs d'octave différente" do
+		  @m1 = Motif::new :motif => "a a a", :octave => 3
+		  @m2 = Motif::new :motif => "b b b", :octave => 2
+			(@m1 + @m2).to_s.should == "\\relative c''' { a a a } \\relative c'' { b b b }"
+		end
+		it ":to_s avec octave défini doit renvoyer la bonne valeur avec deux motifs d'octave définis" do
+		  @m1 = Motif::new :motif => "a a a", :octave => 5
+			@m2 = Motif::new :motif => "c c c", :octave => 3
+			(@m1 + @m2).to_s(:octave => 1, :duree => 8).should ==
+				"\\relative c' { a8 a8 a8 } \\relative c, { c8 c8 c8 }"
+			(@m2 + @m1).to_s(:octave => 1, :duree => 8).should ==
+				"\\relative c''' { a8 a8 a8 } \\relative c' { c8 c8 c8 }"
+		end
+		
+		# :change_durees_in_motif
+		it "doit répondre à :set_durees_in_motif" do
+		  @m.should respond_to :set_durees_in_motif
+		end
+		it ":set_durees_in_motif doit changer la durée des notes du motif" do
+		  @m = Motif::new "a b c des e4"
+			@m.set_durees_in_motif(2).should == "a2 b2 c2 des2 e2"
+		end
+		
+		# :octave_from
+		it "doit répondre à :octave_from" do
+		  @m.should respond_to :octave_from
+		end
+		it ":octave_from doit renvoyer la bonne valeur" do
+		  iv_set(@m, :octave => 2)
+			@m.octave_from(2).should == 0
+			@m.octave_from(4).should == 2
+			@m.octave_from(0).should == -2
+		end
+		
+		# :mark_relative
+		it "doit répondre à :mark_relative" do
+		  @m.should respond_to :mark_relative
+		end
+		it ":mark_relative sans argument doit retourner la valeur par défaut" do
+		  iv_set(@m, :octave => 2)
+			@m.mark_relative.should === "\\relative c''"
+		end
+		it ":mark_relative avec argument doit retourner la bonne valeur" do
+		  iv_set(@m, :octave => 2)
+			@m.mark_relative(0).should 	== "\\relative c"
+			@m.mark_relative(-2).should == "\\relative c,,"
 		end
 	end
 	
@@ -55,7 +117,15 @@ describe Motif do
 		it ":+ permet d'additionner des motifs" do
 		  @m1 = Motif::new "c d e"
 			@m2 = Motif::new "f g a"
-			(@m1 + @m2).to_s.should == "c d e f g a "
+			(@m1 + @m2).to_s.should == "\\relative c'' { c d e f g a }"
+		end
+		it ":+ transforme correctement @motif du nouveau motif" do
+		  @m1 = Motif::new "c d e"
+			@m2 = Motif::new "f g a"
+			@m3 = (@m1 + @m2)
+			@m3.motif.should == [@m1, @m2]
+			@m4 = (@m1 + @m3)
+			@m4.motif.should == [@m1, @m1, @m2]
 		end
 		
 		# :*
@@ -63,8 +133,8 @@ describe Motif do
 		  repond_a :*
 		end
 		it ":* permet de multiplier des motifs" do
-		  @m1 = "a b c"
-			(@m1 * 3).should == "a b c a b c a b c "
+		  @m1 = Motif::new "a b c"
+			(@m1 * 3).should == "\\relative c'' { a b c a b c a b c }"
 		end
 		
 		# :pose_first_and_last_note
@@ -122,11 +192,11 @@ describe Motif do
 		end
 		it ":moins doit donner le motif avec les demi-tons en moins" do
 			iv_set(SCORE, :key => nil)
-		  @m.moins(1).to_s.should == "a fis e ees,4 a8"
-			@m.moins(2).to_s.should == "aes f ees d,4 aes8"
+		  @m.moins(1).to_s.should == "\\relative c'' { a fis e ees,4 a8 }"
+			@m.moins(2).to_s.should == "\\relative c'' { aes f ees d,4 aes8 }"
 			iv_set(SCORE, :key => 'G')
-		  @m.moins(1).to_s.should == "a fis e dis,4 a8"
-			@m.moins(2).to_s.should == "gis f dis d,4 gis8"
+		  @m.moins(1).to_s.should == "\\relative c'' { a fis e dis,4 a8 }"
+			@m.moins(2).to_s.should == "\\relative c'' { gis f dis d,4 gis8 }"
 		end
 		
 		# :plus
@@ -136,11 +206,11 @@ describe Motif do
 		end
 		it ":plus doit donner le motif supérieur" do
 			iv_set(SCORE, :key => nil)
-		  @m.plus(1).to_s.should == "b aes fis f,4 b8"
-			@m.plus(2).to_s.should == "c a g fis,4 c8"
+		  @m.plus(1).to_s.should == "\\relative c'' { b aes fis f,4 b8 }"
+			@m.plus(2).to_s.should == "\\relative c'' { c a g fis,4 c8 }"
 			iv_set(SCORE, :key => 'Bb')
-		  @m.plus(1).to_s.should == "b aes ges f,4 b8"
-			@m.plus(2).to_s.should == "c a g ges,4 c8"
+		  @m.plus(1).to_s.should == "\\relative c'' { b aes ges f,4 b8 }"
+			@m.plus(2).to_s.should == "\\relative c'' { c a g ges,4 c8 }"
 		end
 		it ":plus avec le paramètre :new => false doit modifier l'objet" do
 		  @motif = Motif::new "c d e"
@@ -158,7 +228,7 @@ describe Motif do
 		it ":legato doit renvoyer une valeur modifiée" do
 		  @mo = Motif::new "a b cis r4 a-^ |"
 			res = @mo.legato
-			res.to_s.should == "a( b cis r4 a-^) |"
+			res.to_s.should == "\\relative c'' { a( b cis r4 a-^) | }"
 		end
 		it ":legato avec :new => true doit renvoyer un nouveau motif" do
 		  @mo = Motif::new "a b d"
@@ -177,7 +247,7 @@ describe Motif do
 		it ":surlegato doit renvoyer une valeur modifiée" do
 		  @mo = Motif::new "a b cis r4 a-^ |"
 			res = @mo.surlegato
-			res.to_s.should == "a\\( b cis r4 a-^\\) |"
+			res.to_s.should == "\\relative c'' { a\\( b cis r4 a-^\\) | }"
 		end
 		
 		# :crescendo
@@ -187,20 +257,20 @@ describe Motif do
 		it ":crescendo sans argument doit définir le motif simple" do
 		  @motif = Motif::new "a b c"
 			new_motif = @motif.crescendo
-			@motif.to_s.should == "a b c"
-			new_motif.to_s.should == "a\\< b c\\!"
+			@motif.to_s.should == "\\relative c'' { a b c }"
+			new_motif.to_s.should == "\\relative c'' { a\\< b c\\! }"
 			new_motif = @motif.crescendo(:new => false)
-			@motif.to_s.should == "a\\< b c\\!"
+			@motif.to_s.should == "\\relative c'' { a\\< b c\\! }"
 		end
 		it ":crescendo avec :start doit définir la dynamique de départ" do
 		  @motif = Motif::new "a b c"
 			@motif.crescendo(:new => false, :start => 'pp', :end => 'ff')
-			@motif.to_s.should == "\\pp a\\< b c \\ff"
+			@motif.to_s.should == "\\relative c'' { \\pp a\\< b c \\ff }"
 		end
 		it ":crescendo avec :end doit définir la dynamique de fin" do
 		  @motif = Motif::new "a b c"
 			@motif.crescendo(:new => false, :end => 'fff')
-			@motif.to_s.should == "a\\< b c \\fff"
+			@motif.to_s.should == "\\relative c'' { a\\< b c \\fff }"
 		end
 		
 		# :decrescendo
@@ -210,20 +280,20 @@ describe Motif do
 		it ":decrescendo sans argument doit définir le motif simple" do
 		  @motif = Motif::new "a b c"
 			new_motif = @motif.decrescendo
-			@motif.to_s.should == "a b c"
-			new_motif.to_s.should == "a\\> b c\\!"
+			@motif.to_s.should == "\\relative c'' { a b c }"
+			new_motif.to_s.should == "\\relative c'' { a\\> b c\\! }"
 			@motif.decrescendo(:new => false)
-			@motif.to_s.should == "a\\> b c\\!"
+			@motif.to_s.should == "\\relative c'' { a\\> b c\\! }"
 		end
 		it ":decrescendo avec :start doit définir la dynamique de départ" do
 		  @motif = Motif::new "a b c"
 			@motif.decrescendo(:new => false, :start => 'fff', :end => 'ppp')
-			@motif.to_s.should == "\\fff a\\> b c \\ppp"
+			@motif.to_s.should == "\\relative c'' { \\fff a\\> b c \\ppp }"
 		end
 		it ":decrescendo avec :end doit définir la dynamique de fin" do
 		  @motif = Motif::new "a b c"
 			@motif.decrescendo(:new => false, :end => 'ppp')
-			@motif.to_s.should == "a\\> b c \\ppp"
+			@motif.to_s.should == "\\relative c'' { a\\> b c \\ppp }"
 		end
 		
 		
