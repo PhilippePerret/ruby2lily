@@ -159,6 +159,17 @@ describe Instrument do
 			  @instru.staff_content.should_not == ""
 				@instru.staff_content.should =~ /a\( b c\)/
 			end
+			
+			# :mark_relative
+			it "doit répondre à :mark_relative" do
+			  @instru.should respond_to :mark_relative
+			end
+			it ":mark_relative doit renvoyer la bonne valeur" do
+			  @i = Voice::new # par défaut car non défini dans Voice:Class
+				@i.mark_relative.should == "relative c''"
+				@i = Bass::new
+				@i.mark_relative.should == "relative c'"
+			end
 		end # -> score lilypond
 
 	end # / L'instance

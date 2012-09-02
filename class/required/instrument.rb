@@ -180,7 +180,7 @@ class Instrument
                         )
 
     score  = "\\new Staff {\n" +
-             "\\relative c'' {\n" + 
+             "\\#{mark_relative} {\n" + 
              staff_header
     score += staff_content
     score += "\n}\n}\n"
@@ -205,5 +205,13 @@ class Instrument
   # mais à l'avenir un traitement plus sérieux devra peut-être être fait.
   def staff_content
     @notes
+  end
+  
+  # => Return la marque "relative c..."
+  # 
+  # Cette méthode est la méthode par défaut, elle doit être
+  # définie dans l'instrument s'il en possède une autre
+  def mark_relative
+    "relative c''"
   end
 end

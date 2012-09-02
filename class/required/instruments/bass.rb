@@ -11,4 +11,9 @@ class Bass < Instrument
     @clef = "F"
   end
   
+  # Overwrite la méthode par défaut
+  def mark_relative
+    "relative c'"
+  end
+  
 end
