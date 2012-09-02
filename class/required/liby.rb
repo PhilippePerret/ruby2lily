@@ -3,6 +3,12 @@
 # 
 # C'est la classe qui chapeaute tout le processus
 # 
+require 'String'
+require 'linote'
+
+class LibyError < StandardError
+end
+
 class Liby
   unless defined?(Liby::USAGE)
     USAGE   = "@usage:\n\t$ ./ruby2lily.rb <path/to/score/ruby> <options>"
@@ -12,7 +18,16 @@ class Liby
       :orchestre_undefined        => "Le score doit définir l'orchestre (@orchestre = ...)",
     
       :path_lily_undefined        => "Impossible de définir le chemin au fichier Lilypond…",
-      :lilyfile_does_not_exists   => "Le fichier Lilypond du score n'existe pas…"
+      :lilyfile_does_not_exists   => "Le fichier Lilypond du score n'existe pas…",
+      
+      # === Définition du score ===
+      :title_not_string           => "Le titre doit être une chaine de caractères",
+      :time_invalid               => "La signature de temps (@time) est invalide",
+      :key_invalid            => "La clé (key/tonalite) est mal définie ('\#{bad}') " +
+                                    "(elle devrait être une valeur parmi #{LINote::TONALITES.keys.join(', ')}).",
+      
+      
+      :fin_fin_fin_fin_fin => ''
     }
     
     # table de conversion des signes ruby vers lilypond
@@ -28,12 +43,27 @@ class Liby
   
   class << self
 
-    # =>  Produit une erreur fatale d'identifiant +id_err+ avec les
-    #     variables +params+ et exit le programme
+    # =>  Produit (en console) une erreur fatale d'identifiant +id_err+
+    #     avec les variables +params+ et exit le programme
     def fatal_error id_err, params = nil
       err = error( id_err, params )
-      puts err.as_red
-      exit
+      puts err.to_s.as_red
+      raise SystemExit, err 
+        # `err' est ajouté simplement pour catcher facilement l'erreur
+        #  dans les tests par :
+        #  expect{ ... }.to raise_error(SystemExit, <err>)
+                            
+      # # Ne fonctionne pas :
+      # raise LibyError, error( id_err, params )
+      
+      # Fonctionne mais ne permet pas (pour le moment) de récupérer
+      # l'erreur
+      # begin
+      #   raise LibyError, error( id_err, params )
+      # rescue Exception => e
+      #   puts e.to_s.as_red
+      #   exit
+      # end
     end
     
     # =>  Formate l'erreur d'identifiant +id_err+ avec les arguments
@@ -91,7 +121,8 @@ class Liby
       begin
         Score::Sheet::build
       rescue Exception => e
-        fatal_error e.message
+        dbg "### Backtrace de l'erreur :\n#{e.backtrace.join("\n")}" if defined? DEBUG
+        fatal_error e.message # exit le programme
       else
         true
       end

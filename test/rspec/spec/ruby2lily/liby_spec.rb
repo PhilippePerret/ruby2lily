@@ -205,18 +205,12 @@ describe Liby do
 		  Liby.should respond_to :generate_pdf
 		end
 		it ":generate_pdf doit produire le pdf" do
-		  score_ruby = File.join(BASE_LILYPOND, 'partition_test')
-			cv_set(Liby, :path_ruby_score => score_ruby )
+		  affixe_score = File.join(BASE_LILYPOND, 'test', 'score', 'simple')
+			cv_set(Liby, :path_ruby_score => "#{affixe_score}.rb" )
+			cv_set(Liby, :path_lily_file 	=> "#{affixe_score}.ly")
 			@path_pdf = Liby::path_pdf_file
 			File.unlink @path_pdf if File.exists? @path_pdf
 			File.exists?(@path_pdf).should be_false
-			
-			Liby::score_ruby_to_score_lilypond
-			code_ly = File.read(Liby::path_lily_file)
-			debug "---------\npath_ruby_score: #{Liby::path_ruby_score}" +
-						"\npath_lily_file: #{Liby::path_lily_file}" +
-			 			"\nCode score lilypond :\n#{code_ly}" +
-						"\n-------------\n"
 			Liby::generate_pdf
 			File.exists?(@path_pdf).should be_true
 		end
