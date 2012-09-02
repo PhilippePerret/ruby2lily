@@ -13,6 +13,8 @@ RSpec.configure do |config|
   require File.join(BASE_LILYPOND, 'module', 'constants.rb')
   # Chargement de toutes les librairies requises
   Dir["#{DIR_CLASS_LILYPOND}/required/**/*.rb"].each { |lib| require lib }
+  # Chargement des méthodes pratiques
+  require File.join(BASE_LILYPOND, 'module', 'handy_methods.rb')
 
   config.before(:all){
     # À faire avant chaque describe
@@ -29,10 +31,6 @@ RSpec.configure do |config|
   # test
   Dir["./*.pdf"].each { |pdf| File.unlink pdf }
   
-  # Pour afficher un message de débuggage
-  def debug txt
-    STDOUT.write "::débug:: #{txt}\n"
-  end
   
   # => Initialise les paths principales liby (score ruby, score
   # lilypond et pdf)
