@@ -17,9 +17,13 @@
 #     condition que doit remplir la valeur <valeur>
 #     <params> est un hash contenant des paramètres optionnels, à
 #     commencer par 
+#       :var    => <nom de la variable visée> (si le message en a besoin)
 #       :fatal => true/false  pour déterminer si l'erreur doit être
 #                             fatale ou non.
-#       :var    => <nom de la variable visée>
+#       OPTIONNEL
+#       :message  => le message (avec #{var} et #{value}) qui devra
+#                     remplacer le message par défaut. Le message par
+#                     défaut est tiré de Checkif::ERRORS.
 # 
 # @exemple
 # 
@@ -32,6 +36,7 @@ class Checkif
       :not_a_string   => "\#{var} doit être une chaine de caractères !",
       :not_a_array    => "\#{var} doit être un array (liste) !",
       :not_a_hash     => "\#{var} doit être un hash (tableau associatif) !",
+      :not_a_key_of   => "`\#{var}' n'est pas une valeur correcte…",
       :fin_fin_fin => ''
     }
   end
@@ -49,19 +54,24 @@ class Checkif
     # de variable non définie.
     def defined valeur, params = nil
       return true if eval("defined? #{valeur}")
-      generate_error :undefined, params
+      generate_error valeur, :undefined, params
     end
     def string valeur, params = nil
       return true if valeur.class == String
-      generate_error :not_a_string, params
+      generate_error valeur, :not_a_string, params
     end
     def array valeur, params = nil
       return true if valeur.class == Array
-      generate_error :not_a_array, params
+      generate_error valeur, :not_a_array, params
     end
     def hash valeur, params = nil     # @note: ça surclasse `hash' naturel
       return true if valeur.class == Hash
-      generate_error :not_a_hash, params
+      generate_error valeur, :not_a_hash, params
+    end
+    def is_key_of valeur, params
+      hash = params.delete(:hash)
+      return true if hash.has_key? valeur
+      generate_error valeur, :not_a_key_of, params
     end
     # @todo: ajouter au besoin :
     #   - integer
@@ -73,15 +83,26 @@ class Checkif
     #   - between
     
     # === Utilitaires ===
-    def generate_error cle, params
+    def generate_error bad, cle, params
       params ||= {}
-      is_fatal = params.delete(:fatal)
+      is_fatal    = params.delete(:fatal)
+      message_alt = params.delete(:message)
       method = is_fatal ? 'raise_fatal' : 'raise_error'
-      send(method, formate_error( cle, params ) )
+      cle = message_alt unless message_alt.nil?
+      bad = case bad.class.to_s
+            when "String" then bad
+            when "Fixnum", "FloatClass" then bad.to_s
+            else bad.inspect
+            end
+      send(method, formate_error( cle, params.merge(:bad => bad) ) )
       false
     end
+    # @param  cle   Peut-être soi une clé de Checkif::ERRORS, soit
+    #               un message explicite passé en paramètre (:message)
     def formate_error cle, params
-      err = Checkif::ERRORS[cle]
+      err = if Checkif::ERRORS.has_key? cle
+              Checkif::ERRORS[cle]
+            else cle end
       params.each do |var, val|
         err = err.gsub(/#\{#{var}\}/, val)
       end unless params.nil?
