@@ -54,15 +54,17 @@ describe Score do
 		# 	Méthodes de définition
 		# -------------------------------------------------------------------
 		describe "Méthodes de définition" do
+			
+			# :set
 		  it "doit répondre à :set" do
 		    @s.should respond_to :set
 		  end
 			it ":set doit définir les données générales" do
 				data = {
-					:title => "Titre de la partition",
+					:title 		=> "Titre de la partition",
 					:composer => "Le compositeur",
 					:author		=> "L'auteur des paroles",
-					:key			=> G,
+					:key			=> 'G',
 					:subtitle	=> nil
 				}
 			  @s.set data
@@ -78,6 +80,40 @@ describe Score do
 				@s.set data
 				iv_get(@s, :title).should == Score::DEFAULT_VALUES[:title]
 				iv_get(@s, :time).should 	== Score::DEFAULT_VALUES[:time]
+			end
+			
+			# :checkin
+			it "doit répondre à :checkin" do
+			  @s.should respond_to :checkin
+			end
+			# :checkin_if_defined
+			it "doit répondre à :checkin_if_defined" do
+			  @s.should respond_to :checkin_if_defined
+			end
+			
+			# :check_data
+			it "doit répondre à :check_data" do
+			  @s.should respond_to :check_data
+			end
+			it ":check_data doit exiter avec erreur si mauvais titre" do
+			  data = { :title => ["un bad titre"] }
+				err = detemp(Checkif::ERRORS[:not_a_string], :var => '@title')
+			  expect{@s.check_data(data)}.to raise_error(SystemExit, err)
+			end
+			it ":check_data doit exiter avec erreur si mauvaise key" do
+				data = {
+					:key => 'c'	# Mauvaise définition de tonalité
+				}
+				err = detemp(Liby::ERRORS[:key_invalid], :bad => 'c')
+			  expect{@s.check_data(data)}.to raise_error(SystemExit, err)
+			end
+			it ":check_data doit exiter avec erreur si mauvaise signature" do
+			  [
+					'c'
+				].each do |bad_time|
+					err = detemp(Liby::ERRORS[:time_invalid], :bad => bad_time)
+				  expect{@s.check_data(:time => bad_time)}.to raise_error(SystemExit, err)
+				end
 			end
 		end		
 	end
