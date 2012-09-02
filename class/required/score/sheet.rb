@@ -45,7 +45,9 @@ class Score::Sheet
       rt = "\n\t"   # idem
       h =   "% Informations score"
       h +=  r+"\\header {"
-      [code_title, code_composer, code_opus].each do |val|
+      [ code_title, code_composer, code_arranger, code_opus, code_meter, 
+        code_description
+      ].each do |val|
         h += rt + val unless val.nil?
       end
       h += r + "}"
@@ -71,10 +73,22 @@ class Score::Sheet
       return nil if SCORE.composer.nil? || SCORE.composer == ""
       "composer = \"#{SCORE.composer}\""
     end
+    def code_arranger
+      return nil if SCORE.arranger.nil? || SCORE.arranger == ""
+      "arranger = \"#{SCORE.arranger}\""
+    end
     # => Renvoie le code (hors tab) pour l'opus (si défini)
     def code_opus
       return nil if SCORE.opus.nil? || SCORE.opus == ""
       "opus = \"Op. #{SCORE.opus}\""
+    end
+    def code_meter
+      return nil if SCORE.meter.nil? || SCORE.meter == ""
+      "meter = \"#{SCORE.meter}\""
+    end
+    def code_description
+      return nil if SCORE.description.nil? || SCORE.description == ""
+      "description = \"#{SCORE.description}\""
     end
     
     # Retourne la version courante de lilypond

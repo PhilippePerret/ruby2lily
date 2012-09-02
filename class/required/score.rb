@@ -33,7 +33,7 @@ class Score
   #   Instance
   # -------------------------------------------------------------------
   attr_reader :title, :opus, :subtitle, :composer, :parolier, :key, 
-              :time, :tempo, :base_tempo
+              :time, :tempo, :base_tempo, :meter, :arranger, :description
               
   @title      = nil   # Titre du morceau courant
   @opus       = nil   # Opus (sans "Op. ")
@@ -44,6 +44,10 @@ class Score
   @time       = nil   # Signature
   @tempo      = nil   # Tempo de référence
   @base_tempo = nil   # Durée de la note tempo de référence (durée llp)
+  @meter      = nil   # Texte sous le titre à gauche de la page (peut
+                      # être aussi défini par "@instrument")
+  @arranger   = nil   # Arrangeur ou provenance
+  @description= nil   # Description sous le titre
   
   def initialize params = nil
     
@@ -51,11 +55,55 @@ class Score
   
   # === Méthode de définitions === #
   def set data
-    data.each { |prop, val| instance_variable_set("@#{prop}", val) }
+    check_data data
+    @data.each { |prop, val| instance_variable_set("@#{prop}", val) }
     # Quelques valeurs par défaut
     Score::DEFAULT_VALUES.each do |prop, valdef|
       next unless instance_variable_get("@#{prop}").nil?
       instance_variable_set("@#{prop}", valdef)
     end
-  end  
+  end
+  
+  # => Check des data définies dans la partitions
+  # Il peut exister deux sortes d'erreurs, dont certaines fatales
+  def check_data data = nil
+
+    @data = data || {}
+    
+    # Le titre doit être un string si fournie
+    checkin_if_defined( :title, 'string' )
+    
+    # La key doit être correcte si fournie
+    d = { :hash     => LINote::TONALITES, 
+          :message  => Liby::ERRORS[:key_invalid] }
+    checkin_if_defined( :key, 'is_key_of', d )
+    
+    # La signature doit être correcte si fournie
+    if data.has_key?(:time) && data[:time] != nil
+      data[:time] = '4/4' if data[:time] == 'C'
+      if data[:time].gsub(/([0-9]+)\/([0-9]+)/,'') != ''
+        fatal_error(:time_invalid, :bad => data[:time])
+      end
+    end
+    
+    
+    # data a pu être rectifié
+    @data = data
+  end
+  # => Check une seule donnée
+  def checkin_if_defined cle, methods, params = nil
+    return if !@data.has_key?( cle ) || @data[cle].nil?
+    checkin cle, methods, params, fatal=true
+  end
+
+  def checkin cle, methods, params = nil, fatal = false
+    methods = [methods] if methods.class == String
+    params ||= {}
+    data_var = params.merge( :var => "@#{cle.to_s}" ) 
+    data_var = data_var.merge( :fatal => true ) if fatal
+    # Toutes les méthodes doivent passer
+    methods.each do |method|
+      Checkif.send(method, @data[cle.to_sym], data_var)
+    end
+  end
 end
