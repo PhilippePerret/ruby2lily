@@ -2,11 +2,11 @@
 # encoding: UTF-8
 
 # 
-# Fichier principal de traitement des partiions écrites en ruby pour
-# lilypond
+# Fichier principal de traitement des partitions écrites en ruby pour
+# lilypond. C'est le module qui répond à la command `ruby2lily'
 # 
 
-DEBUG = true
+DEBUG = false
 def dbg txt
   return unless DEBUG
   puts "#{txt}"
@@ -46,14 +46,17 @@ ORCHESTRE::compose orchestre
 # sont)
 dbg '----> SCORE::set <data>'
 SCORE::set(
-  :title      => @title       || @titre,
-  :subtitle   => @subtitle    || @soustitre,
-  :composer   => @composer    || @compositeur,
-  :author     => @author      || @parolier,
-  :key        => @key         || @tune || @ton,
-  :time       => @time        || @signature,
-  :tempo      => @tempo,
-  :base_tempo => @base_tempo
+  :title        => @title       || @titre,
+  :subtitle     => @subtitle    || @soustitre,
+  :composer     => @composer    || @compositeur,
+  :author       => @author      || @parolier,
+  :key          => @key         || @tune || @ton,
+  :time         => @time        || @signature,
+  :tempo        => @tempo,
+  :base_tempo   => @base_tempo,
+  :meter        => @meter       || @instrument,
+  :arranger     => @arranger    || @arrangeur,
+  :description  => @description
 )
 
 # Transformation du score ruby en score lilypond
