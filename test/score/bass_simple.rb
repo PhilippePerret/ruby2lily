@@ -1,8 +1,10 @@
-@title = "Nos Habitudes"
-@subtitle = "Basse"
-@time = "4/4"
-@tempo = 100
-@key = 'G'
+@title      = "Nos Habitudes"
+@instrument = "Basse"
+@time       = "4/4"
+@tempo      = 100
+@key        = 'G'
+@composer   = "Phil"
+@arranger   = "Phil"
 
 
 def orchestre

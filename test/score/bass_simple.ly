@@ -18,7 +18,7 @@
 \relative c'' {
 	\clef "bass"
 	\time 4/4
-	\key G \major
+	\key g \major
 	\tempo 4 = 100
 g,4 r8 g g4 r8 g | fis,4 r8 fis fis4 r8 fis | e,4 r8 e e4 r8 e | d,4 r8 d d4 r8 d | r8 g, b g( ges f~) f2 r8 a16 a a8( f e d~) d1.
 }
