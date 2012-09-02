@@ -120,6 +120,7 @@ class Instrument
       raise fatal_error(Instrument::ERRORS[:type_ajout_unknown])
     end
   end
+  alias :<< :add
   
   # => Ajoute la chose comme liste de notes
   def add_as_string str
@@ -171,7 +172,7 @@ class Instrument
   #   On passe en revue chaque mesure de l'instrument et on crée le
   #   code.
   # -------------------------------------------------------------------
-  def as_lilypond_score params = nil
+  def to_lilypond params = nil
     @staff = Staff::new(
                         :clef         => @clef, 
                         :tempo        => SCORE.tempo, 
@@ -180,10 +181,10 @@ class Instrument
                         )
 
     score  = "\\new Staff {\n" +
-             "\\#{mark_relative} {\n" + 
-             staff_header
-    score += staff_content
-    score += "\n}\n}\n"
+             "\t\\#{mark_relative} {\n" + 
+             ("\n" + staff_header).gsub(/\n/, "\n\t")[1..-1]
+    score += ("\n" + staff_content).gsub(/\n/, "\n\t")[1..-1]
+    score += "\n\t}\n}\n"
     return score
   end
   

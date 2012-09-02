@@ -79,6 +79,13 @@ describe Instrument do
 			it ":add doit accepter des notes en string" do
 			  @instru.add "a b c"
 			end
+			it "doit répondre à :<<" do
+			  @instru.should respond_to :<<
+			end
+			it ":<< doit ajouter les notes" do
+			  @instru << "a b e"
+				iv_get(@instru, :notes).should == "a b e"
+			end
 			
 			# :add_as_string
 			it "doit répondre à :add_as_string" do
@@ -123,14 +130,15 @@ describe Instrument do
 			before(:all) do
 			  SCORE = Score::new unless defined? SCORE
 			end
-			# :as_lilypond_score
-		  it "doit répondre à as_lilypond_score" do
-		    @instru.should respond_to :as_lilypond_score
+			# :to_lilypond
+		  it "doit répondre à to_lilypond" do
+		    @instru.should respond_to :to_lilypond
 		  end
-			it ":as_lilypond_score doit retourner un code valide" do
-			  score = @instru.as_lilypond_score
+			it ":to_lilypond doit retourner un code valide" do
+			  score = @instru.to_lilypond
 				score.class.should == String
-				score.should == "\\new Staff {\n\\relative c'' {\n\t\\clef \"treble\"\n\t\\time 4/4\n\n}\n}\n"
+				score.should == 
+					"\\new Staff {\n\t\\relative c'' {\n\t\t\\clef \"treble\"\n\t\t\\time 4/4\n\t\t\n\t}\n}\n"
 				pending "Un test plus poussé est nécessaire"
 			end
 			
@@ -145,7 +153,6 @@ describe Instrument do
 				data = {:time => '6/8', :clef => 'F'}
 				iv_set(@instru, :staff => Staff::new(data))
 				staff = iv_get(@instru, :staff)
-				debug "staff: #{staff.inspect}"
 			  code = @instru.staff_header
 				code.should == "\t\\clef \"bass\"\n\t\\time 6/8\n"
 			end
