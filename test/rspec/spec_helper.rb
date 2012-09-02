@@ -30,6 +30,7 @@ RSpec.configure do |config|
   # On commence, au cas où, à supprimer tous les pdf du dossier
   # test
   Dir["./*.pdf"].each { |pdf| File.unlink pdf }
+  Dir["../score/*.pdf"].each { |pdf| File.unlink pdf }
   
   
   # => Initialise les paths principales liby (score ruby, score
