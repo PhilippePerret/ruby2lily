@@ -1,3 +1,6 @@
+# 
+# NE PAS MODIFIER OU SUPPRIMER CE FICHIER : IL SERT POUR LES TESTS
+# 
 @title    = "Partita"
 @composer = "J.S. Bach"
 @opus     = "1"
