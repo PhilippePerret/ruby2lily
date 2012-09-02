@@ -86,8 +86,10 @@ EOC
 		it ":as_lilypond_score doit renvoyer la partition au format lilypond" do
 			iv_set(@o, :instruments => [])
 		  score = @o.as_lilypond_score
-			# Sans rien préciser d'autre, le code doit être :
-			score.should == "\t\\clef \"treble\"\n\t\\time 4/4\n"
+			# Sans rien préciser d'autre, le code doit être vide
+			score.should == ""
+			# En donnant des informations, ça doit passer
+			# @todo: vérifier les informations
 		end
 		it "doit répondre à :polyphonique?" do
 		  @o.should respond_to :polyphonique?
