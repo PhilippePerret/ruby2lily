@@ -58,7 +58,7 @@ class Score::Sheet
       c = "% Score"
       c += "\n{"  # @todo: relative si nécessaire
       c += "\t<<" if ORCHESTRE.polyphonique?
-      c += ORCHESTRE::as_lilypond_score
+      c += ORCHESTRE::to_lilypond
       c += "\t>>" if ORCHESTRE.polyphonique?
       c += "\n}"
     end

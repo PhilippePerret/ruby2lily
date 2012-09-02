@@ -81,11 +81,11 @@ EOC
 	    @o = Orchestre::new
 	  end
 		it "doit répondre à :score" do
-		  @o.should respond_to :as_lilypond_score
+		  @o.should respond_to :to_lilypond
 		end
-		it ":as_lilypond_score doit renvoyer la partition au format lilypond" do
+		it ":to_lilypond doit renvoyer la partition au format lilypond" do
 			iv_set(@o, :instruments => [])
-		  score = @o.as_lilypond_score
+		  score = @o.to_lilypond
 			# Sans rien préciser d'autre, le code doit être vide
 			score.should == ""
 			# En donnant des informations, ça doit passer
