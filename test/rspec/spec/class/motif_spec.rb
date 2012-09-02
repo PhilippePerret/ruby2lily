@@ -48,6 +48,20 @@ describe Motif do
 	    @m = Motif::new "bb g f e,4 bb8"
 	  end
 	
+		# :pose_first_and_last_note
+		it "doit répondre à :pose_first_and_last_note" do
+		  repond_a :pose_first_and_last_note
+		end
+		it ":pose_first_and_last_note doit poser les balises" do
+		  @mo = Motif::new "a b c d"
+			res = @mo.pose_first_and_last_note('IN', 'OUT')
+			res.should == "aIN b c dOUT"
+			res = @mo.pose_first_and_last_note('(', ')')
+			res.should == "a( b c d)"
+			res = @mo.pose_first_and_last_note('\(', '\)')
+			res.should == "a\\( b c d\\)"
+		end
+		
 		# :change_objet_ou_new_instance
 		it "doit répondre à :change_objet_ou_new_instance" do
 		  repond_a :change_objet_ou_new_instance
@@ -146,6 +160,53 @@ describe Motif do
 			res = @mo.surlegato
 			res.to_s.should == "a\\( b cis r4 a-^\\) |"
 		end
+		
+		# :crescendo
+		it "doit répondre à :crescendo" do
+		  repond_a :crescendo
+		end
+		it ":crescendo sans argument doit définir le motif simple" do
+		  @motif = Motif::new "a b c"
+			new_motif = @motif.crescendo
+			@motif.to_s.should == "a b c"
+			new_motif.to_s.should == "a\\< b c\\!"
+			new_motif = @motif.crescendo(:new => false)
+			@motif.to_s.should == "a\\< b c\\!"
+		end
+		it ":crescendo avec :start doit définir la dynamique de départ" do
+		  @motif = Motif::new "a b c"
+			@motif.crescendo(:new => false, :start => 'pp', :end => 'ff')
+			@motif.to_s.should == "\\pp a\\< b c \\ff"
+		end
+		it ":crescendo avec :end doit définir la dynamique de fin" do
+		  @motif = Motif::new "a b c"
+			@motif.crescendo(:new => false, :end => 'fff')
+			@motif.to_s.should == "a\\< b c \\fff"
+		end
+		
+		# :decrescendo
+		it "doit répondre à :decrescendo" do
+		  repond_a :decrescendo
+		end
+		it ":decrescendo sans argument doit définir le motif simple" do
+		  @motif = Motif::new "a b c"
+			new_motif = @motif.decrescendo
+			@motif.to_s.should == "a b c"
+			new_motif.to_s.should == "a\\> b c\\!"
+			@motif.decrescendo(:new => false)
+			@motif.to_s.should == "a\\> b c\\!"
+		end
+		it ":decrescendo avec :start doit définir la dynamique de départ" do
+		  @motif = Motif::new "a b c"
+			@motif.decrescendo(:new => false, :start => 'fff', :end => 'ppp')
+			@motif.to_s.should == "\\fff a\\> b c \\ppp"
+		end
+		it ":decrescendo avec :end doit définir la dynamique de fin" do
+		  @motif = Motif::new "a b c"
+			@motif.decrescendo(:new => false, :end => 'ppp')
+			@motif.to_s.should == "a\\> b c \\ppp"
+		end
+		
 		
 	end # / transformation du motif
 end

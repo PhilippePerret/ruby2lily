@@ -70,7 +70,7 @@ class Motif
   # @return L'OBJET LUI-MÊME (contrairement à d'autres méthodes de
   # transformation)
   def legato params = nil
-    motif_leg = pose_legato
+    motif_leg = pose_first_and_last_note '(', ')'
     change_objet_ou_new_instance motif_leg, params, false
   end
   
@@ -82,19 +82,40 @@ class Motif
   # @return L'OBJET LUI-MÊME (contrairement à d'autres méthodes de
   # transformation)
   def surlegato params = nil
-    motif_leg = pose_legato true
+    motif_leg = pose_first_and_last_note '\(', '\)'
     change_objet_ou_new_instance motif_leg, params, false
   end
+
+  # => Crée un crescendo à partir du motif
+  # 
+  # @param  params  Options:
+  #                   :start    La dynamique de départ (if any)
+  #                   :end      La dynamique de fin (if any)
+  #                   :new      Crée une nouvelle instance si true, sinon
+  #                             modifie l'objet courant
+  def crescendo params = nil;   cresc_or_decresc params, true   end
+  def decrescendo params = nil; cresc_or_decresc params, false  end
+  def cresc_or_decresc params, for_crescendo
+    params ||= {}
+    start   = params.has_key?( :start ) ? "\\#{params[:start]} " : ''
+    markin  = for_crescendo ? '\<' : '\>'
+    markout = params.has_key?( :end   ) ? " \\#{params[:end]}" : '\!'
+    motif_leg = start + pose_first_and_last_note( markin, markout )
+    change_objet_ou_new_instance motif_leg, params, true
+  end
   
-  def pose_legato surlegato=false
-    markin  = surlegato ? '\(' : '('
-    markout = surlegato ? '\)' : ')'
+  
+  # =>  Pose une marque de début (donc après la première note) et de fin
+  #     (donc après la dernière note) sur le motif de l'objet courant
+  # 
+  # @return   Le motif courant modifié
+  def pose_first_and_last_note markin, markout
     dmotif = @motif.split(' ') # => vers des notes mais aussi des marques
-    dmotif[0] = "#{dmotif[0]}#{markin}"
+    ifirst = 0
+    while dmotif[ifirst].match(/^[a-g]/).nil? do ifirst += 1 end
+    dmotif[ifirst] = "#{dmotif[ifirst]}#{markin}"
     ilast = dmotif.count - 1
-    while dmotif[ilast].match(/^[a-g]/).nil?
-      ilast -= 1
-    end
+    while dmotif[ilast].match(/^[a-g]/).nil? do ilast -= 1 end
     dmotif[ilast] = "#{dmotif[ilast]}#{markout}"
     dmotif.join(' ')
   end
