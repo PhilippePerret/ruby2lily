@@ -135,7 +135,7 @@ class LINote
   # => Return la note montée de +demitons+ demi-tons
   # cf. `moins' pour les arguments
   def plus demitons, params = nil
-    debug "\n@note_str:#{@note_str} - @note_int:#{@note_int} - demitons:#{demitons} - params:#{params.inspect}"
+    # debug "\n@note_str:#{@note_str} - @note_int:#{@note_int} - demitons:#{demitons} - params:#{params.inspect}"
     LINote::note_str_in_context(@note_int + demitons, params)
   end
   
