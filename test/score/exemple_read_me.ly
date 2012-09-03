@@ -19,7 +19,7 @@
 	\relative c'' {
 		\clef "treble"
 		\time 6/8
-		\key g \major	c4 c4 c4  e g c c c  c4 c4 c4  e g c c c  c4 c4 c4  e g c c c
+		\key g \major	\relative c'' { c4 c4 c4 e g c } \relative c'' { c4 c4 c4 e g c } \relative c'' { c4 c4 c4 e g c }
 	}
 }
 \new PianoStaff <<
@@ -27,14 +27,14 @@
 		\relative c'' {
 			\clef "treble"
 			\time 6/8
-			\key g \major	<g c e>8  <g c e>4  <g c e>4   <g c e>8  <bis f a>8  <bis f a>4  <bis f a>4   <bis f a>8   <d g b>8  <d g b>4  <d g b>4   <d g b>8   <g c e>8  <g c e>4  <g c e>4   <g c e>8  <bis f a>8  <bis f a>4  <bis f a>4   <bis f a>8   <d g b>8  <d g b>4  <d g b>4   <d g b>8
+			\key g \major	\relative c'' { \relative c'' { <g c e>8  \relative c'' { <g c e>4  } \relative c'' { <g c e>4  } <g c e>8  }\relative c'' { <bis f a>8  \relative f'' { <bis f a>4  } \relative f'' { <bis f a>4  } <bis f a>8  }\relative c'' { <d g b>8  \relative g'' { <d g b>4  } \relative g'' { <d g b>4  } <d g b>8  } } \relative c'' { \relative c'' { <g c e>8  \relative c'' { <g c e>4  } \relative c'' { <g c e>4  } <g c e>8  }\relative c'' { <bis f a>8  \relative f'' { <bis f a>4  } \relative f'' { <bis f a>4  } <bis f a>8  }\relative c'' { <d g b>8  \relative g'' { <d g b>4  } \relative g'' { <d g b>4  } <d g b>8  } }
 		}
 	}
 	\new Staff {
 		\relative c' {
 			\clef "bass"
 			\time 6/8
-			\key g \major	c8 c2 c8 f8 f2 f8  g8 g2 g8  c8 c2 c8 f8 f2 f8  g8 g2 g8
+			\key g \major	\relative c { \relative c { c8 c2 c8 }\relative c'' { f8 f2 f8 }\relative c'' { g8 g2 g8 } } \relative c { \relative c { c8 c2 c8 }\relative c'' { f8 f2 f8 }\relative c'' { g8 g2 g8 } }
 		}
 	}
 >>
@@ -42,7 +42,7 @@
 	\relative c'' {
 		\clef "treble"
 		\time 6/8
-		\key g \major	c2. e g \relative c'' { c2. e g }
+		\key g \major	\relative c'' { c2. e g } \relative c'' { c2. e g }
 	}
 }	>>
 }

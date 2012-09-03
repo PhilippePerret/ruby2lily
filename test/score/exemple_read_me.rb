@@ -18,7 +18,7 @@ def orchestre
 end
 
 def score
-  JANE << ("c4" * 3 + "e g" + "c" * 3) * 3
+  JANE << ("c4" * 3 + "e g" + "c") * 3
   PETE.main_droite << (riff_do + riff_fa + riff_sol) * 2
   PETE.main_gauche << (riffb_do + riffb_fa + riffb_sol) * 2
   HELEN << "c2. e g" * 2
@@ -40,7 +40,7 @@ def define_riff_do
   Motif::new acc_do[8] + acc_do[4] * 2 + acc_do[8]
 end
 def riffb_do
-  @riffb_do ||= Motif::new( "c8 c2 c8" )
+  @riffb_do ||= Motif::new( :motif => "c8 c2 c8", :octave => 0)
 end
 def riffb_fa
   @riffb_fa ||= riffb_do.moins(7)
