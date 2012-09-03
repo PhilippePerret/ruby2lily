@@ -65,7 +65,13 @@ class LINote
       -------------------------------------------------------------------
     HDEF
     TONALITES = tonalites.to_hash(to_sym=false)
-  end
+    
+    # Expression régulière pour repérer les notes dans un motif
+    # 
+    # @todo: il faudra l'affiner au cours du temps
+    REG_NOTE = %r{[a-g](?:(?:es|is){1,2})?}
+    
+  end # / si constantes déjà définies (tests)
   
   # -------------------------------------------------------------------
   #   Classe
@@ -91,6 +97,59 @@ class LINote
     # la note naturelle, dans ce contexte
     note = data_note[:natural] if note.length > 3
     return note
+  end
+  
+  # => Retourne la marque d'octave (à ajouter à \\relative)
+  # @param  octaves   Le nombre d'octaves
+  # @return "c" + le nombre de virgules ou d'apostrophes nécessaires
+  def self.mark_octave octaves = 0
+    return "c" if octaves == 0
+    mk = octaves > 0 ? "'" : ","
+    "c#{mk.fois(octaves.abs)}"
+  end  
+
+  # =>  Retourne le motif +motif+ où toutes les notes auront leur
+  #     durée fixée à +duree+
+  # 
+  # @param  motif     Un string représentant le motif à corriger
+  #                   Note : ce n'est pas une instance Motif
+  # @param  duree     La durée à appliquer, soit un nombre (p.e. 4) soit
+  #                   un string (p.e. "4."). Si nil, le motif est
+  #                   renvoyé tel quel.
+  # 
+  # @return Le motif corrigé ou raise une erreur fatale si un des
+  #         argument est non conforme.
+  # 
+  # @note : attention, pour le moment, la recherche des notes n'est
+  # pas forcément pleinement opérationnelle. @todo: je pourrai la mettre
+  # en place lorsque j'aurais fait le tour de toutes les syntaxes de 
+  # lilypond
+  # 
+  def self.fixe_notes_length motif, duree
+    
+    return motif if duree.nil?
+    
+    # Contrôle de la durée
+    # ---------------------
+    fatal_error(:invalid_duree_notes) if
+      ! [Fixnum, String].include?(duree.class) \
+      || duree.class == Fixnum && (duree < 1 || duree > 2000) \
+      || duree.class == String && (duree.gsub(/[0-9]+\.?/, '') != "")
+    
+    # Contrôle du motif
+    # ------------------
+    fatal_error(:invalid_motif, :bad => motif) if motif.class != String
+    
+    # Affectation des durées
+    # -----------------------
+    liste_notes = []
+    motif.split(' ').each do |membre|
+      membre.gsub(/^(r|#{LINote::REG_NOTE})(?:[0-9]{1,3})?(.*?)$/){
+        note_ou_rest, suite = [$1, $2]
+        liste_notes << "#{note_ou_rest}#{duree.to_s}#{suite}"
+      }
+    end
+    liste_notes.join(' ')
   end
   
   # -------------------------------------------------------------------

@@ -34,6 +34,63 @@ describe LINote do
 				"llp"			=>"bes"
 		}
 		end
+		
+		# :mark_octave
+		it "doit répondre à :mark_octave" do
+		  LINote.should respond_to :mark_octave
+		end
+		it ":mark_octave doit renvoyer 'c' quand octave nulle" do
+		  LINote::mark_octave(0).should == "c"
+		end
+		it ":mark_octave doit renvoyer bonne valeur quand octave négative" do
+		  LINote::mark_octave(-9).should == "c,,,,,,,,,"
+		end
+		it ":mark_octave doit renvoyer un apostrophe quand octave > 0" do
+		  LINote::mark_octave(1).should == "c'"
+			LINote::mark_octave(3).should == "c'''"
+		end
+		
+		# :REG_NOTE
+		it "doit définir REG_NOTE (motif pour trouver les notes)" do
+		  defined?(LINote::REG_NOTE).should be_true
+		end
+		# :fixe_notes_length
+		it "doit répondre à :fixe_notes_length" do
+		  LINote.should respond_to :fixe_notes_length
+		end
+		it ":fixe_notes_length lève erreur durée si durée invalide" do
+			err = Liby::ERRORS[:invalid_duree_notes]
+		  expect{LINote::fixe_notes_length('a b c', -2)}.to \
+				raise_error (SystemExit, err)
+		  expect{LINote::fixe_notes_length('a b c', 2001)}.to \
+				raise_error (SystemExit, err)
+		end
+		it ":fixe_notes_length lève erreur motif si motif invalide" do
+			err = detemp(Liby::ERRORS[:invalid_motif], :bad => nil)
+		  expect{LINote::fixe_notes_length(nil, 4)}.to \
+				raise_error (SystemExit, err)
+			mo = Motif::new "a a a"
+			err = detemp(Liby::ERRORS[:invalid_motif], :bad => mo.to_s)
+		  expect{LINote::fixe_notes_length(mo, 4)}.to \
+				raise_error (SystemExit, err)
+			err = detemp(Liby::ERRORS[:invalid_motif], :bad => 4)
+		  expect{LINote::fixe_notes_length(4, 4)}.to \
+				raise_error (SystemExit, err)
+		end
+		it ":fixe_notes_length avec durée nil renvoie le motif" do
+		  mo = "a a a"
+			LINote::fixe_notes_length(mo, nil).should == mo
+		end
+		it ":fixe_notes_length avec bons arguments renvoie la bonne valeur" do
+		  mo = "a b c"
+			LINote::fixe_notes_length(mo, 4).should == "a4 b4 c4"
+			LINote::fixe_notes_length(mo, "4.").should == "a4. b4. c4."
+			mo = "ees c4"
+			LINote::fixe_notes_length(mo, 2).should == "ees2 c2"
+			# @todo: ICI, IL FAUDRA ESSAYER AVEC DES MOTIFS PLUS COMPLEXES
+			pending "Essayer avec des motifs plus complexes"
+		end
+		
   end # / classe
 	describe "Méthodes de classe" do
 		it "doit répondre à :note_str_in_context" do
