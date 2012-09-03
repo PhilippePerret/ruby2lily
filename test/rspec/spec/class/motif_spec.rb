@@ -147,8 +147,10 @@ describe Motif do
 		  repond_a :*
 		end
 		it ":* permet de multiplier des motifs" do
-		  @m1 = Motif::new "a b c"
-			(@m1 * 3).should == "\\relative c'' { a b c a b c a b c }"
+		  @m1 = Motif::new "c e g"
+			(@m1 * 3).should == "\\relative c'' { c e g } " 		\
+													<< "\\relative c'' { c e g } "	\
+													<< "\\relative c'' { c e g }"
 		end
 		
 		# :pose_first_and_last_note
@@ -211,6 +213,24 @@ describe Motif do
 			iv_set(SCORE, :key => 'G')
 		  @m.moins(1).to_s.should == "\\relative c'' { a fis e dis,4 a8 }"
 			@m.moins(2).to_s.should == "\\relative c'' { gis f dis d,4 gis8 }"
+		end
+		it ":moins doit respecter l'octave du motif" do
+			notes = 'a fis e ees r'
+		  mo = Motif::new :motif => notes, :octave => 0
+			mo.moins(0).to_s.should == "\\relative c { a fis e dis r }"
+			mo = Motif::new :motif => notes, :octave => -2
+			mo.moins(2).to_s.should == "\\relative c,, { g e d cis r }"
+		end
+		it ":moins doit pouvoir spécifier l'octave explicitement" do
+		  notes = "a fis r gis"
+			mo = Motif::new :motif => notes, :octave => 3
+			mo.to_s.should == "\\relative c''' { #{notes} }"
+			res = mo.moins(0, :octave => 0).to_s
+			res.should == "\\relative c { #{notes} }"
+			res = mo.moins(0, :octave => -2).to_s
+			res.should == "\\relative c,, { #{notes} }"
+			res = mo.moins(2, :octave => 1).to_s
+			res.should == "\\relative c' { g e r fis }"
 		end
 		
 		# :plus

@@ -25,7 +25,7 @@ class Motif
     when "String" then @motif = Liby::notes_ruby_to_notes_lily(params)
     when "Array"  then @motif = params
     when "Hash"   then 
-      @motif  = Liby::notes_ruby_to_notes_lily(params[:motif])
+      @motif  = params[:motif]
       @octave = params[:octave].to_i unless params[:octave].nil?
     else
       @motif  = nil
@@ -141,6 +141,7 @@ class Motif
     else new_motif += self.motif          end
     if autre_motif.motif.class == String  then new_motif << autre_motif
     else new_motif += autre_motif.motif   end
+    puts "new_motif : #{new_motif.inspect}"
     change_objet_ou_new_instance new_motif, params, true
   end
   
@@ -149,8 +150,7 @@ class Motif
   # @note: on ne peut pas utiliser la multiplication de string, car
   # elle appelle cette méthode (=> stack level too deep)
   def *( nombre_fois )
-    multi = "#{@motif} ".x(nombre_fois)
-    "#{mark_relative} { #{multi}}"
+    "#{mark_relative} { #{@motif} } ".x(nombre_fois).strip
   end
   
   # -------------------------------------------------------------------
@@ -161,7 +161,19 @@ class Motif
   # @todo: plus tard, pourra modifier par degré, en restant dans la
   # gamme
   # 
-  # @return une NOUVELLE instance de motif
+  # @param  demitons    Nombre de demi-tons dont il faut monter (si
+  #                     positif) ou baisser (si négatif) le motif
+  #                     courant.
+  # @param  params      Hash des paramètres transmis (cf. ci-dessous) ou
+  #                     nil.
+  # 
+  # +params+ peut contenir :
+  #   :new => false     Ne crée pas de nouvelle instance, modifie
+  #                     le motif courant.
+  #   :octave => xx     Spécifie l'octave du motif.
+  # 
+  # @return une NOUVELLE instance de motif, sauf si +params+ contient
+  # :new => false
   def moins demitons, params = nil
     # La question qui se pose ici est : 
     # Est-ce vraiment le bon moyen de repérer les notes dans un
@@ -254,22 +266,24 @@ class Motif
   # -------------------------------------------------------------------
   def change_objet_ou_new_instance new_motif, params, new_defaut
     params = set_new_if_not_defined( params, new_defaut )
-    instance_returned = if params[:new] === true
-                          Motif::new new_motif
-                        else
-                          @motif = new_motif
-                          self
-                        end
-    # Réglage de l'octave du motif (nouveau ou courant)
-    # Il doit toujours correspondre à l'octave du premier motif si
-    # motif est constitué de plusieurs motifs.
-    if instance_returned.motif.class == Array
-      octave_first = instance_returned.motif.first.octave
-      instance_returned.instance_variable_set("@octave", octave_first)
+
+    # Définir l'octave du motif
+    # -------------------------
+    octave =  if params.has_key?( :octave ) && params[:octave] != nil
+                params[:octave]
+              else 
+                @octave
+              end
+
+    # Instance nouvelle ou courante modifiée
+    if params[:new] === true
+      Motif::new( :motif  => new_motif, 
+                  :octave => octave )
+    else
+      @motif  = new_motif
+      @octave = octave
+      self
     end
-    
-    # Retourner l'instance Motif courante ou créée
-    instance_returned
   end
   
   # => Définit la valeur de params[:new] si non défini
