@@ -1,16 +1,47 @@
-# 
-# Extensions de la class String
-# 
+=begin
+
+  Extensions de la class String
+
+  ATTENTION : CE MODULE NE DOIT ABSOLUMENT PAS ÊTRE COPIÉ DANS UN
+  AUTRE PROGRAMME, IL PRÉSENTE DES ALTÉRATIONS DANGEREUSES DE LA CLASSE
+  STRING ORIGINALE, NOTAMMENT AU NIVEAU DES + ET DES *.
+
+  Traitement spécial des + et *
+  ------------------------------
+  Afin de faciliter l'écriture de la musique dans le score, les méthodes
+  + et * ont été profondément modifiées.  
+  @note : pour utiliser le * de façon ancienne, il suffit de faire :
+          <string>.fois(nombre)
+          Pour utiliser le + de façon ancienne, il suffit de faire :
+          <string>.plus(<autre string>)
+=end
+
 class String
   
   # -------------------------------------------------------------------
   #   Redéfinitions propres à Ruby2Lily
   # -------------------------------------------------------------------
   
+  # => Multiplie la note ou le groupe de notes string
+  # 
+  # @usage      <notes> = "<note/notes>" * <nombre>
+  # 
+  # @note : il y a deux résultats possibles. Si <string> est une simple
+  #         note (string sans espace), alors on renvoie la note 
+  #         multipliée par la valeur voulue.
+  #         En revanche, si <string> est un groupe de notes, alors ce
+  #         groupe est transformé en Motif avant d'être multiplié, et
+  #         donc le retour sera plus complexe, du style :
+  #         "\\relative c'' { a b c } \\relative c'' { a b c }"
   def *( nombre )
-    t = ""
-    nombre.times { |i| t  << "#{self} " }
-    t
+    is_simple_note = self.match(/ /).nil?
+    if is_simple_note
+      t = ""
+      nombre.times { |i| t  << "#{self} " }
+      t
+    else
+      Motif::new( self ) * nombre
+    end
   end
   
   # Pour remplacer "*" modifiée ci-dessus
@@ -19,6 +50,7 @@ class String
     nombre.times.each { |i| t << self }
     t
   end
+  alias :x :fois
   
   # ATTENTION ! Cette méthode posera des problèmes à tout code du
   # programme qui utilise "+" pour concatener des chaines
@@ -26,6 +58,18 @@ class String
   # le temps de l'analyse du score…
   def + valeur
     self << ' ' << valeur.to_s
+  end
+  
+  # Pour concaténer à la place de "+"
+  # @usage :
+  #   <string>.plus(<autre string>) => "<string><autre string>"
+  def plus chaine
+    "#{self}#{chaine}"
+  end
+  
+  # Pour compenser l'utilisation normale de "+="
+  def add chaine
+    self << chaine.to_s
   end
   
   # -------------------------------------------------------------------
