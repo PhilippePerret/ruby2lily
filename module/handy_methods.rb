@@ -25,7 +25,7 @@ end
 # @note: trouver un autre nom plus explicite et aussi court
 def detemp texte, params
   params.each do |var, val|
-    texte = texte.gsub(/\#\{#{Regexp.escape(var.to_s)}\}/, val)
+    texte = texte.gsub(/\#\{#{Regexp.escape(var.to_s)}\}/, val.to_s)
   end unless params.nil?
   texte
 end
