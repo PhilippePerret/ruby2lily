@@ -22,9 +22,9 @@ class Liby
       
       # === Définition du score ===
       :title_not_string           => "Le titre doit être une chaine de caractères",
-      :time_invalid               => "La signature de temps (@time) est invalide " +
+      :time_invalid               => "La signature de temps (@time) est invalide" +
                                       "(elle devrait être sous la forme « xx/xx »)",
-      :key_invalid                => "La clé (@key/@tonalite) est mal définie ('\#{bad}') " +
+      :key_invalid                => "La clé (@key/@tonalite) est mal définie ('\#{bad}')" +
                                     "(elle devrait être une valeur parmi #{LINote::TONALITES.keys.join(', ')}).",
       
       # ==== Motif ==== #
