@@ -35,6 +35,19 @@ describe LINote do
 		}
 		end
 		
+		# :octave_as_llp
+		it "doit répondre à :octave_as_llp" do
+		  LINote.should respond_to :octave_as_llp
+		end
+		it ":octave_as_llp doit renvoyer une bonne valeur pour octave < 0" do
+		  LINote.octave_as_llp( -6 ).should eq ",,,,,,"
+		end
+		it ":octave_as_llp doit renvoyer une bonne valeur pour octave > 0" do
+		  LINote.octave_as_llp(4).should eq "''''"
+		end
+		it ":octave_as_llp doit renvoyer un string vide pour octave 0" do
+		  LINote::octave_as_llp(0).should eq ""
+		end
 		# :mark_octave
 		it "doit répondre à :mark_octave" do
 		  LINote.should respond_to :mark_octave

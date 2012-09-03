@@ -220,14 +220,37 @@ describe Note do
 					@n.should respond_to :to_pointee
 				end
 				it ":to_pointee doit définir @dotted" do
-				  iv_set(@n, :dotted => nil)
+				  iv_set(@n, :duration => 4)
 					@n.to_dotted
-					iv_get(@n, :dotted).should be_true
-					@n.to_dotted false
-					iv_get(@n, :dotted).should be_false
+					iv_get(@n, :duration).should eq "4."
+				  iv_set(@n, :duration => "2.")
+					@n.to_dotted
+					iv_get(@n, :duration).should eq "2."
 				end
+				
 			end # /méthodes de durée
 
+			# -------------------------------------------------------------------
+			# 	Opérations sur les notes
+			# -------------------------------------------------------------------
+			describe "-Opérations-" do
+			  it "doit répondre à :+" do
+			    @n.should respond_to :+
+			  end
+				it ":+ doit permettre d'addition des notes" do
+				  res = (ut + re)
+					res.class.should == Motif
+					ut.to_s.should eq "c'''"
+					re.to_s.should eq "d'''"
+					res.to_s.should eq "\\relative c''' { c d }"
+				end
+				it ":+ avec deux notes d'octave différentes doit produire deux motifs" do
+				  coct4 = Note::new "c", :octave => 4
+					aoct1 = Note::new "a", :octave => 1
+					res = (coct4 + aoct1)
+					puts "res: #{res.inspect}"
+				end
+			end
 			# -------------------------------------------------------------------
 			# 	Méthodes d'affichage
 			# -------------------------------------------------------------------

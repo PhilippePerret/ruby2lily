@@ -13,8 +13,9 @@ RSpec.configure do |config|
   require File.join(BASE_LILYPOND, 'module', 'constants.rb')
   # Chargement de toutes les librairies requises
   Dir["#{DIR_CLASS_LILYPOND}/required/**/*.rb"].each { |lib| require lib }
-  # Chargement des méthodes pratiques
+  # Chargement des méthodes pratiques et des fonctions de notes
   require File.join(BASE_LILYPOND, 'module', 'handy_methods.rb')
+  require File.join(BASE_LILYPOND, 'module', 'note_methods.rb')
 
   config.before(:all){
     # À faire avant chaque describe

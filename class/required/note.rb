@@ -41,7 +41,7 @@ class Note
   # -------------------------------------------------------------------
   #   Instance
   # -------------------------------------------------------------------
-  attr_reader :octave, :duration
+  attr_reader :it, :octave, :duration
   
   @it         = nil       # La note, en notation anglosaxonne
   @itit       = nil       # La note, en notation italienne
@@ -110,26 +110,19 @@ class Note
   end
   # => Définit la marque de l'octave pour l'affichage
   def mark_octave
-    case @octave
-    when nil then ""
-    else
-      diff = Note::octave_courant - @octave
-      is_note_inferieure = diff > 0
-      sign = is_note_inferieure ? "," : "'"
-      # Valeur retournée
-      sign * 2 ** ( diff.abs - 1 )
-    end
+    return "" if @octave.nil?
+    LINote::octave_as_llp @octave
   end
 
   # => Renvoie la note telle qu'elle doit être affichée en lilipond
-  def to_llp # => to_lilipond
+  def to_s # => to_lilipond
     note = rest? ? 'r' : "#{@it}#{mark_octave}"
     "#{note}#{mark_duration}"
     # @todo: il faudra ajouter ici tout ce qu'on peut faire pour
     # spécifier la note
   end
-  alias :to_lilipond :to_llp
-  alias :to_s :to_llp
+  alias :to_lilipond :to_s
+  alias :to_llp :to_s
   
   # => Renvoie la note à l'octave supérieure ou inférieure
   # 
@@ -185,8 +178,7 @@ class Note
   def cqcroche; duree 128;  self end
   
   def pointee
-    return if @duration.to_s.end_with?('.')
-    @duration = "#{@duration}."
+    to_pointee
     self
   end
   alias :dotted :pointee
@@ -229,8 +221,31 @@ class Note
   def to_cqcroche;  duree 128   end
 
   def to_dotted val = true
-    @dotted = val
+    return if @duration.to_s.end_with?('.')
+    @duration = "#{@duration}."
   end
   alias :to_pointee :to_dotted
-    
+
+  # -------------------------------------------------------------------
+  #   Opérations sur les notes
+  # -------------------------------------------------------------------
+  
+  # => Addition de notes
+  # L'addition doit produire un motif contenant les deux notes 
+  # additionnée (note : ensuite, ce sera donc le motif qui s'occupera
+  # de la note)
+  def + foo
+    case foo.class.to_s
+    when "Note" then
+      if @octave == foo.octave
+        Motif::new :motif => "#{@it} #{foo.it}", :octave => @octave
+      else
+        moself  = Motif::new :motif => @it, :octave => @octave
+        mofoo   = Motif::new :motif => foo.to_s, :octave => foo.octave
+        moself + mofoo
+      end
+    else
+      # ?
+    end
+  end
 end

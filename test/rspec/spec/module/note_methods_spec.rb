@@ -28,5 +28,9 @@ describe "Module/note_methods" do
 		end
 	end # / les notes
 	
-	
+	describe "- Opération sur les notes -" do
+	  it "doit permettre l'addition de notes" do
+	    (ut + re).class.should == Note
+	  end
+	end
 end

@@ -103,10 +103,15 @@ class LINote
   # @param  octaves   Le nombre d'octaves
   # @return "c" + le nombre de virgules ou d'apostrophes nécessaires
   def self.mark_octave octaves = 0
-    return "c" if octaves == 0
-    mk = octaves > 0 ? "'" : ","
-    "c#{mk.fois(octaves.abs)}"
-  end  
+    "c#{octave_as_llp(octaves)}"
+  end
+  
+  # => Retourne l'octave exprimée en virgules ou apostrophe
+  def self.octave_as_llp oct
+    return "" if oct == 0
+    mk = oct > 0 ? "'" : ","
+    mk.fois(oct.abs)
+  end
 
   # =>  Retourne le motif +motif+ où toutes les notes auront leur
   #     durée fixée à +duree+

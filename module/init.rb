@@ -16,4 +16,8 @@ unless defined? DIR_MOD_LILYPOND
   require File.join(DIR_MOD_LILYPOND, 'constants.rb')
 
   Dir["#{DIR_CLASS_LILYPOND}/**/*.rb"].each { |lib| require lib }
+  
+  # Chargement des fonctions de notes (ut, re, etc.)
+  require File.join(BASE_LILYPOND, 'module', 'note_methods.rb')
+  
 end
