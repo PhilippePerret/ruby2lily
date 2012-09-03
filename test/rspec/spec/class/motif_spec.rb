@@ -114,7 +114,7 @@ describe Motif do
 	    @m = Motif::new "bb g f e,4 bb8"
 	  end
 	
-		# : +
+		# :+
 		it "doit répondre à :+" do
 		  repond_a :+
 		end
