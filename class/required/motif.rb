@@ -145,8 +145,12 @@ class Motif
   end
   
   # => Méthode de multiplication de motif
+  # 
+  # @note: on ne peut pas utiliser la multiplication de string, car
+  # elle appelle cette méthode (=> stack level too deep)
   def *( nombre_fois )
-    "#{mark_relative} { #{@motif * nombre_fois}}"
+    multi = "#{@motif} ".x(nombre_fois)
+    "#{mark_relative} { #{multi}}"
   end
   
   # -------------------------------------------------------------------
