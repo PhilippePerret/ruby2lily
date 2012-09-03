@@ -27,6 +27,9 @@ class Liby
       :key_invalid                => "La clé (@key/@tonalite) est mal définie ('\#{bad}') " +
                                     "(elle devrait être une valeur parmi #{LINote::TONALITES.keys.join(', ')}).",
       
+      # ==== Motif ==== #
+      :invalid_motif              => "Le motif fourni ('\#{bad}') est invalide.",
+      :invalid_duree_notes        => "La durée pour les notes est invalides",
       
       :fin_fin_fin_fin_fin => ''
     }
@@ -71,11 +74,7 @@ class Liby
     def error id_err, params = nil
       err = if ERRORS.has_key? id_err then ERRORS[id_err.to_sym]
             else id_err end
-              
-      params.each do |arg, val|
-        err = err.gsub(/\#\{#{arg}\}/, val)
-      end unless params.nil?
-      err
+      detemp( err, params )
     end
 
     # => Analyse de la ligne de commande (ses arguments ARGV)
