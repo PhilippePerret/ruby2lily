@@ -38,7 +38,7 @@ class String
     if is_simple_note
       t = ""
       nombre.times { |i| t  << "#{self} " }
-      t
+      t.strip
     else
       Motif::new( self ) * nombre
     end
