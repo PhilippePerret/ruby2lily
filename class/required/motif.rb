@@ -47,105 +47,83 @@ class Motif
   #         SAUF si @motif est une liste de motif, dans lequel cas 
   #         chacun d'eux sera interprété à sa manière
   # 
-  # @param  p_init    Hash pouvant contenir :
-  #                   :duree    La durée à mettre aux notes du motif
-  #                   :octave   Le nombre positif ou négatif d'octaves
+  # @param  params    
+  #         Hash pouvant contenir :
+  #            :duree        La durée à mettre aux notes du motif
+  #            :octave       La hauteur à donner au motif
+  #            :add_octave   Le nombre d'octaves à ajouter ou retrancher
   # 
-  def to_s p_init = nil
+  def to_s params = nil
     return nil if @motif.nil?
-
-    # Analyse des paramètres transmis
-    if p_init.class == Fixnum || p_init.class == String
-      params = {}
-      params[:duree] = p_init.to_i
-    else
-      params = p_init || {}
-    end
-
-    # Faire une liste de motifs, quel que soit le cas
-    ary_motifs =  if self.motif.class == String then [self]
-                  else @motif end
-
-    # Calcul de l'octave de référence.
-    # --------------------------------
-    # Par exemple, si le motif est constitué de trois motifs différents
-    # d'octave respectifs : 4, 2, -1
-    # Et que params définit un octave de 3
-    # Cela signifie qu'il faut baisser tout le motif d'une octave (≠ avec
-    # le premier motif), donc que le 2e motif devra être mis à l'octave
-    # 1 et le troisième à -2
-    # 
-    octa_to_add = if params.has_key? :octave
-                    octa_needed = params[:octave].to_i
-                    ary_motifs.first.octave - octa_needed
-                  else 0 end
     
-    # Boucle sur tous les motifs à mettre en forme
-    ary_motifs_str = []
-    ary_motifs.each do |mo|
-      mo_str = mo.set_durees_in_motif params[:duree]
-      num_octave = mo.octave + octa_to_add
-      mk_rel = mo.mark_relative num_octave
-      ary_motifs_str << "#{mk_rel} { #{mo_str} }"
+    # Analyse des paramètres transmis
+    # --------------------------------
+    params ||= {}
+    params = {:duree => params} if [Fixnum, String].include? params.class
+    # Durée pour les notes du motif (if any)
+    duree_notes = params[:duree]
+
+    # Définition de l'octave du motif
+    # --------------------------------
+    octaves_to_add =  if params.has_key? :octave
+                        octave_from( params[:octave] )
+                      elsif params.has_key? :add_octave
+                        params[:add_octave]
+                      else 0 end
+    
+    if @motif.class == String
+
+      # --- Motif string --- #
+
+      # Mark relative (\\relative c...) pour le motif
+      # ----------------------------------------------
+      mk_relative = mark_relative octaves_to_add
+
+      # Changement des durées si nécessaire
+      motif_str = if duree_notes.nil? then @motif 
+                  else set_durees(duree_notes) end 
+      # Finalisation
+      return "#{mk_relative} { #{motif_str} }"
+
+    else
+      
+      # --- Motif de motifs --- #
+
+      pms = { :add_octave => octaves_to_add }
+      pms = pms.merge(:duree => duree_notes) unless duree_notes.nil?
+      return @motif.collect { |mo| mo.to_s(pms) }.join(' ')
+      
     end
-    ary_motifs_str.join(' ')
+  
   end
   
   
   # =>  Inscrit la durée +duree+ pour toutes les notes du motif
   #     sauf si +duree+ est nil
   # 
-  # @note : attention, pour le moment, la recherche des notes n'est
-  # pas forcément pleinement opérationnelle. @todo: je pourrai la mettre
-  # en place lorsque j'aurais fait le tour de toutes les syntaxes de 
-  # lilypond
-  # 
-  # @note: @motif peut être maintenant soit un string soit un array
-  # de motifs.
+  # Cf. LINote::fixe_notes_length pour le détail
   # 
   # @return la liste des notes, prêtes à inscription
   # 
-  def set_durees_in_motif duree
-    if duree.nil? || duree < 1 || duree > 5000
-      return @motif if @motif.class == String
-    else
-      return self.to_s
-    end
-    
-    ary_motifs =  if @motif.class == String then [self]
-                  else @motif end 
-                    
-    liste_notes = []
-    regnote = %r{[a-g](?:(?:es|is){1,2})?}
-    
-    ary_motifs.each do |mo|
-      # PROBLÈME ICI SI MOTIF DE MOTIFS (OÙ RENVOYER LA BOUCLE ?)
-      mo.motif.split(' ').each do |membre|
-        membre.gsub(/^(r|#{regnote})(?:[0-9]{1,3})?(.*?)$/){
-          note_ou_rest, suite = [$1, $2]
-          liste_notes << "#{note_ou_rest}#{duree}#{suite}"
-        }
-      end
-      motif_prov = Motif::new liste_notes.join(' ')
-      liste_notes << motif_prov.to_s
-    end
-    liste_notes.join(' ')
+  def set_durees duree
+    return LINote::fixe_notes_length( self.motif, duree )
   end
-  # =>  Renvoie la différence d'octave positive ou négative de 
-  #     l'octave du motif (2 par défaut) avec +oct+
+  
+  # =>  @return la différence d'octave positive ou négative de 
+  #     l'octave du motif avec +oct+.
+  #     Correspond au nombre d'octaves qu'il faut ajouter à l'octave
+  #     du motif pour atteindre la valeur +oct+ (ajout en négatif ou
+  #     en positif)
   def octave_from oct
     oct - octave
   end
   
   # => Retourne le '\relative c..' du motif
-  # @param  oct   L'octave à utiliser, celui défini pour le motif le
-  #               cas échéant
+  # @param  ajout   Le nombre d'octave à ajouter ou retrancher au motif
   # 
   # @return le texte '\relative c..'
-  def mark_relative oct = nil
-    oct ||= octave
-    mk_oct = oct > 0 ? "'" : ","
-    "\\relative c#{mk_oct.fois(oct.abs)}"
+  def mark_relative ajout = 0
+    "\\relative #{LINote::mark_octave( octave + ajout )}"
   end
   # => Méthode d'addition de motif
   # 
@@ -163,7 +141,6 @@ class Motif
     else new_motif += self.motif          end
     if autre_motif.motif.class == String  then new_motif << autre_motif
     else new_motif += autre_motif.motif   end
-    debug "\nnew_motif: #{new_motif.inspect}"
     change_objet_ou_new_instance new_motif, params, true
   end
   
@@ -264,17 +241,31 @@ class Motif
   # =>  Méthode appelée à la fin de toutes les méthodes, créant une
   #     nouvelle instance de Motif ou modifiant l'instance courante
   #     en fonction de la valeur +new_instance+
+  # -------------------------------------------------------------------
   # @param  new_motif   Le nouveau motif obtenu par la méthode
   # @param  params      Les paramètres envoyés à la méthode
   # @param  new_defaut  La valeur de :new par défaut
+  # 
+  # @return L'instance créée ou l'instance courante
+  # -------------------------------------------------------------------
   def change_objet_ou_new_instance new_motif, params, new_defaut
     params = set_new_if_not_defined( params, new_defaut )
-    if params[:new] === true
-      Motif::new new_motif
-    else
-      @motif = new_motif
-      self
+    instance_returned = if params[:new] === true
+                          Motif::new new_motif
+                        else
+                          @motif = new_motif
+                          self
+                        end
+    # Réglage de l'octave du motif (nouveau ou courant)
+    # Il doit toujours correspondre à l'octave du premier motif si
+    # motif est constitué de plusieurs motifs.
+    if instance_returned.motif.class == Array
+      octave_first = instance_returned.motif.first.octave
+      instance_returned.instance_variable_set("@octave", octave_first)
     end
+    
+    # Retourner l'instance Motif courante ou créée
+    instance_returned
   end
   
   # => Définit la valeur de params[:new] si non défini

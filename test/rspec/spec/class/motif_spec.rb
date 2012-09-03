@@ -32,6 +32,9 @@ describe Motif do
 		before(:each) do
 		  @m = Motif::new
 		end
+		after(:each) do
+		  $DEBUG_ON = false
+		end
 		
 		# :to_s
 	  it "doit répondre à :to_s" do repond_a :to_s end
@@ -54,7 +57,7 @@ describe Motif do
 		it ":to_s doit renvoyer la bonne valeur avec deux motifs de même octave" do
 		  @m1 = Motif::new :motif => "a a a", :octave => 3
 		  @m2 = Motif::new :motif => "b b b", :octave => 3
-			(@m1 + @m2).to_s.should == "\\relative c''' { a a a b b b }"
+			(@m1 + @m2).to_s.should == "\\relative c''' { a a a } \\relative c''' { b b b }"
 		end
 		it ":to_s doit renvoyer la bonne valeur avec deux motifs d'octave différente" do
 		  @m1 = Motif::new :motif => "a a a", :octave => 3
@@ -67,16 +70,16 @@ describe Motif do
 			(@m1 + @m2).to_s(:octave => 1, :duree => 8).should ==
 				"\\relative c' { a8 a8 a8 } \\relative c, { c8 c8 c8 }"
 			(@m2 + @m1).to_s(:octave => 1, :duree => 8).should ==
-				"\\relative c''' { a8 a8 a8 } \\relative c' { c8 c8 c8 }"
+				"\\relative c' { c8 c8 c8 } \\relative c''' { a8 a8 a8 }"
 		end
 		
 		# :change_durees_in_motif
-		it "doit répondre à :set_durees_in_motif" do
-		  @m.should respond_to :set_durees_in_motif
+		it "doit répondre à :set_durees" do
+		  @m.should respond_to :set_durees
 		end
-		it ":set_durees_in_motif doit changer la durée des notes du motif" do
+		it ":set_durees doit changer la durée des notes du motif" do
 		  @m = Motif::new "a b c des e4"
-			@m.set_durees_in_motif(2).should == "a2 b2 c2 des2 e2"
+			@m.set_durees(2).should == "a2 b2 c2 des2 e2"
 		end
 		
 		# :octave_from
@@ -94,14 +97,15 @@ describe Motif do
 		it "doit répondre à :mark_relative" do
 		  @m.should respond_to :mark_relative
 		end
-		it ":mark_relative sans argument doit retourner la valeur par défaut" do
+		it ":mark_relative sans argument doit retourner la valeur d'octave du motif" do
 		  iv_set(@m, :octave => 2)
 			@m.mark_relative.should === "\\relative c''"
 		end
-		it ":mark_relative avec argument doit retourner la bonne valeur" do
+		it ":mark_relative avec argument doit ajouter le nombre d'octave" do
 		  iv_set(@m, :octave => 2)
-			@m.mark_relative(0).should 	== "\\relative c"
-			@m.mark_relative(-2).should == "\\relative c,,"
+			@m.mark_relative(0).should 	== "\\relative c''"
+			@m.mark_relative(-2).should == "\\relative c"
+			@m.mark_relative(2).should	== "\\relative c''''"
 		end
 	end
 	
@@ -117,7 +121,7 @@ describe Motif do
 		it ":+ permet d'additionner des motifs" do
 		  @m1 = Motif::new "c d e"
 			@m2 = Motif::new "f g a"
-			(@m1 + @m2).to_s.should == "\\relative c'' { c d e f g a }"
+			(@m1 + @m2).to_s.should == "\\relative c'' { c d e } \\relative c'' { f g a }"
 		end
 		it ":+ transforme correctement @motif du nouveau motif" do
 		  @m1 = Motif::new "c d e"
@@ -126,6 +130,16 @@ describe Motif do
 			@m3.motif.should == [@m1, @m2]
 			@m4 = (@m1 + @m3)
 			@m4.motif.should == [@m1, @m1, @m2]
+		end
+		it ":+ doit avoir la valeur d'octave du premier motif" do
+		  @m = Motif::new :motif => "a a a", :octave => 4
+			iv_get(@m, :octave).should == 4
+			m2 = Motif::new :motif => "b b b", :octave => -1
+			iv_get(m2, :octave).should == -1
+			m3 = (m2 + @m)
+			iv_get(m3, :octave).should == -1
+			m3 = (@m + m2)
+			iv_get(m3, :octave).should == 4
 		end
 		
 		# :*
