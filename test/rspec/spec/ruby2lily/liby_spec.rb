@@ -37,7 +37,9 @@ describe Liby do
 			:arg_score_ruby_unfound,
 			:orchestre_undefined,
 			:path_lily_undefined,
-			:lilyfile_does_not_exists
+			:lilyfile_does_not_exists,
+			:invalid_motif,
+			:invalid_duree_notes
 		].each do |cle_erreur|
 			it "l'erreur :#{cle_erreur} doit exister" do
 				Liby::ERRORS.should have_key cle_erreur
