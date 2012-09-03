@@ -51,7 +51,7 @@ describe Note do
 			# -------------------------------------------------------------------
 			# 	Méthodes généralistes
 			# -------------------------------------------------------------------
-			describe "aux méthodes généralistes" do
+			describe "(généraliste) à" do
 				it ":set" do
 				  @n.should respond_to :set
 				end
@@ -85,7 +85,7 @@ describe Note do
 			# -------------------------------------------------------------------
 			# 	Méthodes de hauteur
 			# -------------------------------------------------------------------
-			describe "aux méthodes de hauteur" do
+			describe "(hauteur) à" do
 				it ":octave=" do
 				  @n.should respond_to :octave=
 				end
@@ -119,7 +119,7 @@ describe Note do
 						[2, "c''"], [-2, "c,,"]
 					].each do |paire|
 						par, val = paire
-						@n.to_8(par).should == val
+						@n.to_8(par).to_s.should == val
 					end
 				end
 				it ":to_8 doit produire une erreur si l'argument est mauvais" do
@@ -130,67 +130,91 @@ describe Note do
 			# -------------------------------------------------------------------
 			# 	Méthodes de durée
 			# -------------------------------------------------------------------
-			describe "aux méthodes de durées" do
-			  it ":to_whole, to_ronde" do
-			    @n.should respond_to :to_whole
-					@n.should respond_to :to_ronde
-			  end
-				it ":to_ronde doit définir la bonne durée de la note" do
-				  iv_set(@n, :duration => nil)
-					@n.to_ronde
-					iv_get(@n, :duration).should == 1
+			describe "(durée) à" do
+				before(:all) do
+				  @n = Note::new 'g'
 				end
-				it ":to_half, :to_blanche" do
-				  @n.should respond_to :to_half
-					@n.should respond_to :to_blanche
+				it "doit répondre à duree=" do
+				  @n.should respond_to :duree
 				end
-				it ":to_blanche doit définir la bonne durée" do
-					iv_set(@n, :duration => nil)
-					@n.to_blanche
-					iv_get(@n, :duration).should == 2
-				end
-				it ":to_quarter, :to_noire" do
-				  @n.should respond_to :to_quarter
-					@n.should respond_to :to_noire
-				end
-				it ":to_noire doit définir la bonne durée" do
-				  iv_set(@n, :duration => nil)
-					@n.to_noire
+				it ":duree doit définir la durée" do
+				  @n.duree 4
 					iv_get(@n, :duration).should == 4
+					@n.duree 3
+					iv_get(@n, :duration).should == "2."
 				end
-				it ":to_quaver, :to_croche" do
-				  @n.should respond_to :to_croche
-					@n.should respond_to :to_quaver
+				it ":duree doit retourner la durée" do
+				  @n.duree 1
+					@n.duree.should == 1
 				end
-				it ":to_croche doit définir la bonne durée" do
-				  iv_set(@n, :duration => nil)
-					@n.to_croche
-					iv_get(@n, :duration).should == 8
+				{
+					'ronde' 		=> 1, 	'whole' 					=> 1, 
+					'blanche' 	=> 2, 	'half' 						=> 2,
+					'noire' 		=> 4, 	'quarter' 				=> 4,
+					'croche' 		=> 8, 	'quaver' 					=> 8,
+					'dbcroche' => 16, 	'semiquaver' 			=> 16, 
+					'tpcroche'	=> 32,	'demisemiquaver' 	=> 32,
+					'qdcroche' => 64,
+					'cqcroche' => 128
+				}.each do |len, duree|
+					it ":#{len}" do
+					  @n.should respond_to "#{len}"
+					end
+					it ":#{len} doit retourner une instance Note" do
+					  @n.send(len).class.should == Note
+					end
+					it ":#{len} doit mettre la durée à #{duree}" do
+						iv_set(@n, :duration => nil)
+						iv_get(@n, :duration).should_not eq duree
+					  @n.send(len)
+						iv_get(@n, :duration).should eq duree
+					end
+				  it ":to_#{len}" do
+			    	@n.should respond_to "to_#{len}"
+				  end
+					it ":to_#{len} doit mettre la durée à #{duree}" do
+						iv_set(@n, :duration => nil)
+						iv_get(@n, :duration).should_not eq duree
+					  @n.send("to_#{len}")
+						iv_get(@n, :duration).should eq duree
+					end
+					it ":as_#{len}" do
+						@n.should respond_to "as_#{len}"
+					end
+					it ":as_#{len} doit renvoyer la bonne valeur" do
+					  @n.send("as_#{len}").should == "g#{duree}"
+					end
+					it ":as_#{len} doit mettre la durée à #{duree}" do
+						iv_set(@n, :duration => nil)
+						iv_get(@n, :duration).should_not eq duree
+					  @n.send("as_#{len}")
+						iv_get(@n, :duration).should eq duree
+					end
+				end # / boucle sur toutes les durées
+				it "doit répondre à :dotted et :pointee" do
+				  @n.should respond_to :dotted
+					@n.should respond_to :pointee
 				end
-				it ":to_croche avec un argument doit définir la bonne durée" do
-					iv_set(@n, :duration => nil)
-					@n.to_croche(2).should == @n.to_dblcroche
-					@n.to_croche(3).should == @n.to_tplcroche
+				it ":pointee doit retourner une instance de Note" do
+				  @n.pointee.class.should == Note
 				end
-				it ":to_semiquaver :to_dblcroche" do
-				  @n.should respond_to :to_semiquaver
-					@n.should respond_to :to_dblcroche
+				it ":pointee doit allonger la durée de la note" do
+					[1, 2, 4, 8, 16].each do |n|
+				  	iv_set(@n, :duration => n)
+						@n.pointee
+						iv_get(@n, :duration).should eq "#{n}."
+					end
 				end
-				it ":to_dblcroche doit définir la bonne durée" do
-				  iv_set(@n, :duration => nil)
-					@n.to_dblcroche
-					iv_get(@n, :duration).should == 16
-				end
-				it ":to_tplcroche, :to_demisemiquaver" do
-				  @n.should respond_to :to_tplcroche
-					@n.should respond_to :to_demisemiquaver
-				end
-				it ":to_tplcroche doit définir la bonne durée" do
-				  iv_set(@n, :duration => nil)
-					@n.to_tplcroche
-					iv_get(@n, :duration).should == 32
-				end
+			end
+			describe "aux méthodes de durées" do
 				
+				
+				# -------------------------------------------------------------------
+				# 	Méthodes de durée renvoyant la note string
+				# -------------------------------------------------------------------
+				# -------------------------------------------------------------------
+				# 	Méthode de durée ne renvoyant ni instance ni note string
+				# -------------------------------------------------------------------				
 				it ":to_dotted, :to_pointee" do
 				  @n.should respond_to :to_dotted
 					@n.should respond_to :to_pointee
