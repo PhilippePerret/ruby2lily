@@ -19,9 +19,9 @@ describe "La commande `ruby2lily' avec des erreurs" do
 	before(:all) do
 
 	end
-  it "doit exiter avec une erreur si absence du path du score" do
+  it "doit exiter avec une erreur si absence de tout paramètre" do
 		cmd = PATH_RUBY2LILY
-		err = Liby::ERRORS[:arg_path_file_ruby_needed].strip
+		err = Liby::ERRORS[:command_line_empty]
 		res = `#{cmd}`
 		error_sans_color(res).should =~ /#{Regexp.escape(err)}/
   end
@@ -49,10 +49,15 @@ describe "La commande `ruby2lily' sans erreur" do
 	
 	# => 	Simule l'appel en ligne de commande, mais charge en fait le
 	# 		module, ce qui permet d'avoir toutes les valeurs définies
-	def simule_ligne_commande
+	def simule_ligne_commande argv = nil
 		# On simule l'appel du module avec un argument
 		ARGV.clear
-		ARGV << @good_score
+		if argv.nil?
+			ARGV << @good_score
+		else
+			argv = argv.split(' ') if argv.class == String
+			argv.each { |c| ARGV << c }
+		end
 		load File.join(BASE_LILYPOND, 'ruby2lily.rb')
 	end
 
@@ -60,6 +65,7 @@ describe "La commande `ruby2lily' sans erreur" do
 	  @good_score = 'partition_test.rb'
 		@path_pdf		= 'partition_test.pdf'
 	end
+	
 	describe "Appel en ligne de commande" do
 	  before(:all) do
 	    as_ligne_commande
@@ -83,4 +89,12 @@ describe "La commande `ruby2lily' sans erreur" do
 			BASSE.class.should == Bass
 		end
 	end
+	
+	describe "Commandes" do
+	  it "doit répondre à la directive -v" do
+	    # expect{`ruby2lily -v`}.not_to raise_error
+			expect{simule_ligne_commande "-v"}.not_to raise_error
+	  end
+	end
+	
 end

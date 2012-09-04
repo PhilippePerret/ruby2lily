@@ -10,6 +10,7 @@
 
 % Informations score
 \header {
+	title = "Partition sans titre"
 }
 
 % Score

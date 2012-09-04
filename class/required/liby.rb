@@ -13,6 +13,9 @@ class Liby
   unless defined?(Liby::USAGE)
     USAGE   = "@usage:\n\t$ ./ruby2lily.rb <path/to/score/ruby> <options>"
     ERRORS  = {
+      :command_line_empty         => "`ruby2site` doit s'appeler avec des arguments." +
+                                     "Utilisez `ruby2site -h` pour obtenir de l'aide.",
+      :unknown_option             => "L'option `\#{option}` est inconnue…",
       :arg_path_file_ruby_needed  => "Le path du score ruby doit être donné en premier argument.\n#{USAGE}",
       :arg_score_ruby_unfound     => "Le score '\#{path}' est introuvable",
       :orchestre_undefined        => "Le score doit définir l'orchestre (@orchestre = ...)",
@@ -34,6 +37,22 @@ class Liby
       :fin_fin_fin_fin_fin => ''
     }
     
+    OPTION_LIST = {
+      'version'   => {:hname => "Version de ruby2lily", :lily => false},
+      'v'         => 'version',
+      'format'    => {:hname => "Format du fichier de sortie (LilyPond)",
+                      :lily => true},
+      'f'         => 'format',
+      'help'      => {:hname => "Aide ruby2lily", :lily => false},
+      'h'         => 'help'
+    }
+    
+    # Liste des options transformées en command ("options-commandes")
+    OPTION_COMMAND_LIST = {
+      'version' => true,
+      'help'    => true
+    }
+    
     # table de conversion des signes ruby vers lilypond
     SIGN_RUBY_TO_SIGN_LILY = {
       'b' => 'es', 'bb' => 'eses', '#' => 'is', '##' => 'isis'
@@ -49,8 +68,11 @@ class Liby
   @@path_pdf_file     = nil   # Path au fichier pdf du score
   @@path_affixe_file  = nil   # Affixe (utile pour commande lilypond)
   
-  @@is_commande       = nil   # Mis à true si c'est une commande
+  @@command           = nil   # La commande à jouer (if any)
   @@options           = nil   # Options de la ligne de commande
+  @@parameters        = nil   # Tous les paramètres de la ligne de
+                              # commande (dont la commande ou le path
+                              # du fichier à lilyponder).
   
   class << self
 
@@ -78,37 +100,108 @@ class Liby
     end
 
     # => Analyse de la ligne de commande (ses arguments ARGV)
+    # 
     # @produit:
+    # 
+    #   @@options         Les options relevées
+    #   @@parameters      Les paramètres (dont le path du score if any)
     #   @@path_score      Le chemin d'accès au score ruby
     # 
     def analyze_command_line
       tested = ARGV[0]
-      @@is_commande = !tested.nil? && COMMAND_LIST.has_key?( tested.to_sym )
-      options_from_command_line
-      if commande?
-        Liby::Command::new(tested).run
+      @@options         = {}
+      @@parameters      = []
+      @@command         = nil
+      @@path_ruby_score = nil
+      # On passe en revue tous les membres de la ligne de commande
+      ARGV.each do |membre|
+        if membre.start_with? '-'
+          treat_as_option membre
+        elsif @@command.nil? && COMMAND_LIST.has_key?( membre.to_sym )
+          @@command = membre.to_s
+        else
+          @@parameters << membre
+        end
+      end
+      
+      # On regarde si la ligne de commande ne contient aucune erreur
+      # Toute erreur trouvée est fatale
+      treat_errors_command_line
+      
+    end
+    
+    # => Analyse l'option de ligne de commande
+    def treat_as_option doption
+      option = nil
+      valeur = nil
+      if doption.start_with? '--'
+        doption.gsub(/^--([^=]+)=?(.*)?$/){
+          option = $1
+          valeur = $2
+        }
       else
-        fatal_error :arg_path_file_ruby_needed if tested.nil?
-        pscore = find_path_score tested
-        fatal_error(:arg_score_ruby_unfound, :path => tested) if pscore.nil?
-        @@path_ruby_score = pscore
+        option_courte = doption[1..1]
+        option = OPTION_LIST[option_courte]
+        puts "\noption_courte: #{option_courte}"
+        fatal_error(:unknown_option, :option => option_courte) if option.nil?
+        valeur = doption[2..-1]
+      end
+      # Est-ce que c'est une "option-command"
+      if OPTION_COMMAND_LIST.has_key? option
+        @@command = option
+      else
+        @@options = @@options.merge option => valeur
       end
     end
     
-    # => Relève les options de la ligne de commande
-    def options_from_command_line
-      options = []
-      ARGV.each do |membre|
-        options << membre if membre.start_with? '-'
+    # =>  Méthode qui vérifie que la ligne de commande est correcte et
+    #     lève une erreur fatale dans le cas contraire
+    # 
+    # @note: tous les éléments de la ligne de commande sont contenus dans
+    #         @@options (les options)
+    #         @@parameters (les paramètres — dont le(s) path(s))
+    #         @@command (si une commande est passée)
+    def treat_errors_command_line
+      
+      # ruby2lily ne peut s'appeler seul
+      fatal_error(:command_line_empty) if \
+        @@command == nil \
+        && @@parameters.empty? \
+        && @@options.empty?
+        
+      # Les options sont-elles valides
+      # @note: une première vérification a été faite sur les options
+      # courtes, qui ont toutes été transformées en options longues (--)
+      @@options.each do |option, valeur|
+        fatal_error(:unknown_option, :option => option) \
+          unless OPTION_LIST.has_key? option
       end
-      options = nil if options.empty?
-      @@options = options
+      
+      # Si c'est un lilypondage qui est demandé (aucune option contraire)
+      # le score passé en premier argument doit exister
+      if !command? # @todo: + vérifier options
+        path_score = @@parameters.first
+        fatal_error :arg_path_file_ruby_needed if path_score.nil?
+        pscore = find_path_score path_score
+        fatal_error(:arg_score_ruby_unfound, :path => path_score) if pscore.nil?
+        @@path_ruby_score = pscore
+      end
+      
+    end
+    
+    # -------------------------------------------------------------------
+    #   Traitement des commandes
+    # -------------------------------------------------------------------
+    
+    # => Joue la commande trouvée dans la ligne de commande
+    def run_command
+      Liby::Command::new(@@command).run
     end
     
     # =>  Retourne true si c'est une commande qui est demandée, pas la
     #     conversion du fichier ruby
-    def commande?
-      @@is_commande == true
+    def command?
+      @@command != nil
     end
     
     # -------------------------------------------------------------------
@@ -138,7 +231,7 @@ class Liby
     #   true en cas de succès
     #   nil et lève une erreur en cas d'échec
     def score_ruby_to_score_lilypond
-      return nil if commande?
+      return nil if command?
       begin
         Score::Sheet::build
       rescue Exception => e

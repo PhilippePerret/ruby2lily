@@ -7,6 +7,21 @@ require 'liby'
 describe Liby do
 	# @note: seule la classe est utilisée (singleton)
 	
+	# === Méthodes test utiles === #
+	
+	def define_command_line_with_options
+		path_score = 'partition_test.rb'
+		ARGV.clear
+		ARGV << path_score
+		ARGV << "-fpng"
+		ARGV << "--option voir"
+	end
+	def define_command_line argv
+		argv = argv.split(' ') if argv.class == String
+		ARGV.clear
+		argv.each { |m| ARGV << m }
+	end
+	
 	before(:all) do
 	  SCORE = Score::new unless defined? SCORE
 	  ORCHESTRE = Orchestre::new unless defined? ORCHESTRE
@@ -24,6 +39,65 @@ describe Liby do
 		it "COMMAND_LIST doit exister" do
 		  defined?(Liby::COMMAND_LIST).should be_true
 		end
+		it "OPTION_LIST doit exister" do
+		  defined?(Liby::OPTION_LIST).should be_true
+		end
+		it "OPTION_COMMAND_LIST doit exister" do
+		  defined?(Liby::OPTION_COMMAND_LIST).should be_true
+		end
+	end
+	
+	# Tests des "options-commande" (i.e. les options qui sont transformées
+	# en commandes dans l'analyse de la ligne de commande)
+	describe "Option-commande" do
+		def test_option_cmd opt
+			Liby::OPTION_COMMAND_LIST.should have_key opt
+		end
+	  it "-v/--version doit être définie comme option-commande" do
+	    test_option_cmd 'version'
+	  end
+		it "-h/--help doit être définie comme option-commande" do
+		  test_option_cmd 'help'
+		end
+	end
+	# Tests des options
+	describe "Option" do
+	  def test_option opt, valeur = nil
+	  	Liby::OPTION_LIST.should have_key opt.to_s
+			unless valeur.nil?
+				Liby::OPTION_LIST[opt].should == valeur
+			end
+	  end
+		def get_option opt
+			Liby::OPTION_LIST[opt]
+		end
+		it "-v doit être définie et retourner 'version'" do
+		  test_option 'v', 'version'
+		end
+		it "--version doit être définie" do
+		  test_option 'version'
+		end
+		it "--version ne doit pas être une option lilypond" do
+		  get_option('version')[:lily].should === false
+		end
+		it "-h doit être définie et retourner 'help'" do
+		  test_option 'h', 'help'
+		end
+		it "--help doit être définie" do
+		  test_option 'help'
+		end
+		it "--help ne doit pas être une option lilypond" do
+		  get_option('help')[:lily].should === false
+		end
+		it "-f doit être définie et retourner 'format'" do
+		  test_option 'f', 'format'
+		end
+		it "--format doit être définie" do
+		  test_option 'format'
+		end
+		it "--format doit être une option lilypond" do
+		  get_option('format')[:lily].should === true
+		end
 	end
 	# -------------------------------------------------------------------
 	# 	Liste des erreurs
@@ -33,6 +107,8 @@ describe Liby do
 		  @derrs = Liby::ERRORS
 		end
 		[
+			:command_line_empty,
+			:unknown_option,
 			:arg_path_file_ruby_needed,
 			:arg_score_ruby_unfound,
 			:orchestre_undefined,
@@ -67,31 +143,41 @@ describe Liby do
 		it ":fatal_error doit exiter le programme" do
 			expect{Liby::fatal_error(:arg_score_ruby_unfound)}.to raise_error SystemExit
 		end
+		it ":analyze_command_line doit exiter avec des mauvais arguments" do
+			badpath = "path/to/score/ruby.rb"
+			define_command_line badpath
+			err = detemp(Liby::ERRORS[:arg_score_ruby_unfound], :path => badpath)
+			expect{Liby.analyze_command_line}.to raise_error(SystemExit, err)
+			cv_get(Liby, :path_ruby_score).should be_nil
+		end
+		it ":treat_errors_command_line doit lever une erreur si mauvaise commande" do
+		  # Aucun paramètres
+			cv_set(Liby, :parameters => [])
+			cv_set(Liby, :options => [])
+			cv_set(Liby, :command => nil)
+			expect{Liby::treat_errors_command_line}.to \
+				raise_error( SystemExit, Liby::ERRORS[:command_line_empty])
+		end
 	end
 	
 	# -------------------------------------------------------------------
 	# 	Analyse des arguments
 	# -------------------------------------------------------------------
 	describe "Analyse des arguments" do
-		def define_command_line_with_options
-			path_score = 'partition_test.rb'
-			ARGV.clear
-			ARGV << path_score
-			ARGV << "-fpng"
-			ARGV << "--option voir"
-		end
 		before(:each) do
 		  init_all_paths_liby
 		end
 		it "Liby doit répondre à :analyze_command_line" do
 		  Liby.should respond_to :analyze_command_line
 		end
-		it ":analyze_command_line doit exiter avec des mauvais arguments" do
-		  ARGV.clear
-			path_score = "path/to/score/ruby.rb"
-			ARGV << path_score
+		it ":analyze_command_line doit définir les valeurs" do
+		  cv_set(Liby, :options => nil)
+			cv_set(Liby, :parameters => nil)
+			define_command_line "-fformat unparametre"
 			expect{Liby.analyze_command_line}.to raise_error
-			cv_get(Liby, :path_ruby_score).should be_nil
+				# car "unparametre n'est pas un score valide"
+			cv_get(Liby, :options).should == {'format' => "format"}
+			cv_get(Liby, :parameters).should == ["unparametre"]
 		end
 		it ":analyze_command_line doit définir @@score_ruby si premier argument OK" do
 			path_score = 'partition_test.rb'
@@ -105,25 +191,47 @@ describe Liby do
 			ARGV.clear
 			ARGV << "generate" << "blank"
 			Liby.analyze_command_line
-			Liby.commande?.should be_true
+			Liby.command?.should be_true
+			cv_get(Liby, :command).should == "generate"
+		end
+		it "doit répondre à :treat_as_option" do
+		  Liby.should respond_to :treat_as_option
+		end
+		it ":treat_as_option doit reconnaitre une vraie option" do
+		  cv_set(Liby, :options => {})
+			Liby::treat_as_option "-v"
+			cv_get(Liby, :options).should == {} # car "option-commande"
+			Liby::treat_as_option '-fpng'
+			cv_get(Liby, :options).should == 
+				{ 'format' => "png" }
+		end
+		it ":treat_as_option doit transformer en commande une option-commande" do
+		  cv_set(Liby, :options => {}, :command => nil)
+			Liby::treat_as_option '-v'
+			cv_get(Liby, :command).should == "version"
+			Liby.should be_command
+		  cv_set(Liby, :options => {}, :command => nil)
+			Liby::treat_as_option '--version'
+			cv_get(Liby, :command).should == "version"
+			Liby.should be_command
 		end
 		
-		it "doit répondre à :options_from_command_line" do
-		  Liby.should respond_to :options_from_command_line
+		it ":treat_as_option doit lever une erreur si une option courte est inconnue" do
+			err = detemp(Liby::ERRORS[:unknown_option], :option => '?')
+		  expect{Liby::treat_as_option( '-?' )}.to \
+				raise_error(SystemExit, err)
 		end
-		it ":options_from_command_line doit relever les options" do
-			define_command_line_with_options
-		  cv_set(Liby, :options => nil)
-			Liby::options_from_command_line
-			opts = cv_get(Liby, :options)
-			opts.should_not be_nil
-			opts.class.should == Array
-			opts.should == ["-fpng", "--option voir"]
+		
+		it "doit répondre à :treat_errors_command_line" do
+		  Liby.should respond_to :treat_errors_command_line
 		end
 	end
 	
 	# -------------------------------------------------------------------
 	# 	Lilypondage ou commande
+	# 
+	# 	@note: la plupart des méthodes sont testées par :
+	# 	spec/ruby2lily/liby/command_spec.rb
 	# -------------------------------------------------------------------
 	describe "Lilypondage ou commande" do
 		def define_a_commande
@@ -140,16 +248,21 @@ describe Liby do
 		before(:each) do
 			define_a_commande
 		end
-		it "doit répondre à :commande?" do
-		  Liby.should respond_to :commande?
+		it "doit répondre à :command?" do
+		  Liby.should respond_to :command?
 		end
-	  it ":commande? doit rendre true si c'est une commande" do
+	  it ":command? doit rendre true si c'est une commande" do
 			Liby.analyze_command_line
-			Liby.commande?.should be_true
+			Liby.command?.should be_true
 			define_a_lilypondage
 			Liby.analyze_command_line
-			Liby.commande?.should be_false
+			Liby.command?.should be_false
 	  end
+		it "doit répondre à :run_command" do
+		  Liby.should respond_to :run_command
+			# @NOTE: Toutes les commandes sont testées par :
+			# spec/ruby2lily/liby/command_spec.rb
+		end
 	end
 	# -------------------------------------------------------------------
 	# 	Traitement des notes données
@@ -258,7 +371,7 @@ describe Liby do
 	    Liby.should respond_to :score_ruby_to_score_lilypond
 	  end
 		it ":score_ruby_to_score_lilypond ne doit rien faire si c'est une commande" do
-		  cv_set(Liby, :is_commande => true)
+		  cv_set(Liby, :command => 'generate')
 			Liby::score_ruby_to_score_lilypond.should be_nil
 		end
 

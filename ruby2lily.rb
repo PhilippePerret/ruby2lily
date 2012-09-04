@@ -22,11 +22,12 @@ require File.join(BASE_LILYPOND, 'module', 'handy_methods.rb')
 dbg '----> Liby::analyze_command_line'
 Liby::analyze_command_line
 
-if Liby.commande?
+if Liby.command?
   
   # -------------------------------------------------------------------
-  #   Jouer une commande
+  #   Jouer la commande
   # -------------------------------------------------------------------
+  Liby::run_command
   
 else
   
