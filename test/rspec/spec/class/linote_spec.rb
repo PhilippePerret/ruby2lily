@@ -35,6 +35,14 @@ describe LINote do
 		}
 		end
 		
+		# :mark_relative
+		it "doit répondre à :mark_relative" do
+		  LINote::should respond_to :mark_relative
+		end
+		it ":mark_relative doit retourner la bonne valeur" do
+		  LINote::mark_relative(3).should == "\\relative c'''"
+			LINote::mark_relative(-2).should == "\\relative c,,"
+		end
 		# :octave_as_llp
 		it "doit répondre à :octave_as_llp" do
 		  LINote.should respond_to :octave_as_llp

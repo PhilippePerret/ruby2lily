@@ -17,6 +17,12 @@ describe Chord do
 		it "avec argument array doit être valide" do
 		  @c = Chord::new ["c", "e", "g"]
 			iv_get(@c, :chord).should == ["c", "e", "g"]
+			@c.octave.should == 3
+		end
+		it "avec argument hash doit être valide" do
+		  @c = Chord::new :chord => ["a", "cis", "e"], :octave => 2
+			@c.chord.should == ["a", "cis", "e"]
+			@c.octave.should == 2
 		end
   end
 	describe "L'instance" do
@@ -30,7 +36,7 @@ describe Chord do
 		end
 		it ":[] doit renvoyer le string de l'accord de la durée voulue" do
 		  @chord = Chord::new "a c e"
-			@chord[8].should == "<a c e>8 "
+			@chord[8].should == "\\relative c''' { <a c e>8 }"
 		end
 		
 		# :to_s
@@ -43,7 +49,27 @@ describe Chord do
 		end
 		it ":to_s doit renvoyer la bonne valeur avec une durée spécifiée" do
 			@c = Chord::new "c e g"
-			@c.to_s(4).should == "<c e g>4 "
+			@c.to_s(4).should == "\\relative c''' { <c e g>4 }"
+		end
+		
+		# :to_acc
+		it "doit répondre à :to_acc" do
+		  @chord.should respond_to :to_acc
+		end
+		it ":to_acc doit renvoyer la bonne valeur" do
+		  chord = Chord::new "a c e"
+			chord.to_acc.should == "<a c e>"
+			chord.to_acc(4).should == "<a c e>4"
+		end
+		# :as_motif
+		it "doit répondre à :as_motif" do
+		  @chord.should respond_to :as_motif
+		end
+		it ":as_motif doit renvoyer la bonne valeur" do
+			chord = Chord::new(:chord => ['a', 'c', 'e'], :octave => -1)
+		  mo = chord.as_motif
+			mo.class.should == Motif
+			mo.to_s.should == "\\relative c, { <a c e> }"
 		end
 		
 		# :with_duree
@@ -52,7 +78,7 @@ describe Chord do
 		end
 		it ":with_duree doit renvoyer la bonne valeur" do
 			@c = Chord::new "c e g"
-			@c.with_duree(4).should == "<c e g>4 "
+			@c.with_duree(4).should == "\\relative c''' { <c e g>4 }"
 		end
 	end
 end

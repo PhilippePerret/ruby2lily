@@ -119,7 +119,7 @@ describe Instrument do
 			it ":add_as_motif doit ajouter le motif" do
 				motif = Motif::new "a( b c b a)"
 			  @instru.add motif
-				iv_get(@instru, :notes).should == "\\relative c'' { a( b c b a) }"
+				iv_get(@instru, :notes).should == "\\relative c''' { a( b c b a) }"
 			end
 		end
 

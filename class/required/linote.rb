@@ -99,6 +99,11 @@ class LINote
     return note
   end
   
+  # => Return le texte "\relative c..." correspondant à l'+octave+
+  def self.mark_relative octave
+    "\\relative #{mark_octave(octave)}"
+  end
+  
   # => Retourne la marque d'octave (à ajouter à \\relative)
   # @param  octaves   Le nombre d'octaves
   # @return "c" + le nombre de virgules ou d'apostrophes nécessaires

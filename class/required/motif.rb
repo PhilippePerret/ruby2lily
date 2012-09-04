@@ -20,7 +20,7 @@ class Motif
   #         - un hash contenant :motif et :octave pour définir
   #           précisément la hauteur du motif.
   def initialize params = nil
-    @octave = 2 # pourra être redéfini par +params+
+    @octave = 3 # pourra être redéfini par +params+
     case params.class.to_s
     when "String" then @motif = Liby::notes_ruby_to_notes_lily(params)
     when "Array"  then @motif = params
@@ -127,20 +127,47 @@ class Motif
   end
   # => Méthode d'addition de motif
   # 
-  # @param  motif   Le motif à ajouter (mais peut très bien être un
-  #                 simple string).
+  # @param  chose   La chose à ajouter. Soit :
+  #                   - Un string
+  #                   - Une note (class Note)
+  #                   - Un autre motif
+  #     
   # @param  params  Paramètres supplémentaire. 
   #                 Cf. `change_objet_ou_new_instance'
   # 
   # @note : l'addition se fait en conservant dans @motif les 
   #         deux motifs. Noter que les deux motifs peuvent être eux
   #         aussi des listes d'instances.
-  def + autre_motif, params = nil
+  # @todo: une amélioration du traitement peut être fait ici (cf. les
+  # issues sur github)
+  # 
+  def + chose, params = nil
     new_motif = []
+    # Ajout du motif courant (string ou array) au nouveau motif qui
+    # sera créé (nouveau sauf si :new => false)
     if self.motif.class == String         then new_motif << self
     else new_motif += self.motif          end
-    if autre_motif.motif.class == String  then new_motif << autre_motif
-    else new_motif += autre_motif.motif   end
+      
+    # Ajout de la +chose+
+    # --------------------
+    case chose.class.to_s
+    when "Note", "Chord"
+      # Ajout d'une note. On la transforme en Motif avant l'ajout
+      new_motif << chose.as_motif
+    when "String"
+      # Ajout d'une simple note en string (mais qui peut avoir une octave
+      # définie)
+      note, octave = Note::split_note_et_octave chose
+      new_motif << Motif::new( :motif => note, :octave => octave )
+    when "Motif"
+      if chose.motif.class == String
+          new_motif << chose
+      else
+        new_motif += chose.motif   # motif complexe
+      end
+    else
+      fatal_error(:cant_add_any_to_motif, :classe => chose.class.to_s)
+    end
     change_objet_ou_new_instance new_motif, params, true
   end
   

@@ -51,6 +51,18 @@ describe Note do
 				res.it.should == "c"
 				res.octave.should == 3
 		  end
+		
+			# :split_note_et_octave
+			it ":split_note_et_octave doit exister" do
+			  Note.should respond_to :split_note_et_octave
+			end
+			it ":split_note_et_octave doit retourner la bonne valeur" do
+			  Note::split_note_et_octave('c').should == ['c', nil]
+				Note::split_note_et_octave('d,').should == ['d', -1]
+				Note::split_note_et_octave("e''''").should == ['e', 4]
+				Note::split_note_et_octave('f,,,').should == ['f', -3]
+			end
+		
 		end
 	end
 	# -------------------------------------------------------------------
@@ -73,15 +85,6 @@ describe Note do
 				  @n = Note::new "c,"
 					@n.it.should == "c"
 					@n.octave.should == -1
-				end
-				it ":split_note_et_octave" do
-				  @n.should respond_to :split_note_et_octave
-				end
-				it ":split_note_et_octave doit retourner la bonne valeur" do
-				  @n.split_note_et_octave('c').should == ['c', nil]
-					@n.split_note_et_octave('d,').should == ['d', -1]
-					@n.split_note_et_octave("e''''").should == ['e', 4]
-					@n.split_note_et_octave('f,,,').should == ['f', -3]
 				end
 				
 				# :set
@@ -130,7 +133,16 @@ describe Note do
 					@n.get.should == 'c'
 				end
 				
-				
+				it ":as_motif" do
+				  @n.should respond_to :as_motif
+				end
+				it ":as_motif doit renvoyer la note comme motif" do
+				  n = Note::new "c,,,"
+					mo = n.as_motif
+					mo.class.should == Motif
+					mo.motif.should == "c"
+					mo.octave.should == -3
+				end
 				it ":to_silence" do
 				  @n.should respond_to :to_silence
 					@n.should respond_to :to_rest
@@ -308,32 +320,57 @@ describe Note do
 				it ":+ avec deux notes de hauteurs différentes doit produire un motif complexe" do
 				  nut = ut(:octave => 1)
 					nre = re(:octave => 2)
-					mot = (nut + nre)
-					mot.class.should == Motif
-					puts "\nnut: #{nut.inspect}"
-					puts "nre: #{nre.inspect}"
-					puts "motif: #{mot.inspect}"
-					mot.motif.class.should == Array
-					mo1 = mot.motif[0]
+					mo = (nut + nre)
+					mo.class.should == Motif
+					mo.motif.class.should == Array
+					mo1 = mo.motif[0]
 					mo1.class.should == Motif
-					mo2 = mot.motif[1]
+					mo2 = mo.motif[1]
 					mo2.class.should == Motif
 					mo1.motif.should == 'c'
 					mo1.octave.should == 1
 					mo2.motif.should == 'd'
 					mo2.octave.should == 2
+					mo.to_s.should == "\\relative c' { c } \\relative c'' { d }"
 				end
-				it ":+ doit permettre d'addition des notes" do
+				it ":+ doit permettre l'addition des notes" do
 				  res = (ut + re)
 					ut.to_s.should eq "c'''"
 					re.to_s.should eq "d'''"
 					res.to_s.should eq "\\relative c''' { c d }"
 				end
-				it ":+ avec deux notes d'octave différentes doit produire deux motifs" do
-				  coct4 = Note::new "c", :octave => 4
-					aoct1 = Note::new "a", :octave => 1
-					res = (coct4 + aoct1)
-					puts "res: #{res.inspect}"
+				it "Deux additions (n + n + n) doit produire un nouveau motif" do
+				  nut = ut
+					nre = re
+					nmi = mi
+					res = (nut + nre + nmi)
+					res.class.should == Motif
+					res.to_s.should == "\\relative c''' { c d } \\relative c''' { e }"
+				end
+				it "L'addition d'un Motif à une Note doit renvoyer un motif conforme" do
+				  n = Note::new "c"
+					m = Motif::new "e d"
+					res = (n + m)
+					res.class.should == Motif
+					res.motif.class.should == Array
+					mo1 = res.motif.first
+					mo2 = res.motif[1]
+					mo2.should == m
+					mo1.motif.should == "c"
+					mo1.octave.should == 3
+					res.to_s.should == "\\relative c''' { c } \\relative c''' { e d }"
+				end
+				it "L'addition d'une note string (avec ou sans octave) doit renvoyer un motif conforme" do
+				  n = Note::new "c"
+					res = (n + "a'")
+					res.class.should == Motif
+					res.to_s.should == "\\relative c''' { c } \\relative c' { a }"
+				end
+				it "L'addition d'un accord doit produire une erreur" do
+					n = Note::new "c"
+					a = Chord::new "a cis e"
+					err = Liby::ERRORS[:cant_add_chord_to_note]
+				  expect{n+a}.to raise_error(SystemExit, err)
 				end
 			end
 			# -------------------------------------------------------------------

@@ -26,6 +26,18 @@ class Note
     params[:octave] ||= 3
     Note::new note, params
   end
+  
+  # =>  Sépare la note de la marque lilypond d'octave lorsqu'elle
+  #     est fournie et return [note, octave/nil]
+  def self.split_note_et_octave noteoct
+    return [noteoct, nil] if noteoct.length == 1
+    note, octave = [noteoct[0..0], noteoct[1..-1]]
+    octave_positive = octave.start_with? "'"
+    octave = octave.length
+    octave = octave.to_i * -1 unless octave_positive
+    [note, octave]
+  end
+  
   # => Retourne l'octave courant
   def self.current_octave
     @@current_octave
@@ -91,7 +103,7 @@ class Note
             }
           end
           # Valeur anglaise avec octave
-          @it, octave = split_note_et_octave valeur
+          @it, octave = Note::split_note_et_octave valeur
         end        
       else
         # Valeur anglaise simple (une seule lettre)
@@ -102,20 +114,14 @@ class Note
       @octave = octave unless octave.nil?
     end
   end
-  
-  # =>  Sépare la note de la marque lilypond d'octave lorsqu'elle
-  #     est fournie et return [note, octave/nil]
-  def split_note_et_octave noteoct
-    return [noteoct, nil] if noteoct.length == 1
-    note, octave = [noteoct[0..0], noteoct[1..-1]]
-    octave_positive = octave.start_with? "'"
-    octave = octave.length
-    octave = octave.to_i * -1 unless octave_positive
-    [note, octave]
-  end
-  
+    
   def get
     @it
+  end
+  
+  # => Return la note sous la forme d'un motif
+  def as_motif
+    Motif::new :motif => @it, :octave => @octave
   end
   
   # -------------------------------------------------------------------
@@ -278,6 +284,11 @@ class Note
   # L'addition doit produire un motif contenant les deux notes 
   # additionnée (note : ensuite, ce sera donc le motif qui s'occupera
   # de la note)
+  # 
+  # @param  foo   Soit :
+  #                 - Un string
+  #                 - Une autre note
+  #                 - Un motif
   def + foo
     case foo.class.to_s
     when "Note" then
@@ -288,8 +299,15 @@ class Note
         mofoo   = Motif::new :motif => foo.it, :octave => foo.octave
         moself + mofoo
       end
+    when "String"
+      note, octave = Note::split_note_et_octave foo
+      self.as_motif + Motif::new( :motif => note, :octave => octave)
+    when "Motif"
+      self.as_motif + foo
+    when "Chord"
+      fatal_error(:cant_add_chord_to_note)
     else
-      # ?
+      fatal_error(:cant_add_any_to_note, :classe => foo.class.to_s)
     end
   end
 end

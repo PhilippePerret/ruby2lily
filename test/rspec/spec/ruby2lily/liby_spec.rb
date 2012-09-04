@@ -115,7 +115,10 @@ describe Liby do
 			:path_lily_undefined,
 			:lilyfile_does_not_exists,
 			:invalid_motif,
-			:invalid_duree_notes
+			:invalid_duree_notes,
+			:cant_add_chord_to_note,
+			:cant_add_any_to_note,
+			:cant_add_any_to_motif
 		].each do |cle_erreur|
 			it "l'erreur :#{cle_erreur} doit exister" do
 				Liby::ERRORS.should have_key cle_erreur

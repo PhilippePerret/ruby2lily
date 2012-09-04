@@ -33,7 +33,11 @@ class Liby
       # ==== Motif ==== #
       :invalid_motif              => "Le motif fourni ('\#{bad}') est invalide.",
       :invalid_duree_notes        => "La durée pour les notes est invalides",
+      :cant_add_any_to_motif      => "Un objet de type \#{classe} ne peut être ajouté à un motif…",
       
+      # ==== Note ==== #
+      :cant_add_chord_to_note     => "Un accord ne peut être ajouté à une note",
+      :cant_add_any_to_note       => "Un objet de type \#{classe} ne peut être ajouté à une note…",
       :fin_fin_fin_fin_fin => ''
     }
     
