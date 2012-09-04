@@ -8,9 +8,14 @@ describe Note do
 	# -------------------------------------------------------------------
 	# 	La classe
 	# -------------------------------------------------------------------
-	describe "La classe" do
+	describe "class" do
 	  describe "doit répondre" do
-	    describe "aux méthodes de hauteur" do
+			describe "à la méthode généraliste" do
+			  it ":create_note" do
+			    Note.should respond_to :create_note
+			  end
+			end
+	    describe "à la méthode de hauteur" do
 	      it ":current_octave, :octave_courant" do
 	        Note.should respond_to :current_octave
 					Note.should respond_to :octave_courant
@@ -39,6 +44,14 @@ describe Note do
 				end
 	    end
 	  end
+		describe "- méthodes -" do
+		  it ":create_note doit créer une note" do
+		    res = Note::create_note("c")
+				res.class.should == Note
+				res.it.should == "c"
+				res.octave.should == 3
+		  end
+		end
 	end
 	# -------------------------------------------------------------------
 	# 	L'instance
@@ -52,16 +65,61 @@ describe Note do
 			# 	Méthodes généralistes
 			# -------------------------------------------------------------------
 			describe "(généraliste) à" do
+				it ":initialize doit définir @it si la note est fourni" do
+				  @n = Note::new "c"
+					@n.it.should == "c"
+				end
+				it ":initialize doit traiter une note fournie avec octave" do
+				  @n = Note::new "c,"
+					@n.it.should == "c"
+					@n.octave.should == -1
+				end
+				it ":split_note_et_octave" do
+				  @n.should respond_to :split_note_et_octave
+				end
+				it ":split_note_et_octave doit retourner la bonne valeur" do
+				  @n.split_note_et_octave('c').should == ['c', nil]
+					@n.split_note_et_octave('d,').should == ['d', -1]
+					@n.split_note_et_octave("e''''").should == ['e', 4]
+					@n.split_note_et_octave('f,,,').should == ['f', -3]
+				end
+				
+				# :set
 				it ":set" do
 				  @n.should respond_to :set
 				end
-				it ":set qui doit donner la bonne valeur" do
-				  iv_set(@n, :it => 'c')
-					@n.set 'd'
-					iv_get(@n, :it).should == 'd'
-					@n.set 'do'
-					iv_get(@n, :it).should == 'c'
+				it ":set doit traiter une note anglaise simple" do
+				  @n.set 'd'
+					@n.it.should == "d"
+					iv_get(@n, :itit).should == "ré"
+					@n.octave.should == 3
 				end
+				it ":set doit traiter une note italienne simple" do
+				  @n.set 'si'
+					@n.it.should == "b"
+					iv_get(@n, :itit).should == "si"
+					@n.octave.should == 3
+				end
+				it ":set doit traiter une anglaise avec octave" do
+				  @n.set "f'"
+					@n.it.should == "f"
+					iv_get(@n, :itit).should == "fa"
+					@n.octave.should == 1
+				end
+				it ":set doit traiter une italienne avec octave" do
+				  @n.set "sol,,"
+					@n.it.should == "g"
+					iv_get(@n, :itit).should == "sol"
+					@n.octave.should == -2
+				end
+				it ":set doit traiter un silence" do
+				  @n.set "r"
+					@n.it.should be_nil
+					iv_get(@n, :rest).should be_true
+					iv_get(@n, :itit).should be_nil
+				end
+
+				# :get
 				it ":get" do
 				  @n.should respond_to :get
 				end
@@ -71,6 +129,8 @@ describe Note do
 					@n.set 'c'
 					@n.get.should == 'c'
 				end
+				
+				
 				it ":to_silence" do
 				  @n.should respond_to :to_silence
 					@n.should respond_to :to_rest
@@ -152,10 +212,10 @@ describe Note do
 					'blanche' 	=> 2, 	'half' 						=> 2,
 					'noire' 		=> 4, 	'quarter' 				=> 4,
 					'croche' 		=> 8, 	'quaver' 					=> 8,
-					'dbcroche' => 16, 	'semiquaver' 			=> 16, 
+					'dbcroche' 	=> 16, 	'semiquaver' 			=> 16, 
 					'tpcroche'	=> 32,	'demisemiquaver' 	=> 32,
-					'qdcroche' => 64,
-					'cqcroche' => 128
+					'qdcroche' 	=> 64,
+					'cqcroche' 	=> 128
 				}.each do |len, duree|
 					it ":#{len}" do
 					  @n.should respond_to "#{len}"
@@ -182,7 +242,7 @@ describe Note do
 						@n.should respond_to "as_#{len}"
 					end
 					it ":as_#{len} doit renvoyer la bonne valeur" do
-					  @n.send("as_#{len}").should == "g#{duree}"
+					  @n.send("as_#{len}").should == "g'''#{duree}"
 					end
 					it ":as_#{len} doit mettre la durée à #{duree}" do
 						iv_set(@n, :duration => nil)
@@ -219,7 +279,7 @@ describe Note do
 				  @n.should respond_to :to_dotted
 					@n.should respond_to :to_pointee
 				end
-				it ":to_pointee doit définir @dotted" do
+				it ":to_pointee doit modifier la durée" do
 				  iv_set(@n, :duration => 4)
 					@n.to_dotted
 					iv_get(@n, :duration).should eq "4."
@@ -237,9 +297,26 @@ describe Note do
 			  it "doit répondre à :+" do
 			    @n.should respond_to :+
 			  end
+				it ":+ doit produire un Motif" do
+			  	res = (ut + re)
+					res.class.should == Motif
+				end
+				it ":+ avec deux notes de même hauteur doit produire un motif simple" do
+				  res = (ut + re)
+					res.motif.class.should == String
+				end
+				it ":+ avec deux notes de hauteurs différentes doit produire un motif complexe" do
+				  nut = ut(:octave => 1)
+					nre = re(:octave => 2)
+					mot = (nut + nre)
+					mot.class.should == Motif
+					puts "\nnut: #{nut.inspect}"
+					puts "nre: #{nre.inspect}"
+					puts "motif: #{mot.inspect}"
+					mot.motif.class.should == Array
+				end
 				it ":+ doit permettre d'addition des notes" do
 				  res = (ut + re)
-					res.class.should == Motif
 					ut.to_s.should eq "c'''"
 					re.to_s.should eq "d'''"
 					res.to_s.should eq "\\relative c''' { c d }"
@@ -261,7 +338,7 @@ describe Note do
 				it ":mark_duration doit renvoyer la bonne valeur" do
 				  iv_set(@n, :duration => 4, :dotted => false )
 					@n.mark_duration.should == "4"
-				  iv_set(@n, :duration => 2, :dotted => true )
+				  iv_set(@n, :duration => "2." )
 					@n.mark_duration.should == "2."
 				end
 			end

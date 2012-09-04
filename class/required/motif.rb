@@ -141,7 +141,6 @@ class Motif
     else new_motif += self.motif          end
     if autre_motif.motif.class == String  then new_motif << autre_motif
     else new_motif += autre_motif.motif   end
-    puts "new_motif : #{new_motif.inspect}"
     change_objet_ou_new_instance new_motif, params, true
   end
   

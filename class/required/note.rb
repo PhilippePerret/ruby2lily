@@ -20,6 +20,12 @@ class Note
   # -------------------------------------------------------------------
   @@current_octave = nil
   
+  # => Return la note +note+ avec les paramètres +params+
+  def self.create_note note, params = nil
+    params ||= {}
+    params[:octave] ||= 3
+    Note::new note, params
+  end
   # => Retourne l'octave courant
   def self.current_octave
     @@current_octave
@@ -49,7 +55,6 @@ class Note
   @duration   = nil       # La durée, telle qu'exprimée pour Lilipond, i.e.
                           # 1 pour la ronde, 2 pour la noire, "4." pour
                           # la noire pointée, etc.
-  @dotted     = false     # Mis à true si la note est pointée
   @rest       = false     # Mis à true si c'est un silence
   
   # Instanciation de la Note
@@ -57,21 +62,58 @@ class Note
   # @param  note    La note, soit en anglais soit en italien (optionnel)
   # @param  params  Les paramètres initiaux pour la note
   def initialize note = nil, params = nil
-    @rest   = false
-    @dotted = false
+    # Valeurs par défaut
+    @rest     = false
+    @octave   = 3
     set(note) unless note.nil?
     params.each { |k,v| instance_variable_set("@#{k}", v)} unless params.nil?
   end
   
   def set valeur
-    @it = if ANGLO_TO_ITAL.has_key? valeur.to_s
-            @itit = ANGLO_TO_ITAL[valeur.to_s]
-            valeur
-          else
-            @itit = valeur
-            ITAL_TO_ANGLO[valeur.to_s]
+    octave = nil
+    if valeur == "r"
+      @it   = @itit = nil
+      @rest = true
+    else
+      if valeur.length > 1
+        # Trois cas peuvent se présenter ici :
+        #   1. La note est fournie avec une octave (p.e. "c,,")
+        #   2. La note est fournie en italien (p.e. "si")
+        #   3. La note est fournie en italien avec octave (p.e. "si''")
+        if valeur.match(/[',]/).nil?
+          # Valeur italienne simple
+          @it = ITAL_TO_ANGLO[valeur.to_s]
+        else
+          # Valeur fournie avec octave
+          unless valeur.match(/^(ut|do|re|mi|fa|sol|la|si)/).nil?
+            valeur = valeur.sub(/^(ut|do|re|mi|fa|sol|la|si)/){
+              ITAL_TO_ANGLO[$1.to_s]
+            }
           end
+          # Valeur anglaise avec octave
+          @it, octave = split_note_et_octave valeur
+        end        
+      else
+        # Valeur anglaise simple (une seule lettre)
+        @it   = valeur
+      end
+      @rest   = false
+      @itit   = ANGLO_TO_ITAL[@it]
+      @octave = octave unless octave.nil?
+    end
   end
+  
+  # =>  Sépare la note de la marque lilypond d'octave lorsqu'elle
+  #     est fournie et return [note, octave/nil]
+  def split_note_et_octave noteoct
+    return [noteoct, nil] if noteoct.length == 1
+    note, octave = [noteoct[0..0], noteoct[1..-1]]
+    octave_positive = octave.start_with? "'"
+    octave = octave.length
+    octave = octave.to_i * -1 unless octave_positive
+    [note, octave]
+  end
+  
   def get
     @it
   end
@@ -105,8 +147,7 @@ class Note
   
   # => Définit la marque de durée (longueur et pointage)
   def mark_duration
-    dotte = @dotted ? "." : ""
-    "#{@duration.to_s}#{dotte}"
+    @duration.to_s
   end
   # => Définit la marque de l'octave pour l'affichage
   def mark_octave
@@ -115,6 +156,9 @@ class Note
   end
 
   # => Renvoie la note telle qu'elle doit être affichée en lilipond
+  # 
+  # @note: pour n'obtenir que la note (sans octave), utiliser la
+  # méthode :get
   def to_s # => to_lilipond
     note = rest? ? 'r' : "#{@it}#{mark_octave}"
     "#{note}#{mark_duration}"
