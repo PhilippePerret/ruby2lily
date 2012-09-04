@@ -142,7 +142,6 @@ class Liby
       else
         option_courte = doption[1..1]
         option = OPTION_LIST[option_courte]
-        puts "\noption_courte: #{option_courte}"
         fatal_error(:unknown_option, :option => option_courte) if option.nil?
         valeur = doption[2..-1]
       end
@@ -195,7 +194,7 @@ class Liby
     
     # => Joue la commande trouvée dans la ligne de commande
     def run_command
-      Liby::Command::new(@@command).run
+      Liby::Command::run @@command
     end
     
     # =>  Retourne true si c'est une commande qui est demandée, pas la
