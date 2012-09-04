@@ -6,6 +6,27 @@ require 'liby'
 
 PATH_RUBY2LILY = File.join(BASE_LILYPOND, 'ruby2lily.rb')
 
+describe "L'application" do
+	before(:all) do
+	  @path_version = File.join(BASE_LILYPOND, 'VERSION.rb')
+	  @path_help 		= File.join(BASE_LILYPOND, 'HELP.md')
+	end
+  it "doit contenir un fichier VERSION" do
+    File.exists?(@path_version).should be_true
+  end
+	it "VERSION doit contenir les bonnes informations" do
+	  require @path_version
+		defined?(RUBY2LILY_VERSION_NUM).should be_true
+		defined?(RUBY2LILY_VERSION).should be_true
+	end
+	it "doit contenir un fichier HELP" do
+    File.exists?(@path_help).should be_true
+	end
+	it "le fichier HELP doit contenir un texte assez long" do
+	  File.read(@path_help).length.should be > 900
+	end
+end
+
 describe "ruby2lily.rb" do
   it "doit exister" do
 		File.exists?(PATH_RUBY2LILY).should be_true
