@@ -314,6 +314,14 @@ describe Note do
 					puts "nre: #{nre.inspect}"
 					puts "motif: #{mot.inspect}"
 					mot.motif.class.should == Array
+					mo1 = mot.motif[0]
+					mo1.class.should == Motif
+					mo2 = mot.motif[1]
+					mo2.class.should == Motif
+					mo1.motif.should == 'c'
+					mo1.octave.should == 1
+					mo2.motif.should == 'd'
+					mo2.octave.should == 2
 				end
 				it ":+ doit permettre d'addition des notes" do
 				  res = (ut + re)

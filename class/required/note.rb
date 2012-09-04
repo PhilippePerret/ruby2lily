@@ -285,7 +285,7 @@ class Note
         Motif::new :motif => "#{@it} #{foo.it}", :octave => @octave
       else
         moself  = Motif::new :motif => @it, :octave => @octave
-        mofoo   = Motif::new :motif => foo.to_s, :octave => foo.octave
+        mofoo   = Motif::new :motif => foo.it, :octave => foo.octave
         moself + mofoo
       end
     else
