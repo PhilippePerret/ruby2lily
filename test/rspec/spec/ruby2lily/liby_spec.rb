@@ -118,7 +118,11 @@ describe Liby do
 			:invalid_duree_notes,
 			:cant_add_chord_to_note,
 			:cant_add_any_to_note,
-			:cant_add_any_to_motif
+			:cant_add_any_to_motif,
+			:too_much_parameters_to_crochets,
+			:bad_class_in_parameters_crochets,
+			:bad_params_in_crochet,
+			:bad_value_duree
 		].each do |cle_erreur|
 			it "l'erreur :#{cle_erreur} doit exister" do
 				Liby::ERRORS.should have_key cle_erreur

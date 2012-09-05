@@ -4,8 +4,9 @@
 # La classe d'une note
 # 
 
+require 'noteclass'
 
-class Note
+class Note < NoteClass
   
   unless defined?(Note::ANGLO_TO_ITAL)
     ANGLO_TO_ITAL = {'a' => 'la', 'b' => 'si', 'c' => 'do', 'd' => 'ré', 'e' => 'mi', 'f' => 'fa', 'g' => 'sol'}

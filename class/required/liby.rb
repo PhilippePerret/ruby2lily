@@ -23,6 +23,14 @@ class Liby
       :path_lily_undefined        => "Impossible de définir le chemin au fichier Lilypond…",
       :lilyfile_does_not_exists   => "Le fichier Lilypond du score n'existe pas…",
       
+      # === Méthodes générales === #
+      :bad_params_in_crochet      => "Mauvais argument envoyés dans `[...]'",
+      :too_much_parameters_to_crochets  => "Trop de paramètres envoyés dans `[]' (2 max)",
+      :bad_class_in_parameters_crochets => "Mauvais argument dans `[...]' (seulement nombre, string de durée ou Hash)",
+      
+      # === Erreurs durée === #
+      :bad_value_duree            => "La durée \#{bad} est invalide !",
+      
       # === Définition du score ===
       :title_not_string           => "Le titre doit être une chaine de caractères",
       :time_invalid               => "La signature de temps (@time) est invalide" +
@@ -98,7 +106,7 @@ class Liby
     # =>  Formate l'erreur d'identifiant +id_err+ avec les arguments
     #     +params+ et renvoie l'erreur:String formatée.
     def error id_err, params = nil
-      err = if ERRORS.has_key? id_err then ERRORS[id_err.to_sym]
+      err = if ERRORS.has_key? id_err.to_sym then ERRORS[id_err.to_sym]
             else id_err end
       detemp( err, params )
     end

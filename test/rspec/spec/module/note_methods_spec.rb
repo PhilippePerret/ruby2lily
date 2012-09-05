@@ -27,6 +27,28 @@ describe "Module/note_methods" do
 			end
 		end
 	end # / les notes
+	describe "- Les durées -" do
+	  {
+			'ronde' 		=> "1", 	'whole' 					=> "1",
+			'blanche'		=> "2", 	'half'						=> "2",
+			'noire'			=> "4", 	"quarter"					=> "4",
+			'croche'		=> "8", 	"quaver"					=> "8",
+			'dbcroche'	=> "16",	"semiquaver"			=> "16",
+			'tpcroche'	=> "32", 	"demisemiquaver"	=> "32",
+			'qdcroche'	=> "64",
+			'cqcroche'	=> "128"
+		}.each do |duree, valeur|
+			it "doit définir la fonction durée #{duree}()" do
+				defined?(duree).should be_true
+			end
+			it "#{duree}() doit retourner la bonne valeur" do
+				eval("#{duree}").should == valeur
+			end
+			it "#{duree}(true) doit retourner une durée pointée" do
+			  eval("#{duree}(true)").should == "#{valeur}."
+			end
+		end
+	end
 	
 	describe "- Opération sur les notes -" do
 	  it "L'addition de notes doit créer un nouveau motif" do

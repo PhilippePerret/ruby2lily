@@ -1,7 +1,10 @@
 # 
 # CLass Motif
 # 
-class Motif
+
+require 'noteclass'
+
+class Motif < NoteClass
   
   # -------------------------------------------------------------------
   #   Instance

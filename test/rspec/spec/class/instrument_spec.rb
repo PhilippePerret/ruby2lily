@@ -107,9 +107,9 @@ describe Instrument do
 			it ":add_as_chord doit ajouter l'accord" do
 				accord = Chord::new ["c", "eb", "g"]
 			  @instru.add accord
-				iv_get(@instru, :notes).should == "<c ees g>"
+				iv_get(@instru, :notes).should == "\\relative c''' { <c ees g> }"
 				@instru.add accord, :duree => 4
-				iv_get(@instru, :notes).should == "<c ees g> <c ees g>4"
+				iv_get(@instru, :notes).should == "\\relative c''' { <c ees g> } \\relative c''' { <c ees g>4 }"
 			end
 			
 			# :add_as_motif
