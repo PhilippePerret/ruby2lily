@@ -108,6 +108,124 @@ class LINote
     return notes
   end
   
+  # =>  Join la suite de note +motif1+ à la suite +motif2+
+  #     en retournant un string prenant en compte les octaves
+  # 
+  # @param  motif1      Instance de Motif.
+  # @param  motif2      Deuxième instance de Motif, à joindre à la 
+  #                     première
+  # 
+  # @return Le String des notes jointes.
+  #         Par exemple : 
+  #           - le motif "c e g" octave 3 
+  #           - join au motif "c g e c" octave 3 produira
+  #           => "c e g c, g e c" avec la virgule qui ramène à l'octave
+  #           3 alors que la simple jointure "c e g c g e c" ferait que
+  #           le second do serait un do 4, contrairement à ce qui est
+  #           attendu.
+  # 
+  def self.join motif1, motif2
+
+    # Contrôle de la validité des arguments (fatal)
+    cl1, cl2 = [motif1.class, motif2.class]
+    fatal_error(:bad_type_for_args, :good => "Motif", :bad => cl1.to_s) \
+      unless cl1 == Motif
+    fatal_error(:bad_type_for_args, :good => "Motif", :bad => cl2.to_s) \
+      unless cl2 == Motif
+    
+    motif1_last   = motif1.last_note
+    motif2_first  = motif2.first_note
+    valeur_abs_last_motif1  = 
+      Note::valeur_absolue(motif1_last, motif1.octave)
+    valeur_abs_first_motif2 = 
+      Note::valeur_absolue(motif2_first, motif2.octave)
+
+    # Intervalle entre les deux notes
+    intervalle = valeur_abs_first_motif2 - valeur_abs_last_motif1
+    
+  #   # = débug =
+  #   puts <<-EOC
+  # 
+  # MOTIF 1           : #{motif1.motif}
+  # Last de motif 1   : #{motif1_last}
+  #     Octave        : #{motif1.octave}
+  #     Valeur absolue: #{valeur_abs_last_motif1}
+  # MOTIF 2           : #{motif2.motif}
+  # First de motif 2  : #{motif2_first}
+  #     Octave        : #{motif2.octave}
+  #     Valeur absolue: #{valeur_abs_first_motif2}
+  # 
+  # Intervalle        : #{intervalle}
+  #   EOC
+  #   # = /débug =
+   
+   
+    # Rappel : le changement d'octave est nécessaire dès que l'intervale
+    # entre les notes dépassent la quarte.
+    #  c f# => le f# est au-dessus (intervale f# - c = 6)
+    #  c g  => le g est au dessous (intervale g  - c = 7)
+    # 
+    #   Étudier :
+    #     d f a (3) - d a f (3)     => d f a d, a f
+    #     d f a (3) - d a f (4)     => d f a d  a f
+    #     d f a (3) - d a f (5)     => d f a d' a f
+    #     d f a (3) - d a f (2)     => d f a d,, a f
+    # 
+    #     Intervalle entre a3 et d3 = -7
+    #     Intervalle entre a3 et d4 = 5
+    #     Intervalle entre a3 et d5 = 5 + 12 = 17
+    #     Intervalle entre a3 et d2 = - (7 + 12)
+    # 
+    #   On en déduit que : 
+    #       - intervalle entre 0 et 6   => on ne fait rien
+    #       - intervalle entre 0 et -6  => on ne fait rien
+    #       - intervalle > 6  => il faut forcément ajouter des « ' »
+    #         On retire 6 (intervalle - 6) et on divise par 12 et on
+    #         ajoute 1 pour savoir le nombre d'apostrophes à ajouter.
+    #       - intervalle < -6 => il faut forcément ajouter des « , »
+    #         On prend la valeur absolue de l'intervalle, on retire
+    #         6, et le reste divisé par 12 + 1 donne le nombre de virgules
+    
+    if intervalle.between?(-6, 6)
+      # Rien à faire, la note se placera naturellement
+      
+      # Le motif final retourné
+      "#{motif1.motif} #{motif2.motif}"
+      
+    else
+      # Il faut ajouter des ' ou des ,
+
+      # La marque d'octave qui sera utilisée (au-dessus ou en dessous)
+      mark = intervalle > 0 ? "'" : ","
+
+      # On retire 6
+      add_octaves = intervalle.abs - 6
+      # On divise par 12
+      add_octaves = add_octaves / 12
+      # On ajoute 1
+      add_octaves += 1
+      # => le nombre de signes à ajouter à la 2e note pour l'atteindre
+    
+      # Modification de la première note du motif 2
+      new_first = "#{motif2_first}#{mark.x(add_octaves)}"
+      # (on utilise `sub', qui modifiera forcément la première note)
+      new_motif2 = motif2.motif.sub(/#{motif2_first}/, new_first)
+
+  #     # = débug =
+  #     puts <<-EOC
+  # 
+  # mark              : #{mark}
+  # Octaves ajoutées  : #{add_octaves}
+  # Nouvelle première : #{new_first}
+  # Nouveau motif     : #{new_motif2}
+  #     EOC
+  #     # = /débug =
+
+      # Le motif final retourné
+      "#{motif1.motif} #{new_motif2}"
+    end
+  end
+
   
   # =>  Return la valeur string de la note en fonction du +context+
   #     soumis.

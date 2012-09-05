@@ -74,6 +74,67 @@ describe LINote do
 			end
 		end
 		
+		# :join
+		it "d oit r épondre à :join" do
+		  LINote.should respond_to :join
+		end
+		it ":join peut r ecevoir seulement des Motifs" do
+			mo1 = Motif::new( :motif => "c e g", :octave => 2)
+			mo2 = Motif::new( :motif => "g e c", :octave => 2)
+			expect{LINote::join( h1, h2 )}.not_to raise_error(SystemExit)
+
+			err = detemp(Liby::ERRORS[:bad_type_for_args], {
+										:good => "Motif", :bad => "String"
+			})
+			expect{LINote::join("bad", "mauvais")}.to \
+				raise_error(SystemExit, err)
+
+			err = detemp(Liby::ERRORS[:bad_type_for_args], {
+										:good => "Motif", :bad => "Hash" })
+			h1 = {:motif => "c e g", :octave => 3 }
+			h2 = {:motif => "c e g", :octave => 3 }
+		  expect{LINote::join( h1, h2 )}.to raise_error(SystemExit, err)
+		  
+		end
+		[
+		# 	mot 1  oct  mot 2  oct résultat attendu
+		# -------------------------------------------------------------------
+			# Essai motifs simples
+			["c e g", 3, "c e g", 3, "c e g c, e g"],
+			["d f a", 3, "d f a", 3, "d f a d, f a"],
+			["d f a", 3, "d f a", 4, "d f a d f a"],
+			["d f a", 3, "d f a", 5, "d f a d' f a"],
+			["d f a", 3, "d f a", 2, "d f a d,, f a"],
+			
+			# Essais motifs complexes
+			["ces( ees ges) r", 3, "c e g", 3, "ces( ees ges) r c e g"],
+			["ces( ees ges) r", 3, "c e g", 4, "ces( ees ges) r c e g"],
+			["ces( ees ges) r", 3, "c e g", 2, "ces( ees ges) r c,, e g"],
+			["ces( ees ges) r", 3, "c e g", 1, "ces( ees ges) r c,,, e g"],
+			
+					# @todo: ICI, DANS LE TRAITEMENT, LE LEGATO NE DEVRAIT PAS
+					# ÊTRE ENREGISTRÉ DANS LE TEXTE DU MOTIF. ÇA DEVRAIT ÊTRE PLUTÔT
+					# UNE PROPRIÉTÉ @legato.
+					# MAIS DANS CE CAS, QUE FAIRE ? LORSQU'ON JOIN, ON GARDE LE
+					# LÉGATO SUR TOUT LE MOTIF, OU ON L'ÉCRIT ALORS DANS LE TEXTE ?
+					# POUR LE MOMENT, J'OPTE POUR LE FAIT QUE LE LÉGATO DOIT ÊTRE
+					# ÉCRIT EN DUR DANS LE @motif DU MOTIF
+					
+		].each do |data|
+			mo1 = Motif::new(:motif => data[0], :octave => data[1])
+			mo2 = Motif::new(:motif => data[2], :octave => data[3])
+			result = data[4]
+			it "Avec les data #{data[0..3].join(', ')}, ::join doit produire #{data[4]}" do
+				LINote::join(mo1, mo2).should == result
+				# On en profite pour vérifier aussi la méthode <motif>.join(<autre motif>)
+				new_mo = mo1.join(mo2, :new => true)
+				new_mo.motif.should 	== result
+				mo1.motif.should_not 	== result
+				mo1.join(mo2, :new => false)
+				mo1.motif.should == result
+			end
+		end
+		
 		# :mark_relative
 		it "doit répondre à :mark_relative" do
 		  LINote::should respond_to :mark_relative

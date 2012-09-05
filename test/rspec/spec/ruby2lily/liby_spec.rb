@@ -121,7 +121,9 @@ describe Liby do
 			:too_much_parameters_to_crochets,
 			:bad_class_in_parameters_crochets,
 			:bad_params_in_crochet,
-			:bad_value_duree
+			:bad_value_duree,
+			:bad_type_for_args,
+			:bad_args_for_join_linote
 		].each do |cle_erreur|
 			it "l'erreur :#{cle_erreur} doit exister" do
 				Liby::ERRORS.should have_key cle_erreur

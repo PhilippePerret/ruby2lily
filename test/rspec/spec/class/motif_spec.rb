@@ -73,6 +73,36 @@ describe Motif do
 				"\\relative c' { c8 c8 c8 } \\relative c''' { a8 a8 a8 }"
 		end
 		
+		# :first_note
+		it "d oit répondre à :first_note" do
+		  @m.should respond_to :first_note
+		end
+		it ":first_note d oit renvoyer la première note" do
+			Motif::new("aes b c").first_note.should == "aes"
+			Motif::new("a b c").first_note.should == "a"
+		  Motif::new("r r aes b c").first_note.should == "aes"
+		end
+		# :last_note
+		it "d oit répondre à :last_note" do
+		  @m.should respond_to :last_note
+		end
+		it ":last_note d oit renvoyer la dernière note" do
+		  Motif::new("a b cis").last_note.should == "cis"
+		  Motif::new("a b c").last_note.should == "c"
+			Motif::new("r a( b ces r)").last_note.should == "ces"
+		end
+		# :first_et_last_note
+		it "d oit répondre à :first_et_last_note" do
+		  @m.should respond_to :first_et_last_note
+		end
+		it ":first_et_last_note d oit retourner la bonne valeur" do
+		  Motif::new("r r aes b c").first_et_last_note.should == ["aes", "c"]
+			mo = Motif::new("r a( b ces r)")
+			mo.first_et_last_note.should == ["a", "ces"]
+			mo = Motif::new("r r aeses( b fis fisis) r r")
+			mo.first_et_last_note.should == ["aeses", "fisis"]
+		end
+		
 		# :change_durees_in_motif
 		it "doit répondre à :set_durees" do
 		  @m.should respond_to :set_durees
@@ -126,7 +156,7 @@ describe Motif do
 		# :addition_motifs
 	  it "doit répondre à :add_motif" do
 	    mo = Motif::new "a b"
-			mo.should respond_to :addition_motifs
+			mo.should respond_to :add_motif
 	  end
 		it ":add_motif doit additionner les deux motifs" do
 		  pending "à implémenter (mais la méthode est implémentée)"
@@ -181,8 +211,17 @@ describe Motif do
 		it ":+ avec un type invalide doit lever une erreur fatale" do
 			mo = Motif::new "c d e"
 		  h = {:un => "un", :deux => "deux" }
-			err = detemp(Liby::ERRORS[:cant_add_any_to_motif], :classe => h.class.to_s)
+			err = detemp(Liby::ERRORS[:cant_add_this], :classe => h.class.to_s)
 			expect{mo + h}.to raise_error(SystemExit, err)
+		end
+		
+		# :join 
+		it "d oit r espond à :join" do
+		  mo = Motif::new("d f a")
+			mo.should respond_to :join
+			# LE TEST DU FONCTIONNEMENT SE FAIT AVEC LA MÉTHODE STATIQUE
+			# LINote::join POUR NE PAS AVOIR À MULTIPLIER LES EXEMPLES
+			# (cf. dans spec/class/linote_spec.rb)
 		end
 		
 		# :*

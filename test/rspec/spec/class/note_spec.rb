@@ -9,6 +9,16 @@ describe Note do
 	# 	La classe
 	# -------------------------------------------------------------------
 	describe "class" do
+		describe "Constantes" do
+		  it "d oit définir NOTE_TO_VAL_ABS" do
+		    defined?(Note::NOTE_TO_VAL_ABS).should be_true
+		  end
+			it "NOTE_TO_VAL_ABS d oit définir les bonnes valeurs" do
+			  Note::NOTE_TO_VAL_ABS['c'].should == 1
+				Note::NOTE_TO_VAL_ABS['g'].should == 8
+				Note::NOTE_TO_VAL_ABS['b'].should == 12
+			end
+		end
 	  describe "doit répondre" do
 			describe "à la méthode généraliste" do
 			  it ":create_note" do
@@ -63,6 +73,45 @@ describe Note do
 				Note::split_note_et_octave('f,,,').should == ['f', -3]
 			end
 		
+			# :valeur_absolue
+			it ":valeur_absolue d oit exister" do
+			  Note.should respond_to :valeur_absolue
+			end
+		  [
+				["c", 0, 1], ["cis", 0, 2],
+				["d", 0, 3], ["dis", 0, 4], 
+				["e", 0, 5], 
+				["f", 0, 6], ["eis", 0, 6],
+				["g", 0, 8], ["fisis", 0, 8], ["aeses", 0, 8],
+				["a", 0, 10], 
+				["b", 0, 12], ["ces", 1, 12],
+				["c", 1, 13],
+				["c", 2, 25],
+				["c", 3, 37],
+				
+				["c", -1, -11],
+				["c", -2, -23],
+				["bes", -3, -25],
+				["f",   -3, -30]
+			].each do |note, octave, valeur|
+				it "L a note #{note} à l'octave #{octave} vaut #{valeur}" do
+					Note::valeur_absolue(note, octave).should == valeur
+				end
+			end
+			
+			# :dieses_et_bemols_in
+			it ":dieses_et_bemols_in d oit exister" do
+			  Note.should respond_to :dieses_et_bemols_in
+			end
+			it ":dieses_et_bemols_in d oit retourner la bonne valeur" do
+			  Note::dieses_et_bemols_in("ais").should == [1, 0]
+			  Note::dieses_et_bemols_in("aisis").should == [2, 0]
+			  Note::dieses_et_bemols_in("aes").should == [0, 1]
+			  Note::dieses_et_bemols_in("aises").should == [1, 1]
+			  Note::dieses_et_bemols_in("aeses").should == [0, 2]
+			  Note::dieses_et_bemols_in("aesis").should == [1, 1]
+			end
+			
 		end
 	end
 	# -------------------------------------------------------------------

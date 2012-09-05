@@ -16,12 +16,10 @@
 
 % Score
 {\new Staff {
-\relative c'' {
-	\clef "treble"
-	\time 6/8
-	\tempo 4 = 120
- c8( b c d c b) a( g f e f g)
+	\relative c'' {
+		\clef "treble"
+		\time 6/8
+		\tempo 4 = 120	ges c c8( b c d c b) a( g f e f g)
+	}
 }
-}
-
 }

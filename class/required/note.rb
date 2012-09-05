@@ -19,6 +19,10 @@ class Note < NoteClass
     ITAL_TO_ANGLO = ANGLO_TO_ITAL.invert
     ITAL_TO_ANGLO['re'] = "d" # ajout nécessaire
   
+    NOTE_TO_VAL_ABS = {
+      'c' => 1, 'd' => 3, 'e' => 5, 'f' => 6, 'g' => 8, 'a' => 10, 'b' => 12
+    }
+  
     ERRORS = {
       :bad_octave => "L'octave doit être un nombre compris entre -8 et 8"
     }
@@ -47,6 +51,25 @@ class Note < NoteClass
     [note, octave]
   end
   
+  def self.valeur_absolue note, octaves
+    return nil if note == "r"
+    nombre_dieses, nombre_bemols = dieses_et_bemols_in note
+    NOTE_TO_VAL_ABS[note[0..0]] + # => 1 pour a
+    (12 * octaves)        +
+    (nombre_dieses * 1 )  +
+    (nombre_bemols * -1)
+  end
+  
+  # => Retourne le nombre de dièses et de bémols contenu dans +note+
+  # 
+  # @param note     Une note et une seule
+  # @return [<nombre de dièse>, <nombre bémols>]
+  def self.dieses_et_bemols_in note
+    [note.scan(/is/).count, note.scan(/es/).count]
+  end
+  # -------------------------------------------------------------------
+  # @todo: peut-être supprimer les méthodes ci-dessous, qui ne servent peut-être pas
+  # -------------------------------------------------------------------
   # => Retourne l'octave courant
   def self.current_octave
     @@current_octave

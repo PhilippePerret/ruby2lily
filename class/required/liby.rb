@@ -25,6 +25,7 @@ class Liby
       
       # === Méthodes générales === #
       :bad_params_in_crochet      => "Mauvais argument envoyés dans `[...]'",
+      :bad_type_for_args          => "Mauvais types pour les arguments (attendus : \#{good}, reçus : \#{bad})",
       :too_much_parameters_to_crochets  => "Trop de paramètres envoyés dans `[]' (2 max)",
       :bad_class_in_parameters_crochets => "Mauvais argument dans `[...]' (seulement nombre, string de durée ou Hash)",
  
@@ -46,6 +47,8 @@ class Liby
       :cant_add_any_to_motif      => "Un objet de type \#{classe} ne peut être ajouté à un motif…",
       
       # ==== Note ==== #
+      :bad_args_for_join_linote   => "Les arguments pour la méthode LINote::join sont invalides",
+      
       :fin_fin_fin_fin_fin => ''
     }
     

@@ -100,6 +100,40 @@ class Motif < NoteClass
   
   end
   
+  # =>  Join le motif +motif2+ au motif courant (c'est-à-dire que le
+  #     motif courant va changer de @motif — ça n'est pas une nouvelle
+  #     instance Motif qui est créée, sauf si +params+ contient 
+  #     new => :true)
+  # cf. la méthode statique LINote::join pour le détail
+  def join motif2, params = nil
+    motif_final = LINote::join( self, motif2 )
+    change_objet_ou_new_instance motif_final, params, false
+  end
+  # =>  Return la première et la dernière note (donc or silence) du
+  #     motif.
+  # 
+  # @usage : [premiere, derniere] = <motif>.first_et_last_note
+  def first_et_last_note
+    res = @motif.scan(/\b([a-g](es|is){0,2})/)
+    [res.first[0], res.last[0]]
+  end
+  # =>  Retourne la première et la dernière note du motif (donc pas
+  #     un silence)
+  # => Retourne la première note (donc pas un silence) du motif
+  def first_note
+    # res = @motif.scan(/\b([a-g](es|is){0,2})/)
+    # puts "res first_note: #{res.inspect}"
+    # res.first
+    @motif.scan(/\b([a-g](es|is){0,2})/).first.first
+  end
+  # => Return la dernière note (donc pas un silence) du motif
+  def last_note
+    # res = @motif.scan(/\b([a-g](es|is){0,2})/)
+    # puts "res last_note: #{res.inspect}"
+    # res.last
+    @motif.scan(/\b([a-g](es|is){0,2})/).last.first
+  end
+  
   # => Méthode de commodité
   def as_motif
     self
