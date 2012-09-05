@@ -113,7 +113,25 @@ describe Motif do
 	  before(:each) do
 	    @m = Motif::new "bb g f e,4 bb8"
 	  end
+
+		it "doit répondre à :as_motif" do
+		  mo = Motif::new "a b"
+			mo.should respond_to :as_motif
+		end
+		it ":as_motif doit retourner le motif" do
+		  mo = Motif::new "a b"
+			mo.as_motif.should == mo
+		end
 	
+		# :addition_motifs
+	  it "doit répondre à :add_motif" do
+	    mo = Motif::new "a b"
+			mo.should respond_to :addition_motifs
+	  end
+		it ":add_motif doit additionner les deux motifs" do
+		  pending "à implémenter (mais la méthode est implémentée)"
+		end
+
 		# :+
 		it "doit répondre à :+" do
 		  repond_a :+

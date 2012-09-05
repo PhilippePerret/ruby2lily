@@ -113,7 +113,7 @@ class Instrument
   #                   spécifiée par :duree => <duree lilypond>)
   def add some, params = nil
     case some.class.to_s
-    when 'String' then  add_as_string Liby::notes_ruby_to_notes_lily(some)
+    when 'String' then  add_as_string LINote::to_llp(some)
     when 'Motif'  then  add_as_motif  some, params
     when 'Chord'  then  add_as_chord  some, params
     when 'Hash'   then raise "Les hash ne sont pas encore traités"

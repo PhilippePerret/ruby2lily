@@ -108,6 +108,9 @@ describe Chord do
 		  mo = chord.as_motif
 			mo.class.should == Motif
 			mo.to_s.should == "\\relative c, { <a c e> }"
+			chord.instance_variable_set("@duration", 8)
+			mo = chord.as_motif
+			mo.to_s.should == "\\relative c, { <a c e>8 }"
 		end
 		
 		# :with_duree

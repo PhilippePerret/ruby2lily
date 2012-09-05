@@ -116,8 +116,7 @@ describe Liby do
 			:lilyfile_does_not_exists,
 			:invalid_motif,
 			:invalid_duree_notes,
-			:cant_add_chord_to_note,
-			:cant_add_any_to_note,
+			:cant_add_this,
 			:cant_add_any_to_motif,
 			:too_much_parameters_to_crochets,
 			:bad_class_in_parameters_crochets,
@@ -269,27 +268,6 @@ describe Liby do
 		  Liby.should respond_to :run_command
 			# @NOTE: Toutes les commandes sont testées par :
 			# spec/ruby2lily/liby/command_spec.rb
-		end
-	end
-	# -------------------------------------------------------------------
-	# 	Traitement des notes données
-	# 
-	# 	Principe : les notes données par ruby ne sont pas les mêmes que
-	# 	par lilypond, par exemple, le '#' peut être donné par ruby, mais
-	# 	transformé en 'is' pour lilypond. Toutes ces méthodes s'occupent
-	# 	de ces changements
-	# -------------------------------------------------------------------
-	describe "Méthodes de transformation des notes et signes" do
-	  it "doit répondre à :notes_ruby_to_notes_lily" do
-	    Liby.should respond_to :notes_ruby_to_notes_lily
-	  end
-		it ":notes_ruby_to_notes_lily doit renvoyer un bon résultat" do
-			paires = {
-				"a#" => "ais", "bb" => "bes", "c##" => "cisis", "dbb" => "deses"
-			}
-			paires.each do |cruby, clily|
-				Liby.notes_ruby_to_notes_lily(cruby).should == clily
-			end
 		end
 	end
 	# -------------------------------------------------------------------

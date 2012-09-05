@@ -22,6 +22,10 @@ class String
   #   Redéfinitions propres à Ruby2Lily
   # -------------------------------------------------------------------
   
+  def + foo
+    LINote::to_llp("#{self} #{foo}")
+  end
+  
   # => Multiplie la note ou le groupe de notes string
   # 
   # @usage      <notes> = "<note/notes>" * <nombre>
@@ -33,6 +37,7 @@ class String
   #         groupe est transformé en Motif avant d'être multiplié, et
   #         donc le retour sera plus complexe, du style :
   #         "\\relative c'' { a b c } \\relative c'' { a b c }"
+  # @todo: String#* doit être supprimé car ajouté et traité par OperationsSurNotes
   def *( nombre )
     is_simple_note = self.match(/ /).nil?
     if is_simple_note
@@ -51,14 +56,6 @@ class String
     t
   end
   alias :x :fois
-  
-  # ATTENTION ! Cette méthode posera des problèmes à tout code du
-  # programme qui utilise "+" pour concatener des chaines
-  # Si vraiment ça pose trop de problèmes, essayer de la définir que
-  # le temps de l'analyse du score…
-  def + valeur
-    self << ' ' << valeur.to_s
-  end
   
   # Pour concaténer à la place de "+"
   # @usage :

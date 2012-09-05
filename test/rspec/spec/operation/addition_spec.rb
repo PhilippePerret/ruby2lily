@@ -5,6 +5,7 @@
 # 	- Motif
 # 	- Accord
 require 'spec_helper'
+require 'noteclass'
 require 'string'
 require 'note'
 require 'linote'
@@ -12,12 +13,23 @@ require 'motif'
 require 'chord'
 
 # -------------------------------------------------------------------
+# 	Méthode générale NoteClass#+
+# -------------------------------------------------------------------
+describe "NoteClass#+" do
+  it "doit exister" do
+    NoteClass::new.should respond_to :+
+  end
+end
+# -------------------------------------------------------------------
 # 	String
 # -------------------------------------------------------------------
 describe "Addition à String" do
 
   describe "String + String" do
-    
+    it "doit retourner un string où les notes sont séparées" do
+      ("a" + "b").should == "a b"
+			("a" + "bb" + "dois" + "la#").should == "a bes cis ais"
+    end
   end
 	describe "String + Note" do
 	  
@@ -72,7 +84,11 @@ end
 # 	Chord
 # -------------------------------------------------------------------
 describe "Addition et Chord" do
-	
+	describe "Généralités" do
+	  it "doit répondre à :+" do
+	    Chord::new("a c e").should respond_to :+
+	  end
+	end
   describe "Chord + String doit réussir" do
     it "doit réussir avec un accord simple et un string simple" do
       acc = Chord::new "a c e"
@@ -84,9 +100,12 @@ describe "Addition et Chord" do
 		it "doit réussir avec un accord dont on change l'octave et la durée" do
 		  lam = Chord::new "a c e"
 			str = "c'"
-			res = lam[2,8] + str
+			res = lam[2,"8"] + str
 			res.class.should == Motif
 			res.to_s.should == "\\relative c'' { <a c e>8 } \\relative c' { c }"
+			res = lam[blanche, -2] + str
+			res.class.should == Motif
+			res.to_s.should == "\\relative c,, { <a c e>2 } \\relative c' { c }"
 		end
   end
 	describe "Chord + Note" do

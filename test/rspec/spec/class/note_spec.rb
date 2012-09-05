@@ -366,12 +366,6 @@ describe Note do
 					res.class.should == Motif
 					res.to_s.should == "\\relative c''' { c } \\relative c' { a }"
 				end
-				it "L'addition d'un accord doit produire une erreur" do
-					n = Note::new "c"
-					a = Chord::new "a cis e"
-					err = Liby::ERRORS[:cant_add_chord_to_note]
-				  expect{n+a}.to raise_error(SystemExit, err)
-				end
 			end
 			# -------------------------------------------------------------------
 			# 	Méthodes d'affichage

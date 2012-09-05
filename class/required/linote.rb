@@ -4,6 +4,8 @@
 # Permet toutes les opérations sur les notes
 # 
 require 'String'
+require 'note'
+
 class LINote
   
   # -------------------------------------------------------------------
@@ -71,11 +73,42 @@ class LINote
     # @todo: il faudra l'affiner au cours du temps
     REG_NOTE = %r{[a-g](?:(?:es|is){1,2})?}
     
+    # Altérations normales vers altérations lilypond
+    ALTERATIONS = { '#' => 'is', '##' => 'isis', 'b' => 'es', 
+                    'bb' => 'eses'}
+    
+    # Expression régulière pour transformer les italienne en 
+    # anglosaxonnes
+    # @note: c'est la constante Note::ITAL_TO_ANGLO qui permettra
+    # d'obtenir la note anglosaxonne.
+    REG_ITAL_TO_LLP = %r{\b(ut|do|re|ré|mi|fa|sol|la|si)}
   end # / si constantes déjà définies (tests)
   
   # -------------------------------------------------------------------
   #   Classe
   # -------------------------------------------------------------------
+    
+  # =>  Return +notes+ avec '#' et 'b' pour dièse et bémol en 'is' et
+  #     'es' et les notes italiennes remplacées par leur valeur
+  #     anglosaxonne.
+  # @param  notes   Un string de note
+  # @todo: implémenter LINote::to_llp pour traiter Note, Motif, etc. ?
+  def self.to_llp notes
+    is_array = notes.class == Array
+    notes = notes.join(' • ') if is_array
+    # Transformation des italiennes
+    notes = notes.gsub(REG_ITAL_TO_LLP){
+      Note::ITAL_TO_ANGLO[$1]
+    }
+    # Transformation des dièses et bémols
+    notes = notes.gsub(/\b([a-g])([#b]{1,2})/){
+      "#{$1}#{LINote::ALTERATIONS[$2]}"
+    }
+    notes = notes.split(' • ') if is_array
+    return notes
+  end
+  
+  
   # =>  Return la valeur string de la note en fonction du +context+
   #     soumis.
   # @param note_int La note, exprimée en entier.

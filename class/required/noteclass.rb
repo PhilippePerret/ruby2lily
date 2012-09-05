@@ -142,4 +142,13 @@ class NoteClass
     
     return hash
   end
+  
+  # -------------------------------------------------------------------
+  #   Instance (Note, Motif, Chord...)
+  # -------------------------------------------------------------------
+  
+  require 'module/operations.rb' # normalement, toujours chargé
+  include OperationsSurNotes
+
+  
 end

@@ -35,6 +35,45 @@ describe LINote do
 		}
 		end
 		
+		#  ALTERATIONS
+		it "doit définir la constante ALTERATIONS" do
+		  defined?(LINote::ALTERATIONS).should be_true
+		end
+		it "ALTERATIONS doit définir les bonnes valeurs" do
+		  {'#' => 'is', '##' => 'isis', 'b' => 'es', 'bb' => 'eses'
+			}.each do |str, str_llp|
+				LINote::ALTERATIONS[str].should == str_llp
+			end
+		end
+		
+		# REG_ITAL_TO_LLP
+		it "doit définir REG_ITAL_TO_LLP" do
+		  defined?(LINote::REG_ITAL_TO_LLP).should be_true
+		end
+		
+		# :to_llp
+		it "doit répondre à :to_llp" do
+		  LINote::should respond_to :to_llp
+		end
+		it ":to_llp doit renvoyer un string de notes LilyPond" do
+		  {
+				"c#" 						=> "cis",
+				"c##"						=> "cisis",
+				"db"						=> "des",
+				"dbb"						=> "deses",
+				"bb" 						=> "bes",
+				"e# fb" 				=> "eis fes",
+				"ges b#" 				=> "ges bis",
+				"b# bbb bb cis" => "bis beses bes cis",
+				"ré#" 					=> "dis",
+				"reb"						=> "des",
+				"cis bb fa# fais"	=> "cis bes fis fis",
+				"c r d"					=> "c r d"
+			}.each do |str, str_llp|
+				LINote::to_llp(str).should == str_llp
+			end
+		end
+		
 		# :mark_relative
 		it "doit répondre à :mark_relative" do
 		  LINote::should respond_to :mark_relative
@@ -43,6 +82,7 @@ describe LINote do
 		  LINote::mark_relative(3).should == "\\relative c'''"
 			LINote::mark_relative(-2).should == "\\relative c,,"
 		end
+		
 		# :octave_as_llp
 		it "doit répondre à :octave_as_llp" do
 		  LINote.should respond_to :octave_as_llp
@@ -82,21 +122,21 @@ describe LINote do
 		it ":fixe_notes_length lève erreur durée si durée invalide" do
 			err = Liby::ERRORS[:invalid_duree_notes]
 		  expect{LINote::fixe_notes_length('a b c', -2)}.to \
-				raise_error (SystemExit, err)
+				raise_error(SystemExit, err)
 		  expect{LINote::fixe_notes_length('a b c', 2001)}.to \
-				raise_error (SystemExit, err)
+				raise_error(SystemExit, err)
 		end
 		it ":fixe_notes_length lève erreur motif si motif invalide" do
 			err = detemp(Liby::ERRORS[:invalid_motif], :bad => nil)
 		  expect{LINote::fixe_notes_length(nil, 4)}.to \
-				raise_error (SystemExit, err)
+				raise_error(SystemExit, err)
 			mo = Motif::new "a a a"
 			err = detemp(Liby::ERRORS[:invalid_motif], :bad => mo.to_s)
 		  expect{LINote::fixe_notes_length(mo, 4)}.to \
-				raise_error (SystemExit, err)
+				raise_error(SystemExit, err)
 			err = detemp(Liby::ERRORS[:invalid_motif], :bad => 4)
 		  expect{LINote::fixe_notes_length(4, 4)}.to \
-				raise_error (SystemExit, err)
+				raise_error(SystemExit, err)
 		end
 		it ":fixe_notes_length avec durée nil renvoie le motif" do
 		  mo = "a a a"

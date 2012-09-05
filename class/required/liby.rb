@@ -13,8 +13,8 @@ class Liby
   unless defined?(Liby::USAGE)
     USAGE   = "@usage:\n\t$ ./ruby2lily.rb <path/to/score/ruby> <options>"
     ERRORS  = {
-      :command_line_empty         => "`ruby2site` doit s'appeler avec des arguments." +
-                                     "Utilisez `ruby2site -h` pour obtenir de l'aide.",
+      :command_line_empty         => "`ruby2site` doit s'appeler avec des arguments." \
+                                     << "Utilisez `ruby2site -h` pour obtenir de l'aide.",
       :unknown_option             => "L'option `\#{option}` est inconnue…",
       :arg_path_file_ruby_needed  => "Le path du score ruby doit être donné en premier argument.\n#{USAGE}",
       :arg_score_ruby_unfound     => "Le score '\#{path}' est introuvable",
@@ -27,16 +27,18 @@ class Liby
       :bad_params_in_crochet      => "Mauvais argument envoyés dans `[...]'",
       :too_much_parameters_to_crochets  => "Trop de paramètres envoyés dans `[]' (2 max)",
       :bad_class_in_parameters_crochets => "Mauvais argument dans `[...]' (seulement nombre, string de durée ou Hash)",
+ 
+      :cant_add_this              => "Un objet de type \#{classe} ne peut être ajouté…",
       
       # === Erreurs durée === #
       :bad_value_duree            => "La durée \#{bad} est invalide !",
       
       # === Définition du score ===
       :title_not_string           => "Le titre doit être une chaine de caractères",
-      :time_invalid               => "La signature de temps (@time) est invalide" +
-                                      "(elle devrait être sous la forme « xx/xx »)",
-      :key_invalid                => "La clé (@key/@tonalite) est mal définie ('\#{bad}')" +
-                                    "(elle devrait être une valeur parmi #{LINote::TONALITES.keys.join(', ')}).",
+      :time_invalid               => "La signature de temps (@time) est invalide" \
+                                     << "(elle devrait être sous la forme « xx/xx »)",
+      :key_invalid                => "La clé (@key/@tonalite) est mal définie ('\#{bad}')" \
+                                    << "(elle devrait être une valeur parmi #{LINote::TONALITES.keys.join(', ')}).",
       
       # ==== Motif ==== #
       :invalid_motif              => "Le motif fourni ('\#{bad}') est invalide.",
@@ -44,8 +46,6 @@ class Liby
       :cant_add_any_to_motif      => "Un objet de type \#{classe} ne peut être ajouté à un motif…",
       
       # ==== Note ==== #
-      :cant_add_chord_to_note     => "Un accord ne peut être ajouté à une note",
-      :cant_add_any_to_note       => "Un objet de type \#{classe} ne peut être ajouté à une note…",
       :fin_fin_fin_fin_fin => ''
     }
     
@@ -215,23 +215,6 @@ class Liby
       @@command != nil
     end
     
-    # -------------------------------------------------------------------
-    #   Traitement des notes et signes envoyés par ruby
-    # -------------------------------------------------------------------
-    
-    # =>  Return +notes_ruby+ en remplaçant les "b" par des "es" et les
-    #     "#" par des "is"
-    # @param  notes_ruby    Les notes ruby, en string ("c eb d#") ou
-    #                       ou Array (["c", "eb", "d#"])
-    def notes_ruby_to_notes_lily notes_ruby
-      is_array = notes_ruby.class == Array
-      notes_ruby = notes_ruby.join(' • ') if is_array
-      notes_lily = notes_ruby.gsub(/\b([a-g])([b#]{1,2})/){
-        $1 << Liby::SIGN_RUBY_TO_SIGN_LILY[$2]
-      }
-      notes_lily = notes_lily.split(' • ') if is_array
-      notes_lily
-    end
     # -------------------------------------------------------------------
     #   Conversion Ruby -> Lilypond
     # -------------------------------------------------------------------

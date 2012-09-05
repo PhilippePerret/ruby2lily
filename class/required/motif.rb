@@ -25,7 +25,7 @@ class Motif < NoteClass
   def initialize params = nil
     @octave = 3 # pourra être redéfini par +params+
     case params.class.to_s
-    when "String" then @motif = Liby::notes_ruby_to_notes_lily(params)
+    when "String" then @motif = LINote::to_llp(params)
     when "Array"  then @motif = params
     when "Hash"   then 
       @motif  = params[:motif]
@@ -100,6 +100,10 @@ class Motif < NoteClass
   
   end
   
+  # => Méthode de commodité
+  def as_motif
+    self
+  end
   
   # =>  Inscrit la durée +duree+ pour toutes les notes du motif
   #     sauf si +duree+ est nil
@@ -128,6 +132,13 @@ class Motif < NoteClass
   def mark_relative ajout = 0
     "\\relative #{LINote::mark_octave( octave + ajout )}"
   end
+  
+  # -------------------------------------------------------------------
+  #   Opérations sur motif
+  # -------------------------------------------------------------------
+  require 'module/operations.rb' # normalement, toujours chargé
+  include OperationsSurNotes
+  
   # => Méthode d'addition de motif
   # 
   # @param  chose   La chose à ajouter. Soit :
@@ -144,33 +155,23 @@ class Motif < NoteClass
   # @todo: une amélioration du traitement peut être fait ici (cf. les
   # issues sur github)
   # 
-  def + chose, params = nil
+  def add_motif motif_droit, params = nil
+    
     new_motif = []
+
     # Ajout du motif courant (string ou array) au nouveau motif qui
     # sera créé (nouveau sauf si :new => false)
-    if self.motif.class == String         then new_motif << self
-    else new_motif += self.motif          end
+    if self.motif.class == String then new_motif << self
+    else new_motif += self.motif  end
       
-    # Ajout de la +chose+
+    # Ajout du +motif_droit+
     # --------------------
-    case chose.class.to_s
-    when "Note", "Chord"
-      # Ajout d'une note. On la transforme en Motif avant l'ajout
-      new_motif << chose.as_motif
-    when "String"
-      # Ajout d'une simple note en string (mais qui peut avoir une octave
-      # définie)
-      note, octave = Note::split_note_et_octave chose
-      new_motif << Motif::new( :motif => note, :octave => octave )
-    when "Motif"
-      if chose.motif.class == String
-          new_motif << chose
-      else
-        new_motif += chose.motif   # motif complexe
-      end
+    if motif_droit.motif.class == String
+      new_motif << motif_droit        # motif simple
     else
-      fatal_error(:cant_add_any_to_motif, :classe => chose.class.to_s)
+      new_motif += motif_droit.motif    # motif complexe
     end
+
     change_objet_ou_new_instance new_motif, params, true
   end
   
@@ -178,6 +179,8 @@ class Motif < NoteClass
   # 
   # @note: on ne peut pas utiliser la multiplication de string, car
   # elle appelle cette méthode (=> stack level too deep)
+  # @todo: normalement, devra être supprimée quand traité dans OperationsSurNotes
+  # @todo: rationnaliser le calcul pour éviter la répétion des relative
   def *( nombre_fois )
     "#{mark_relative} { #{@motif} } ".x(nombre_fois).strip
   end

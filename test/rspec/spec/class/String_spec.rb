@@ -45,22 +45,22 @@ describe String do
 		  (@s * 3).should == "c c c"
 		end
 		it ":* doit multiplier correctement un groupe de notes" do
-		  ("a b" * 2).should == "\\relative c''' { a b }" +
-														"\\relative c''' { a b }"
+		  ("a b" * 2).should == "\\relative c''' { a b } " \
+														<< "\\relative c''' { a b }"
 														# note: ci-dessus, '+' ajoute une espace
 		end
 	end
 
 	# -------------------------------------------------------------------
-	# 	Traitements complexe (+ et * combinés)
+	# 	Traitements complexe ('+' et '*' combinés)
 	# -------------------------------------------------------------------
 	describe "Traitements complexes" do
 		it ":+ et * doivent retourner la bonne valeur" do
 		  m = ("c4" * 3 + "e g" + "c" * 3)
 			m.should == "c4 c4 c4 e g c c c"
 		 	m = m * 2
-			m.should == "\\relative c''' { c4 c4 c4 e g c c c }" + # noter que "+" ajoutera une espace
-									"\\relative c''' { c4 c4 c4 e g c c c }"
+			m.should == "\\relative c''' { c4 c4 c4 e g c c c } " \
+									<< "\\relative c''' { c4 c4 c4 e g c c c }"
 		end
 	end
 	# -------------------------------------------------------------------
