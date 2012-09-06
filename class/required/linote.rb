@@ -71,7 +71,12 @@ class LINote
     # Expression régulière pour repérer les notes dans un motif
     # 
     # @todo: il faudra l'affiner au cours du temps
+    # Cf le motif REG_NOTE_COMPLEXE pour quelque chose de plus complet
     REG_NOTE = %r{<?[a-gr](?:(?:es|is){1,2})?>?}
+    
+    # Expression régulière pour repérer un accord
+    # 
+    REG_CHORD = %r{(<[a-gr](?:[^>]+)>)}
     
     # Altérations normales vers altérations lilypond
     ALTERATIONS = { '#' => 'is', '##' => 'isis', 'b' => 'es', 
@@ -154,7 +159,11 @@ class LINote
   #     'es' et les notes italiennes remplacées par leur valeur
   #     anglosaxonne.
   # @param  notes   Un string de note
-  # @todo: implémenter LINote::to_llp pour traiter Note, Motif, etc. ?
+  # @todo: on devrait traiter ici les octaves peut-être ajouter au
+  # string envoyé (p.e. "c'"). Mais comment s'en sortir sachant que 
+  # apostrope et virgule ne sont que des delta d'octaves ? et que
+  # cette méthodes statique ne renvoie que la note ?
+  # => C'est la méthode appelant cette méthode qui doit s'en charger.
   def self.to_llp notes
     is_array = notes.class == Array
     notes = notes.join(' • ') if is_array
@@ -252,7 +261,7 @@ class LINote
       # Rien à faire, la note se placera naturellement
       
       # Le motif final retourné
-      "#{motif1.notes} #{motif2.notes}"
+      "#{motif1.notes_with_duree} #{motif2.notes_with_duree}"
       
     else
       # Il faut ajouter des ' ou des ,
@@ -284,7 +293,7 @@ class LINote
   #     # = /débug =
 
       # Le motif final retourné
-      "#{motif1.notes} #{new_motif2}"
+      "#{motif1.notes_with_duree} #{new_motif2}"
     end
   end
 
@@ -387,8 +396,14 @@ class LINote
     # Affectation des durées
     # -----------------------
     # @note : contrairement à ce qui était fait avant, on n'applique
-    # la durée que sur la première note.
-    notes.sub(/^(#{REG_NOTE})/){ "#{$1}#{duree}"}
+    # la durée que sur la première note, sauf si c'est un accord, dans
+    # lequel cas il faut mettre la durée à la fin de l'accord.
+    unless notes.start_with? '<'
+      notes.sub(/^(#{REG_NOTE})/){ "#{$1}#{duree}"}
+    else
+      # Accord en début de notes
+      notes.sub(/^(#{REG_CHORD})/){"#{$1}#{duree}"}
+    end
   end
   
   # -------------------------------------------------------------------

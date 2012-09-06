@@ -143,12 +143,12 @@ describe Motif do
 		end
 		
 		# :change_durees_in_motif
-		it "doit répondre à :set_durees" do
-		  @m.should respond_to :set_durees
+		it "doit répondre à :notes_with_duree" do
+		  @m.should respond_to :notes_with_duree
 		end
-		it ":set_durees doit changer la durée des notes du motif" do
+		it ":notes_with_duree doit changer la durée des notes du motif" do
 		  @m = Motif::new "a b c des e4"
-			@m.set_durees(2).should == "a2 b c des e4"
+			@m.notes_with_duree(2).should == "a2 b c des e4"
 		end
 		
 		# :octave_from

@@ -121,7 +121,7 @@ class Motif < NoteClass
 
       # Changement des durées si nécessaire
       notes_str = if duree.nil? then @notes 
-                  else set_durees(duree) end 
+                  else notes_with_duree(duree) end 
       # Finalisation
       return "#{mk_relative} { #{notes_str} }"
 
@@ -189,9 +189,15 @@ class Motif < NoteClass
   # 
   # Cf. LINote::fixe_notes_length pour le détail
   # 
-  # @return la liste des notes, prêtes à inscription
+  # @param  duree   La durée à appliquer aux notes (la première
+  #                 seulement, en général)
+  #                 Si non fourni, prends la valeur de la propriété
+  #                 @duration.
   # 
-  def set_durees duree
+  # @return la suite des notes (String), prêtes à inscription
+  # 
+  def notes_with_duree duree = nil
+    duree ||= @duration
     return LINote::fixe_notes_length( self.notes, duree )
   end
   

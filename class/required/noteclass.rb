@@ -89,13 +89,12 @@ class NoteClass
       when 1
         case param1.class.to_s
         when "Hash" # Envoi des paramètres par un hash
-          hash    = param1
-          if hash.has_key? :duree
-            duration  = hash.delete(:duree)
-            hash      = hash.merge(:duration => duration.to_s)
-          elsif hash.has_key? :duration
-            hash[:duration] = hash[:duration].to_s
-          end
+          hash  = param1
+          duree = if hash.has_key? :duree
+                    hash.delete(:duree)
+                  elsif hash.has_key? :duration
+                    hash[:duration]
+                  end
         when "String" # => Durée
           duree   = param1    unless param1.nil?
         when "Fixnum" # => Octave

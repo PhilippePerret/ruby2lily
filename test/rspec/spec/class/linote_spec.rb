@@ -56,6 +56,25 @@ describe LINote do
 		  defined?(LINote::REG_NOTE_COMPLEXE).should be_true
 		end
 		
+		# REG_CHORD
+		it "doit définir la constante REG_CHORD" do
+		  defined?(LINote::REG_CHORD).should be_true
+		end
+		it "REG_CHORD doit permettre de repérer un accord" do
+		 	res = "<a c e>".scan(/#{LINote::REG_CHORD}/)
+			res.should_not be_empty
+			res[0][0].should == "<a c e>"
+			res = "ees c4 <aeses cis r> c c".scan(/#{LINote::REG_CHORD}/)
+			res.should_not be_empty
+			res[0][0].should == "<aeses cis r>"
+			res = "c <d e f> <r a bes> c e".scan(/#{LINote::REG_CHORD}/)
+			res.should_not be_nil
+			res.should == [["<d e f>"], ["<r a bes>"]]
+		end
+		it "REG_CHORD ne doit pas se méprendre avec un crescendo" do
+		  "<! c e a c e>".scan(/#{LINote::REG_CHORD}/).should be_empty
+		end
+		
 		# :data_notes
 		it "d oit répondre à :explode" do
 		  LINote.should respond_to :explode
@@ -314,10 +333,12 @@ describe LINote do
 		  mo = "a b c"
 			LINote::fixe_notes_length(mo, 4).should == "a4 b c"
 			LINote::fixe_notes_length(mo, "4.").should == "a4. b c"
-			mo = "a b c d8 r f"
-			LINote::fixe_notes_length(mo, "8.").should == "a8. b c d8 r f"
-			mo = "ees c4"
-			LINote::fixe_notes_length(mo, 2).should == "ees2 c4"
+			LINote::fixe_notes_length("a b c d8 r f", "8.").should == "a8. b c d8 r f"
+			LINote::fixe_notes_length("ees c4", 2).should == "ees2 c4"
+		end
+		it ":fixe_notes_length renvoie la bonne valeur avec un premier accord" do
+		  LINote::fixe_notes_length("<a c e>", 8).should_not == "<a8 c e>"
+		  LINote::fixe_notes_length("<a c e>", 8).should == "<a c e>8"
 		end
 		
   end # / classe

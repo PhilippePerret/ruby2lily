@@ -155,9 +155,10 @@ describe "Addition et Chord" do
 			res = lam[2,"8"] + str
 			res.class.should == Motif
 			res.to_s.should == "\\relative c'' { <a c e>8 c'' }"
+			
 			res = lam[blanche, -2] + str
 			res.class.should == Motif
-			res.to_s.should == "\\relative c,, { <a c e>2 c''' }"
+			res.to_s.should == "\\relative c,, { <a c e>2 c'''''' }"
 		end
   end
 	describe "Chord + Note" do

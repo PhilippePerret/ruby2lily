@@ -41,6 +41,7 @@ module OperationsSurNotes
       else
         # @todo : traiter d'un mauvais membre gauche
       end
+    # puts "motif_gauche: #{motif_gauche.inspect}"
     
     motif_droite =
       case foo.class.to_s
@@ -49,6 +50,7 @@ module OperationsSurNotes
       else
         fatal_error(:cant_add_this, :classe => foo.class.to_s)
       end
+    # puts "motif_droite: #{motif_droite.inspect}"
     
     motif_gauche + motif_droite # rappelle cette méthode mais cf. haut
     

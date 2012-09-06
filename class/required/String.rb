@@ -49,8 +49,21 @@ class String
     end
   end
   
+  # => Retourne la note String sous forme de Motif
+  # 
+  # @note : les italiennes est les altérations #/b sont traités par
+  # la méthode LINote::to_llp
+  # 
+  # @note : les octaves, dans les strings, peuvent être stipulés à
+  # l'aide d'apostrophes et de dièses. En sachant que ce sont des deltas
+  # et pas des valeurs absolues, et ces deltas se calculent à partir de
+  # c'''. Donc "a'" signifiera a-4e octave.
   def as_motif
-    Motif::new( LINote::to_llp( self ) )
+    dlt_octaves = LINote::octaves_from_llp self
+    notes = self.gsub(/[',]/, '')
+    data = { :notes => LINote::to_llp( notes ) }
+    data = data.merge(:octave => 3 + dlt_octaves ) if dlt_octaves != 0
+    Motif::new( data )
   end
   # => Multiplie la note ou le groupe de notes string
   # 

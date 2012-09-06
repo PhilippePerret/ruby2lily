@@ -21,7 +21,7 @@ describe String do
 	describe "<string>" do
 		
 		# :as_motif
-	  it "d oit r épondre à :as_motif" do
+	  it "doit répondre à :as_motif" do
 	    "str".should respond_to :as_motif
 	  end
 		it ":as_motif doit lever une erreur si mauvais argument" do
@@ -29,7 +29,7 @@ describe String do
 			err = detemp(Liby::ERRORS[:bad_argument_for_as_motif], :bad => str)
 		  expect{str.as_motif}.to raise_error(SystemExit, err)
 		end
-		it ":as_motif doit renvoyer un bon motif" do
+		it ":as_motif doit renvoyer un bon motif (tests sans octave)" do
 			mo = "c".as_motif
 			mo.class.should == Motif
 			mo.notes.should == "c"
@@ -53,6 +53,17 @@ describe String do
 			mo.notes.should == "c e g8 c"
 			mo.octave.should == 3
 			mo.duration.should == "4."
+		end
+		it ":as_motif doit retourner un bon motif (avec octaves)" do
+		  mo = "a'".as_motif
+			mo.class.should == Motif
+			mo.notes.should == "a"
+			mo.octave.should == 4
+			
+			mo = "c,,,".as_motif
+			mo.class.should == Motif
+			mo.notes.should == "c"
+			mo.octave.should == 0
 		end
 	end
 	
@@ -100,10 +111,11 @@ describe String do
 	# -------------------------------------------------------------------
 	describe "Traitements complexes" do
 		it ":+ et * doivent retourner la bonne valeur" do
-		  m = "c4" * 3 + "e g" + "c" * 3
+		  m = "c4" * 3 + "e g" + "c'" + "c" * 2
 			m.class.should == Motif
 			m.notes.should == "c4 c4 c4 e g c c c"
 		 	m = m * 2
+			puts "non motif après multiplication : #{m.inspect}" if m.class != Motif
 			m.class.should == Motif
 			m.to_s.should == "\\relative c''' { c4 c4 c4 e g c c c } " \
 												<< "\\relative c''' { c4 c4 c4 e g c c c }"

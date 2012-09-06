@@ -56,11 +56,12 @@ class Chord < NoteClass
   
   def as_motif params = nil
     params ||= {}
-    params[:duree] = params if params.class == Fixnum
+    params[:duration] = params if params.class == Fixnum
+    duree = params[:duration] || @duration
     Motif::new(
       :notes      => self.to_acc(params[:duree]), 
       :octave     => params[:octave] || @octave,
-      :duration   => @duration
+      :duration   => duree
       )
   end
   
