@@ -15,20 +15,21 @@ describe Motif do
   describe "Instanciation" do
     it "sans argument doit laisser un motif vide" do
       @m = Motif::new
-			iv_get(@m, :motif).should be_nil
+			iv_get(@m, :notes).should be_nil
     end
 		it "avec argument string doit définir un motif" do
 		  @m = Motif::new "a b c"
-			iv_get(@m, :motif).should == "a b c"
-			iv_get(@m, :octave).should 	== 3
+			@m.notes.should == "a b c"
+			@m.octave.should == 3
+			@m.duration.should be_nil
 		end
 		it "avec argument hash pour définir le motif et l'octave" do
-		  @m = Motif::new :motif => "d b a", :octave => 4
-			iv_get(@m, :motif).should 	== "d b a"
+		  @m = Motif::new :notes => "d b a", :octave => 4
+			iv_get(@m, :notes).should 	== "d b a"
 			iv_get(@m, :octave).should 	== 4
 		end
   end
-	describe "L'instance" do
+	describe "<motif>" do
 		before(:each) do
 		  @m = Motif::new
 		end
@@ -36,41 +37,79 @@ describe Motif do
 		  $DEBUG_ON = false
 		end
 		
+		# :set_with_string
+		it "doit répondre à :set_with_string" do
+		  @m.should respond_to :set_with_string
+		end
+		it ":set_with_string doit définir correctement le motif" do
+			mo = Motif::new
+		  mo.set_with_string "c"
+			mo.notes.should == "c"
+			mo.duration.should == nil
+			mo.octave.should == 3
+
+			mo = Motif::new
+			mo.set_with_string "c4."
+			mo.notes.should == "c"
+			mo.duration.should == "4."
+			mo.octave.should == 3
+			
+			mo = Motif::new
+			mo.set_with_string "cbb( e4 g#) <c e g>8"
+			mo.notes.should == "ceses( e4 gis) <c e g>8"
+			mo.duration.should be_nil
+			mo.octave.should == 3
+		end
+		
+		# :set_with_hash
+		it "doit répondre à :set_with_hash" do
+		  @m.should respond_to :set_with_hash
+		end
+		it ":set_with_hash doit définir correctement le motif" do
+		  @m.set_with_hash(:notes => "g e c", :duration => 8, :octave => -6)
+			@m.notes.should == "g e c"
+			@m.duration.should == "8"
+			@m.octave.should == -6
+		end
+		it ":set_with_hash doit lever une erreur en cas de mauvais arguments" do
+		  pending "à implémenter"
+		end
+		
 		# :to_s
 	  it "doit répondre à :to_s" do repond_a :to_s end
 		it ":to_s doit renvoyer nil si le motif n'est pas défini" do
-			iv_set(@m, :motif => nil)
+			iv_set(@m, :notes => nil)
 		  @m.to_s.should be_nil
 		end
 		it ":to_s doit renvoyer le motif s'il est défini" do
-		  iv_set(@m, :motif => "a b c")
+		  iv_set(@m, :notes => "a b c")
 			@m.to_s.should == "\\relative c''' { a b c }"
 		end
 		it ":to_s doit renvoyer le motif avec une durée si elle est définie" do
-		  iv_set(@m, :motif => "c d e")
-			@m.to_s(1).should == "\\relative c''' { c1 d1 e1 }"
+		  iv_set(@m, :notes => "c d e")
+			@m.to_s(1).should == "\\relative c''' { c1 d e }"
 		end
 		it ":to_s doit renvoyer le motif à la bonne hauteur d'octave" do
-		  iv_set(@m, :motif => "c d e")
+		  iv_set(@m, :notes => "c d e")
 			@m.to_s(:octave => -2).should == "\\relative c,, { c d e }"
 		end
 		it ":to_s doit renvoyer la bonne valeur avec deux motifs de même octave" do
-		  @m1 = Motif::new :motif => "a a a", :octave => 3
-		  @m2 = Motif::new :motif => "b b b", :octave => 3
-			(@m1 + @m2).to_s.should == "\\relative c''' { a a a } \\relative c''' { b b b }"
+		  @m1 = Motif::new :notes => "a a a", :octave => 3
+		  @m2 = Motif::new :notes => "b b b", :octave => 3
+			(@m1 + @m2).to_s.should == "\\relative c''' { a a a b b b }"
 		end
 		it ":to_s doit renvoyer la bonne valeur avec deux motifs d'octave différente" do
-		  @m1 = Motif::new :motif => "a a a", :octave => 3
-		  @m2 = Motif::new :motif => "b b b", :octave => 2
-			(@m1 + @m2).to_s.should == "\\relative c''' { a a a } \\relative c'' { b b b }"
+		  @m1 = Motif::new :notes => "a a a", :octave => 3
+		  @m2 = Motif::new :notes => "b b b", :octave => 2
+			(@m1 + @m2).to_s.should == "\\relative c''' { a a a b, b b }"
 		end
 		it ":to_s avec octave défini doit renvoyer la bonne valeur avec deux motifs d'octave définis" do
-		  @m1 = Motif::new :motif => "a a a", :octave => 5
-			@m2 = Motif::new :motif => "c c c", :octave => 3
+		  @m1 = Motif::new :notes => "a a a", :octave => 5
+			@m2 = Motif::new :notes => "c c c", :octave => 3
 			(@m1 + @m2).to_s(:octave => 1, :duree => 8).should ==
-				"\\relative c' { a8 a8 a8 } \\relative c, { c8 c8 c8 }"
+				"\\relative c' { a8 a a c,,, c c }"
 			(@m2 + @m1).to_s(:octave => 1, :duree => 8).should ==
-				"\\relative c' { c8 c8 c8 } \\relative c''' { a8 a8 a8 }"
+				"\\relative c' { c8 c c a''' a a }"
 		end
 		
 		# :first_note
@@ -109,7 +148,7 @@ describe Motif do
 		end
 		it ":set_durees doit changer la durée des notes du motif" do
 		  @m = Motif::new "a b c des e4"
-			@m.set_durees(2).should == "a2 b2 c2 des2 e2"
+			@m.set_durees(2).should == "a2 b c des e4"
 		end
 		
 		# :octave_from
@@ -153,15 +192,6 @@ describe Motif do
 			mo.as_motif.should == mo
 		end
 	
-		# :addition_motifs
-	  it "doit répondre à :add_motif" do
-	    mo = Motif::new "a b"
-			mo.should respond_to :add_motif
-	  end
-		it ":add_motif doit additionner les deux motifs" do
-		  pending "à implémenter (mais la méthode est implémentée)"
-		end
-
 		# :+
 		it "doit répondre à :+" do
 		  repond_a :+
@@ -169,20 +199,21 @@ describe Motif do
 		it ":+ permet d'additionner des motifs" do
 		  @m1 = Motif::new "c d e"
 			@m2 = Motif::new "f g a"
-			(@m1 + @m2).to_s.should == "\\relative c''' { c d e } \\relative c''' { f g a }"
+			(@m1 + @m2).to_s.should == "\\relative c''' { c d e f g a }"
 		end
-		it ":+ transforme correctement @motif du nouveau motif" do
-		  @m1 = Motif::new "c d e"
-			@m2 = Motif::new "f g a"
-			@m3 = (@m1 + @m2)
-			@m3.motif.should == [@m1, @m2]
-			@m4 = (@m1 + @m3)
-			@m4.motif.should == [@m1, @m1, @m2]
+		it ":+ transforme correctement @notes du nouveau motif" do
+		  mo1 = Motif::new "c d e"
+			mo2 = Motif::new "f g a"
+			mo3 = mo1 + mo2
+			mo1.notes.should == "c d e"
+			mo3.notes.should == "c d e f g a"
+			mo4 = mo1 + mo3
+			mo4.notes.should == "c d e c d e f g a"
 		end
 		it ":+ doit avoir la valeur d'octave du premier motif" do
-		  @m = Motif::new :motif => "a a a", :octave => 4
+		  @m = Motif::new :notes => "a a a", :octave => 4
 			iv_get(@m, :octave).should == 4
-			m2 = Motif::new :motif => "b b b", :octave => -1
+			m2 = Motif::new :notes => "b b b", :octave => -1
 			iv_get(m2, :octave).should == -1
 			m3 = (m2 + @m)
 			iv_get(m3, :octave).should == -1
@@ -194,7 +225,7 @@ describe Motif do
 			m = Motif::new "c d e"
 			res = (m + n)
 			res.class.should == Motif
-			res.to_s.should == "\\relative c''' { c d e } \\relative c''' { c }"
+			res.to_s.should == "\\relative c''' { c d e c }"
 			# @todo: plus tard, devra être égal à :
 			# res.to_s.should == "\\relative c''' { c d e c }"
 		end
@@ -206,7 +237,7 @@ describe Motif do
 			ac = Chord::new "c e g"
 			res = mo + ac
 			res.class.should == Motif
-			res.to_s.should == "\\relative c''' { c d e } \\relative c''' { <c e g> }"
+			res.to_s.should == "\\relative c''' { c d e <c e g> }"
 		end
 		it ":+ avec un type invalide doit lever une erreur fatale" do
 			mo = Motif::new "c d e"
@@ -292,6 +323,7 @@ describe Motif do
 		end
 		it ":moins doit donner le motif avec les demi-tons en moins" do
 			iv_set(SCORE, :key => nil)
+			@m = Motif::new "bb g f e,4 bb8"
 		  @m.moins(1).to_s.should == "\\relative c''' { a fis e ees,4 a8 }"
 			@m.moins(2).to_s.should == "\\relative c''' { aes f ees d,4 aes8 }"
 			iv_set(SCORE, :key => 'G')
@@ -300,14 +332,14 @@ describe Motif do
 		end
 		it ":moins doit respecter l'octave du motif" do
 			notes = 'a fis e ees r'
-		  mo = Motif::new :motif => notes, :octave => 0
+		  mo = Motif::new :notes => notes, :octave => 0
 			mo.moins(0).to_s.should == "\\relative c { a fis e dis r }"
-			mo = Motif::new :motif => notes, :octave => -2
+			mo = Motif::new :notes => notes, :octave => -2
 			mo.moins(2).to_s.should == "\\relative c,, { g e d cis r }"
 		end
 		it ":moins doit pouvoir spécifier l'octave explicitement" do
 		  notes = "a fis r gis"
-			mo = Motif::new :motif => notes, :octave => 3
+			mo = Motif::new :notes => notes, :octave => 3
 			mo.to_s.should == "\\relative c''' { #{notes} }"
 			res = mo.moins(0, :octave => 0).to_s
 			res.should == "\\relative c { #{notes} }"
@@ -336,9 +368,9 @@ describe Motif do
 		it ":plus avec le paramètre :new => false doit modifier l'objet" do
 		  @motif = Motif::new "c d e"
 			@motif.plus(1)
-			iv_get(@motif, :motif).should == "c d e"
+			iv_get(@motif, :notes).should == "c d e"
 			@motif.plus(1, :new => false)
-			iv_get(@motif, :motif).should == "des ees f"
+			iv_get(@motif, :notes).should == "des ees f"
 		end
 	
 		# :legato
@@ -349,15 +381,15 @@ describe Motif do
 		it ":legato doit renvoyer une valeur modifiée" do
 		  @mo = Motif::new "a b cis r4 a-^ |"
 			res = @mo.legato
-			res.to_s.should == "\\relative c''' { a( b cis r4 a-^) | }"
+			res.to_s.should == "\\relative c''' { a( b cis r4 a-^) }"
 		end
 		it ":legato avec :new => true doit renvoyer un nouveau motif" do
 		  @mo = Motif::new "a b d"
 			@mo.legato
-			iv_get(@mo, :motif).should == "a( b d)"
+			iv_get(@mo, :notes).should == "a( b d)"
 		  @mo = Motif::new "a b d"
 			@mo.legato(:new => true)
-			iv_get(@mo, :motif).should == "a b d"
+			iv_get(@mo, :notes).should == "a b d"
 		end
 
 		# :surlegato
@@ -368,7 +400,7 @@ describe Motif do
 		it ":surlegato doit renvoyer une valeur modifiée" do
 		  @mo = Motif::new "a b cis r4 a-^ |"
 			res = @mo.surlegato
-			res.to_s.should == "\\relative c''' { a\\( b cis r4 a-^\\) | }"
+			res.to_s.should == "\\relative c''' { a\\( b cis r4 a-^\\) }"
 		end
 		
 		# :crescendo

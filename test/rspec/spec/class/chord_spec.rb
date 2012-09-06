@@ -8,20 +8,20 @@ describe Chord do
   describe "Instanciation" do
     it "sans argument doit laisser un accord vide" do
       @c = Chord::new
-			iv_get(@c, :chord).should be_empty
+			iv_get(@c, :notes).should be_empty
     end
 		it "avec argument string doit être valide" do
 		  @c = Chord::new "c e g"
-			iv_get(@c, :chord).should == ["c", "e", "g"]
+			iv_get(@c, :notes).should == ["c", "e", "g"]
 		end
 		it "avec argument array doit être valide" do
 		  @c = Chord::new ["c", "e", "g"]
-			iv_get(@c, :chord).should == ["c", "e", "g"]
+			iv_get(@c, :notes).should == ["c", "e", "g"]
 			@c.octave.should == 3
 		end
 		it "avec argument hash doit être valide" do
-		  @c = Chord::new :chord => ["a", "cis", "e"], :octave => 2
-			@c.chord.should == ["a", "cis", "e"]
+		  @c = Chord::new :notes => ["a", "cis", "e"], :octave => 2
+			@c.notes.should == ["a", "cis", "e"]
 			@c.octave.should == 2
 		end
   end
@@ -82,7 +82,7 @@ describe Chord do
 			@chord.should respond_to :to_s
 		end
 		it ":to_s doit renvoyer nil si l'accord n'est pas défini" do
-			iv_set(@chord, :chord => [])
+			iv_set(@chord, :notes => [])
 		  @chord.to_s.should be_nil
 		end
 		it ":to_s doit renvoyer la bonne valeur avec une durée spécifiée" do
@@ -104,12 +104,13 @@ describe Chord do
 		  @chord.should respond_to :as_motif
 		end
 		it ":as_motif doit renvoyer la bonne valeur" do
-			chord = Chord::new(:chord => ['a', 'c', 'e'], :octave => -1)
+			chord = Chord::new(:notes => ['a', 'c', 'e'], :octave => -1)
 		  mo = chord.as_motif
 			mo.class.should == Motif
 			mo.to_s.should == "\\relative c, { <a c e> }"
 			chord.instance_variable_set("@duration", 8)
 			mo = chord.as_motif
+			# puts "mo: #{mo.inspect}"
 			mo.to_s.should == "\\relative c, { <a c e>8 }"
 		end
 		

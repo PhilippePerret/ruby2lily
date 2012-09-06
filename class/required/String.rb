@@ -18,14 +18,40 @@
 
 class String
   
+  
   # -------------------------------------------------------------------
   #   Redéfinitions propres à Ruby2Lily
   # -------------------------------------------------------------------
   
+
+  # Additionne le string courant avec +foo+ qui peut être de n'importe
+  # quelle classe (String, Motif, Note, Chord...)
+  # @return   Un motif contenant les nouvelles notes
+  # 
+  # @note : include les opérations avec :
+  #     require 'module/operations.rb'
+  #     include OperationsSurNotes
+  # ... ne semble pas modifier le comportement de "+", malheureusement.
+  # 
+  # @note : le bloc begin ... rescue ci-dessous permet de capter l'erreur
+  # de mauvais argument pour un motif qui arrive fatalement dès qu'on
+  # utilise un "+" dans le programme. Je les ai supprimés, mais RSpec
+  # les utilise aussi pour marquer le résultat des tests. Donc, quand un
+  # problème survient, on considère que c'est une utilisation normale de
+  # "+" (concaténation simple) et on renvoie simplement le texte avec
+  # +foo+ ajouté.
+  # 
   def + foo
-    LINote::to_llp("#{self} #{foo}")
+    begin
+      self.as_motif + foo.as_motif
+    rescue Exception => e
+      return "#{self}#{foo}"
+    end
   end
   
+  def as_motif
+    Motif::new( LINote::to_llp( self ) )
+  end
   # => Multiplie la note ou le groupe de notes string
   # 
   # @usage      <notes> = "<note/notes>" * <nombre>

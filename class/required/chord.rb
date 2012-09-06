@@ -12,9 +12,9 @@ class Chord < NoteClass
   # -------------------------------------------------------------------
   #   Instance
   # -------------------------------------------------------------------
-  attr_reader :chord, :octave, :duration
+  attr_reader :notes, :octave, :duration
   
-  @chord    = nil   # La liste array des notes, de la + basse à la + haute
+  @notes    = nil   # La liste array des notes, de la + basse à la + haute
   @octave   = nil   # L'octave (par défaut : 3)
   @duration = nil   # La durée (if any) de l'accord
   # Si des propriétés sont ajoutées, penser à les ajouter dans le
@@ -28,27 +28,27 @@ class Chord < NoteClass
   def initialize params = nil
     @octave   = 3
     @duration = nil
-    @chord    = []
+    @notes    = []
     case params.class.to_s
     when "Array"
-      @chord = LINote::to_llp params
+      @notes = LINote::to_llp params
     when "String" 
-      @chord = LINote::to_llp( params ).split(' ')
+      @notes = LINote::to_llp( params ).split(' ')
     when "Hash"
       @octave   = params[:octave] unless params[:octave].nil?
       @duration = params[:duration] # même si nil
-      @chord    = params[:chord]
+      @notes    = params[:notes]
     when "Chord" # clone
       @octave   = params.octave
       @duration = params.duration
-      @chord    = params.chord
+      @notes    = params.notes
     end
   end
   
   # =>  Retourne l'accord comme string. Si +duree+ est fournie, elle est
   #     ajoutée (sinon, ce sera la durée précédente)
   def to_s duree = nil
-    return nil if @chord.empty?
+    return nil if @notes.empty?
     duree ||= @duration
     "#{LINote::mark_relative(@octave)} { #{self.to_acc(duree)} }"
   end
@@ -58,7 +58,7 @@ class Chord < NoteClass
     params ||= {}
     params[:duree] = params if params.class == Fixnum
     Motif::new(
-      :motif      => self.to_acc(params[:duree]), 
+      :notes      => self.to_acc(params[:duree]), 
       :octave     => params[:octave] || @octave,
       :duration   => @duration
       )
@@ -66,7 +66,7 @@ class Chord < NoteClass
   
   def to_acc duree = nil
     duree ||= ""
-    "<#{@chord.join(' ')}>#{duree.to_s}"
+    "<#{@notes.join(' ')}>#{duree.to_s}"
   end
   
   # => Ajoute une tierce à l'accord
@@ -89,6 +89,8 @@ class Chord < NoteClass
   #         ci-dessous, on utilise self, qui doit pouvoir être interprété
   #         par toutes les classes de note (Note, Motif, Chord) pour
   #         prendre ses paramètres
+  #         ATTENTION : VOIR SI [] NE DOIT PAS ÊTRE RÉSERVÉ À L'AUTRE
+  #         UTILISATION QUE J'EN FAIS (MOTIF ?)
   def []( *params)
 
     param1 = params[0]  # peut être nil

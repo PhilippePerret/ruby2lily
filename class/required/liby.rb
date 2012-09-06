@@ -43,8 +43,11 @@ class Liby
       
       # ==== Motif ==== #
       :invalid_motif              => "Le motif fourni ('\#{bad}') est invalide.",
+      :bad_argument_for_as_motif  => "L'argument `\#{bad}' est invalide pour la méthode :as_motif",
       :invalid_duree_notes        => "La durée pour les notes est invalides",
       :cant_add_any_to_motif      => "Un objet de type \#{classe} ne peut être ajouté à un motif…",
+      :unable_to_find_first_note_motif  => "Impossible de trouver la première note dans le motif \#{notes}…",
+      :unable_to_find_last_note_motif   => "Impossible de trouver la dernière note dans le motif \#{notes}…",
       
       # ==== Note ==== #
       :bad_args_for_join_linote   => "Les arguments pour la méthode LINote::join sont invalides",

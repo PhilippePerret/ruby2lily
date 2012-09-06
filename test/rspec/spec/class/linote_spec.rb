@@ -51,6 +51,96 @@ describe LINote do
 		  defined?(LINote::REG_ITAL_TO_LLP).should be_true
 		end
 		
+		# REG_NOTE_COMPLEXE
+		it "d oit définir REG_NOTE_COMPLEXE" do
+		  defined?(LINote::REG_NOTE_COMPLEXE).should be_true
+		end
+		
+		# :data_notes
+		it "d oit répondre à :explode" do
+		  LINote.should respond_to :explode
+		end
+		# :implode
+		it "d oit répondre à :implode" do
+		  LINote.should respond_to :implode
+			# @note: la méthode est vérifiée ci-dessous
+		end
+		
+		describe ":explode et :implode" do
+			def compare_notes_et_data notes, data_comp
+				liste_linotes = LINote::explode notes
+				nombre_linotes = liste_linotes.count
+				(0..nombre_linotes-1).each do |i_linote|
+					linote 	= liste_linotes[i_linote]
+					comp		= data_comp[i_linote]
+					comp.each do |prop, val|
+						prop_value = linote.instance_variable_get("@#{prop}")
+						if prop_value != val
+							puts "Comparaison Linote et données ne matche pas (sur la propriété #{prop}):"
+							puts "Suite : #{notes}"
+							puts "Note d'indice : #{i_linote}"
+							puts "Linote: #{linote.inspect}"
+							puts "Data comparées : #{comp.inspect}"
+							prop_value.should == val
+						end
+					end
+				end
+				LINote::implode(liste_linotes).should == notes
+			end
+		
+			liste_tests = []
+			
+			# Simple note
+			notes = "c"
+			comp = [
+				{:note => "c", :pre => nil, :post => nil, :jeu => nil, :duration => nil, :alter => nil}]
+			liste_tests << [notes, comp]
+		
+			# Simple silence
+			notes = "r"
+			comp = [
+				{:note => "r", :pre => nil, :post => nil, :jeu => nil, :duration => nil, :alter => nil}]
+		  liste_tests << [notes, comp]
+			
+			# Notes simples avec liaison
+			notes = "c( disis e8. fes)"
+			comp_str = <<-DEFA
+				note	pre		post	jeu		duration		alter		duree_post
+			--------------------------------------------------------
+				c			-			(			-			-				-				-
+				d			-			-			-			-				isis		-
+				e			-			-			-			8.			-				-
+				f			-			)			-			-				es			-
+			--------------------------------------------------------
+			DEFA
+			comp = comp_str.to_array
+			liste_tests << [notes, comp]
+			
+			# Notes et accords
+			notes = "ces <a c eeses>8 e <gis bes>156. r4."
+			comp_str = <<-DEFA
+				note	pre		post	jeu		duration		alter		duree_post
+				--------------------------------------------------------			
+				c			-			-			-			-				es			-
+				a			<			-			-			-				-				-
+				c			-			-			-			-				-				-
+				e			-			>			-			-				eses		8
+				e			-			-			-			-				-				-
+				g			<			-			-			-				is			-
+				b			-			>			-			-				es			156.
+				r 		-			-			-			4.			-				-
+			--------------------------------------------------------			
+			DEFA
+			comp = comp_str.to_array
+			liste_tests << [notes, comp]
+		
+			liste_tests.each do |donne|
+				it "d oivent fonctionner pour #{donne[0]}" do
+					compare_notes_et_data donne[0], donne[1]
+				end
+			end
+		end
+
 		# :to_llp
 		it "doit répondre à :to_llp" do
 		  LINote::should respond_to :to_llp
@@ -79,8 +169,8 @@ describe LINote do
 		  LINote.should respond_to :join
 		end
 		it ":join peut r ecevoir seulement des Motifs" do
-			mo1 = Motif::new( :motif => "c e g", :octave => 2)
-			mo2 = Motif::new( :motif => "g e c", :octave => 2)
+			mo1 = Motif::new( :notes => "c e g", :octave => 2)
+			mo2 = Motif::new( :notes => "g e c", :octave => 2)
 			expect{LINote::join( h1, h2 )}.not_to raise_error(SystemExit)
 
 			err = detemp(Liby::ERRORS[:bad_type_for_args], {
@@ -91,8 +181,8 @@ describe LINote do
 
 			err = detemp(Liby::ERRORS[:bad_type_for_args], {
 										:good => "Motif", :bad => "Hash" })
-			h1 = {:motif => "c e g", :octave => 3 }
-			h2 = {:motif => "c e g", :octave => 3 }
+			h1 = {:notes => "c e g", :octave => 3 }
+			h2 = {:notes => "c e g", :octave => 3 }
 		  expect{LINote::join( h1, h2 )}.to raise_error(SystemExit, err)
 		  
 		end
@@ -118,20 +208,20 @@ describe LINote do
 					# MAIS DANS CE CAS, QUE FAIRE ? LORSQU'ON JOIN, ON GARDE LE
 					# LÉGATO SUR TOUT LE MOTIF, OU ON L'ÉCRIT ALORS DANS LE TEXTE ?
 					# POUR LE MOMENT, J'OPTE POUR LE FAIT QUE LE LÉGATO DOIT ÊTRE
-					# ÉCRIT EN DUR DANS LE @motif DU MOTIF
+					# ÉCRIT EN DUR DANS LE @notes DU MOTIF
 					
 		].each do |data|
-			mo1 = Motif::new(:motif => data[0], :octave => data[1])
-			mo2 = Motif::new(:motif => data[2], :octave => data[3])
+			mo1 = Motif::new(:notes => data[0], :octave => data[1])
+			mo2 = Motif::new(:notes => data[2], :octave => data[3])
 			result = data[4]
 			it "Avec les data #{data[0..3].join(', ')}, ::join doit produire #{data[4]}" do
 				LINote::join(mo1, mo2).should == result
 				# On en profite pour vérifier aussi la méthode <motif>.join(<autre motif>)
 				new_mo = mo1.join(mo2, :new => true)
-				new_mo.motif.should 	== result
-				mo1.motif.should_not 	== result
+				new_mo.notes.should 	== result
+				mo1.notes.should_not 	== result
 				mo1.join(mo2, :new => false)
-				mo1.motif.should == result
+				mo1.notes.should == result
 			end
 		end
 		
@@ -156,6 +246,21 @@ describe LINote do
 		end
 		it ":octave_as_llp doit renvoyer un string vide pour octave 0" do
 		  LINote::octave_as_llp(0).should eq ""
+		end
+		
+		# :octaves_from_llp
+		it "doit répondre à :octaves_from_llp" do
+		  LINote.should respond_to :octaves_from_llp
+		end
+		it ":octaves_from_llp doit renvoyer la bonne valeur" do
+			LINote::octaves_from_llp("").should  == 0
+			LINote::octaves_from_llp(nil).should == 0
+		  LINote::octaves_from_llp("'").should == 1
+			LINote::octaves_from_llp(",").should == -1
+			LINote::octaves_from_llp("''").should == 2
+			LINote::octaves_from_llp(",,").should == -2
+			LINote::octaves_from_llp("''''''''").should == 8
+			LINote::octaves_from_llp(",,,,,,,,").should == -8
 		end
 		# :mark_octave
 		it "doit répondre à :mark_octave" do
@@ -188,13 +293,15 @@ describe LINote do
 				raise_error(SystemExit, err)
 		end
 		it ":fixe_notes_length lève erreur motif si motif invalide" do
-			err = detemp(Liby::ERRORS[:invalid_motif], :bad => nil)
+			err = detemp(Liby::ERRORS[:invalid_motif], :bad => nil.inspect)
 		  expect{LINote::fixe_notes_length(nil, 4)}.to \
 				raise_error(SystemExit, err)
+
 			mo = Motif::new "a a a"
-			err = detemp(Liby::ERRORS[:invalid_motif], :bad => mo.to_s)
+			err = detemp(Liby::ERRORS[:invalid_motif], :bad => mo.inspect)
 		  expect{LINote::fixe_notes_length(mo, 4)}.to \
 				raise_error(SystemExit, err)
+				
 			err = detemp(Liby::ERRORS[:invalid_motif], :bad => 4)
 		  expect{LINote::fixe_notes_length(4, 4)}.to \
 				raise_error(SystemExit, err)
@@ -205,12 +312,12 @@ describe LINote do
 		end
 		it ":fixe_notes_length avec bons arguments renvoie la bonne valeur" do
 		  mo = "a b c"
-			LINote::fixe_notes_length(mo, 4).should == "a4 b4 c4"
-			LINote::fixe_notes_length(mo, "4.").should == "a4. b4. c4."
+			LINote::fixe_notes_length(mo, 4).should == "a4 b c"
+			LINote::fixe_notes_length(mo, "4.").should == "a4. b c"
+			mo = "a b c d8 r f"
+			LINote::fixe_notes_length(mo, "8.").should == "a8. b c d8 r f"
 			mo = "ees c4"
-			LINote::fixe_notes_length(mo, 2).should == "ees2 c2"
-			# @todo: ICI, IL FAUDRA ESSAYER AVEC DES MOTIFS PLUS COMPLEXES
-			pending "Essayer avec des motifs plus complexes"
+			LINote::fixe_notes_length(mo, 2).should == "ees2 c4"
 		end
 		
   end # / classe
@@ -228,10 +335,36 @@ describe LINote do
 	# -------------------------------------------------------------------
 	# 	Instances
 	# -------------------------------------------------------------------
-	describe "L'instance" do
+	describe "<linote>" do
 	  before(:each) do
 	    @ln = LINote::new "c"
 	  end
+
+		# :to_llp
+		it "doit répondre à :to_llp" do
+		  @ln.should respond_to :to_llp
+			# @note: la méthode est vérifiée ci-dessus, avec LINote::explode
+		end
+		
+		it "doit répondre à :set" do
+		  @ln.should respond_to :set
+		end
+		it ":set doit permettre de définir les valeurs" do
+			iv_get(@ln, :duration).should be_nil
+		  @ln.set(:duration => 16)
+			iv_get(@ln, :duration).should == 16
+			iv_get(@ln, :finger).should be_nil
+			@ln.set(:finger => "5")
+			iv_get(@ln, :finger).should == "5"
+		end
+		it "doit répondre à :rest?" do
+		  @ln.should respond_to :rest?
+		end
+		it ":rest? doit renvoyer la bonne valeur" do
+			@ln.should_not be_rest
+			iv_set(@ln, :note => 'r')
+			@ln.should be_rest
+		end
 		it "doit répondre à :str_in_context" do
 		  @ln.should respond_to :str_in_context
 		end

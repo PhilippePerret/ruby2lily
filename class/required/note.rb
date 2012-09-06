@@ -12,7 +12,7 @@ class Note < NoteClass
   # -------------------------------------------------------------------
   #   Opérations sur les notes
   # -------------------------------------------------------------------
-  # include OperationsSurNotes
+  include OperationsSurNotes
   
   unless defined?(Note::ANGLO_TO_ITAL)
     ANGLO_TO_ITAL = {'a' => 'la', 'b' => 'si', 'c' => 'do', 'd' => 'ré', 'e' => 'mi', 'f' => 'fa', 'g' => 'sol'}
@@ -65,6 +65,7 @@ class Note < NoteClass
   # @param note     Une note et une seule
   # @return [<nombre de dièse>, <nombre bémols>]
   def self.dieses_et_bemols_in note
+    return nil if note.nil?
     [note.scan(/is/).count, note.scan(/es/).count]
   end
   # -------------------------------------------------------------------
@@ -153,7 +154,7 @@ class Note < NoteClass
   
   # => Return la note sous la forme d'un motif
   def as_motif
-    Motif::new :motif => @it, :octave => @octave, :duration => @duration
+    Motif::new :notes => @it, :octave => @octave, :duration => @duration
   end
   
   # -------------------------------------------------------------------

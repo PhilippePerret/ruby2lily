@@ -3,12 +3,9 @@
 # Module contenant les méthodes opérations valables pour les
 # String, Note, Motif et Chord
 # 
-# require 'note'
-# require 'motif'
-# require 'chord'
-# require 'linote'
 
 module OperationsSurNotes
+
   # => Addition
   # ------------
   # Cette méthode d'instance, héritée par Note, Chord (et autres
@@ -31,7 +28,7 @@ module OperationsSurNotes
     # Cas spécial de deux motifs (appelé notamment en bas de cette
     # méthode, d'où le `return' ci-dessous)
     if self.class == Motif && foo.class == Motif
-      return self.add_motif( foo )
+      return self.join( foo, :new => true )
     end
     
     # Classe du premier membre
@@ -39,7 +36,7 @@ module OperationsSurNotes
     # Détermine le motif gauche
     motif_gauche = 
       case self.class.to_s
-      when "Chord", "String", "Note"
+      when "Chord", "String", "Note", "Motif"
         self.as_motif
       else
         # @todo : traiter d'un mauvais membre gauche
@@ -47,10 +44,7 @@ module OperationsSurNotes
     
     motif_droite =
       case foo.class.to_s
-      when "String"
-        note, octave = Note::split_note_et_octave foo
-        Motif::new( :motif => note, :octave => octave)
-      when "Note", "Motif", "Chord"
+      when "String", "Note", "Motif", "Chord"
         foo.as_motif
       else
         fatal_error(:cant_add_this, :classe => foo.class.to_s)

@@ -189,7 +189,7 @@ describe Note do
 				  n = Note::new "c,,,"
 					mo = n.as_motif
 					mo.class.should == Motif
-					mo.motif.should == "c"
+					mo.notes.should == "c"
 					mo.octave.should == -3
 				end
 				it ":to_silence" do
@@ -359,61 +359,8 @@ describe Note do
 			    @n.should respond_to :+
 			  end
 				it ":+ doit produire un Motif" do
-			  	res = (ut + re)
-					res.class.should == Motif
-				end
-				it ":+ avec deux notes de même hauteur doit produire un motif simple" do
-				  res = (ut + re)
-					res.motif.class.should == String
-				end
-				it ":+ avec deux notes de hauteurs différentes doit produire un motif complexe" do
-				  nut = ut(:octave => 1)
-					nre = re(:octave => 2)
-					mo = (nut + nre)
-					mo.class.should == Motif
-					mo.motif.class.should == Array
-					mo1 = mo.motif[0]
-					mo1.class.should == Motif
-					mo2 = mo.motif[1]
-					mo2.class.should == Motif
-					mo1.motif.should == 'c'
-					mo1.octave.should == 1
-					mo2.motif.should == 'd'
-					mo2.octave.should == 2
-					mo.to_s.should == "\\relative c' { c } \\relative c'' { d }"
-				end
-				it ":+ doit permettre l'addition des notes" do
-				  res = (ut + re)
-					ut.to_s.should eq "c'''"
-					re.to_s.should eq "d'''"
-					res.to_s.should eq "\\relative c''' { c d }"
-				end
-				it "Deux additions (n + n + n) doit produire un nouveau motif" do
-				  nut = ut
-					nre = re
-					nmi = mi
-					res = (nut + nre + nmi)
-					res.class.should == Motif
-					res.to_s.should == "\\relative c''' { c d } \\relative c''' { e }"
-				end
-				it "L'addition d'un Motif à une Note doit renvoyer un motif conforme" do
-				  n = Note::new "c"
-					m = Motif::new "e d"
-					res = (n + m)
-					res.class.should == Motif
-					res.motif.class.should == Array
-					mo1 = res.motif.first
-					mo2 = res.motif[1]
-					mo2.should == m
-					mo1.motif.should == "c"
-					mo1.octave.should == 3
-					res.to_s.should == "\\relative c''' { c } \\relative c''' { e d }"
-				end
-				it "L'addition d'une note string (avec ou sans octave) doit renvoyer un motif conforme" do
-				  n = Note::new "c"
-					res = (n + "a'")
-					res.class.should == Motif
-					res.to_s.should == "\\relative c''' { c } \\relative c' { a }"
+					(ut + re).class.should == Motif
+					# Les autres tests sont fait dans operation/addition_spec.rb
 				end
 			end
 			# -------------------------------------------------------------------

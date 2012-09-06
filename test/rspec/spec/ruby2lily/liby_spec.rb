@@ -118,6 +118,8 @@ describe Liby do
 			:invalid_duree_notes,
 			:cant_add_this,
 			:cant_add_any_to_motif,
+			:unable_to_find_first_note_motif,
+			:unable_to_find_last_note_motif,
 			:too_much_parameters_to_crochets,
 			:bad_class_in_parameters_crochets,
 			:bad_params_in_crochet,
