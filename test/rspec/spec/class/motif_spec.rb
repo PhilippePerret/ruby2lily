@@ -113,33 +113,83 @@ describe Motif do
 		end
 		
 		# :first_note
-		it "d oit répondre à :first_note" do
+		it "doit répondre à :first_note" do
 		  @m.should respond_to :first_note
 		end
+		it ":first_note doit renvoyer un objet de class Note" do
+			mo = Motif::new "c e g"
+			mo.first_note.class.should == LINote
+		end
 		it ":first_note d oit renvoyer la première note" do
-			Motif::new("aes b c").first_note.should == "aes"
-			Motif::new("a b c").first_note.should == "a"
-		  Motif::new("r r aes b c").first_note.should == "aes"
+			[
+				["a ees c", 3, "a", 3],
+				["a b c", 3, "a", 3],
+				["r r aes b c", 3, "aes", 3],
+				["<a c e>", 2, "a", 2],
+				["r8 <b d fis>4 r c c", 1, "b", 1]
+				# @todo: peut-être d'autres tests ici
+			].each do |d|
+				suite, octave_motif, first, octave_note = d
+				mot = Motif::new(:notes => suite, :octave => octave_motif)
+				first_note = mot.first_note
+				first_note.with_alter.should == first
+				first_note.octave.should == octave_note
+				first_note.duration.should be_nil
+			end
 		end
 		# :last_note
-		it "d oit répondre à :last_note" do
+		it "doit répondre à :last_note" do
 		  @m.should respond_to :last_note
 		end
-		it ":last_note d oit renvoyer la dernière note" do
-		  Motif::new("a b cis").last_note.should == "cis"
-		  Motif::new("a b c").last_note.should == "c"
-			Motif::new("r a( b ces r)").last_note.should == "ces"
+		it ":last_note doit retourner un objet de type Note" do
+			mo = Motif::new "c e g"
+		  mo.last_note.class.should == LINote
+		end
+		it ":last_note doit retourner une dernière note valide" do
+			[
+				["c d e", 3, "e", 3],			# Même octave
+				["a b c", 2, "c", 3],			# Suite mais octave suivante
+				["a c e", 3, "e", 4],			# Changement d'octave arpège
+				["<b d fis>", 1, "fis", 2],
+				["d <d fis a>8 r", 2, "a", 2],
+				["d <g bb d>4 r", 2, "d", 3]
+				# @note: des tests plus complets en testant first_et_last_note
+			].each do |d|
+				suite, octave_motif, last, octave_last = d
+				mot = Motif::new(:notes => suite, :octave => octave_motif)
+				last_note = mot.last_note
+				last_note.with_alter.should == last
+				last_note.octave.should == octave_last
+				last_note.duration.should be_nil
+			end
 		end
 		# :first_et_last_note
-		it "d oit répondre à :first_et_last_note" do
+		it "doit répondre à :first_et_last_note" do
 		  @m.should respond_to :first_et_last_note
 		end
-		it ":first_et_last_note d oit retourner la bonne valeur" do
-		  Motif::new("r r aes b c").first_et_last_note.should == ["aes", "c"]
-			mo = Motif::new("r a( b ces r)")
-			mo.first_et_last_note.should == ["a", "ces"]
-			mo = Motif::new("r r aeses( b fis fisis) r r")
-			mo.first_et_last_note.should == ["aeses", "fisis"]
+		it ":first_et_last_note doit retourner la bonne valeur" do
+			[
+				["c d e", "c", 3, "e", 3],
+				["g a b", "g", 3, "b", 3],
+				["b c d", "b", 3, "d", 4],
+				["r c d e r", "c", 3, "e", 3],
+				["r g a b r", "g", 3, "b", 3],
+				["r b c d r", "b", 3, "d", 4],
+				["c <c e g>", "c", 3, "g", 3],
+				["c <e g c>", "c", 3, "c", 4],
+				["r r aes b c", "aes", 3, "c", 4],
+				["r a( b ces r)", "a", 3, "ces", 4],
+				["r a( c <e g b d>) r r4", "a", 3, "d", 5]
+			].each do |d|
+				suite, firstexp, firstexp_oct, lastexp, lastexp_oct = d
+				first, last = Motif::new(suite).first_et_last_note
+				first.class.should == LINote
+				last.class.should == LINote
+				first.with_alter.should == firstexp
+				last.with_alter.should  == lastexp
+				first.octave.should == firstexp_oct
+				last.octave.should == lastexp_oct
+			end
 		end
 		
 		# :change_durees_in_motif
@@ -260,12 +310,8 @@ describe Motif do
 		  repond_a :*
 		end
 		it ":* permet de multiplier des motifs" do
-		  @m1 = Motif::new "c e g"
-			(@m1 * 3).should == "\\relative c''' { c e g } " 		\
-													<< "\\relative c''' { c e g } "	\
-													<< "\\relative c''' { c e g }"
-			# @todo: plus tard, devra être égal à :
-			# (@m1 * 3).should == "\\relative c'' { c e g c, e g c, e g }"
+		  m1 = Motif::new "c e g"
+			(m1 * 3).to_s.should == "\\relative c''' { c e g c, e g c, e g }"
 		end
 		
 		# :pose_first_and_last_note

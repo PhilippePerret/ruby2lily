@@ -96,6 +96,10 @@ class Note < NoteClass
   
   @it         = nil       # La note, en notation anglosaxonne
   @itit       = nil       # La note, en notation italienne
+  @alter      = nil       # L'altération de la note
+  # @TODO: UN GROS PROBLÈME DANS CETTE CLASSE, CAR LES ALTÉRATIONS NE
+  # SONT PAS DU TOUT PRISES EN COMPTE. IL FAUT SOIT Y REMÉDIER, SOIT
+  # SUPPRIMER LA CLASSE POUR LA REMPLACER PAR LINote, BIEN PLUS COMPLÈTE
   @octave     = nil       # L'octave de la note (3 par défaut)
   @duration   = nil       # La durée, telle qu'exprimée pour Lilipond, i.e.
                           # 1 pour la ronde, 2 pour la noire, "4." pour
@@ -110,7 +114,7 @@ class Note < NoteClass
     # Valeurs par défaut
     @rest     = false
     @octave   = 3
-    set(note) unless note.nil?
+    set note unless note.nil?
     params.each { |k,v| instance_variable_set("@#{k}", v)} unless params.nil?
   end
   

@@ -19,7 +19,7 @@
 	\relative c'' {
 		\clef "treble"
 		\time 6/8
-		\tempo 4 = 120	<a c e>8 c8( b c d c b) a( g f e f g)
+		\tempo 4 = 120	fis c <a c e>8 c8( b c d c b) a( g f e f g)
 	}
 }
 }

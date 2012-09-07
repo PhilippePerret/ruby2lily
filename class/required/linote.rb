@@ -13,6 +13,34 @@ class LINote
   # -------------------------------------------------------------------
 
   unless defined? NOTE_STR_TO_INT
+    
+    # Liste transformant les notes bémols ou complexe en leur valeur
+    # simple dièse.
+    # Cette liste permettra de trouver l'index absolu de la note dans la
+    # gamme chromatique (pour recherche d'intervalle par exemple)
+    # 
+    # @note : les notes sans transformations ont été ajoutées pour
+    #         pouvoir utiliser LISTE_ALT_TO_ALT_SIMPLE[note] sans tester
+    #         si la clé existe.
+    LISTE_ALT_TO_ALT_SIMPLE = {
+      'c'=>"c", 'ces'=>"b", 'ceses'=>"ais", 'cis'=>"cis", 'cisis'=>"d",
+      'd'=>"d", 'des'=>"cis", 'deses'=>"c", 'dis'=>"dis", 'disis'=>"e",
+      'e'=>"e", 'ees'=>"dis", 'eeses'=>"d", 'eis'=>'f',   'eisis'=>"fis",
+      'f'=>"f", 'fes'=>"e", 'feses'=>"dis", 'fis'=>"fis", 'fisis'=>"g",
+      'g'=>"g", 'ges'=>"fis", 'geses'=>"f", 'gis'=>"gis", 'gisis'=>"a",
+      'a'=>"a", 'aes'=>"gis", 'aeses'=>"g", 'ais'=>"ais", 'aisis'=>"b",
+      'b'=>"b", 'bes'=>"ais", 'beses'=>"a", 'bis'=>"c",   'bisis'=>'cis'
+    }
+    
+    # La gamme chromatique (seulement en dièses)
+    # @note: c'est cette gamme qui doit être utilisée conjointement à
+    # LISTE_ALT_TO_ALT_SIMPLE pour trouver l'intervalle entre deux notes
+    GAMME_CHROMATIQUE = 
+      ["c", "cis", "d", "dis", "e", "f", "fis", "g", "gis", "a", "ais", "b"]
+    # La gamme chromatique (seulement bémols)
+    GAMME_CHROMATIQUE_BEMOLS = 
+      ["c", "des", "d", "ees", "e", "f", "ges", "g", "aes", "a", "bes", "b"]
+    
     # Table de correspondance entre la note en string ("g") et la valeur
     # entière
     NOTE_STR_TO_INT = {
@@ -197,40 +225,75 @@ class LINote
   # 
   def self.join motif1, motif2
 
-    # Contrôle de la validité des arguments (fatal)
-    cl1, cl2 = [motif1.class, motif2.class]
-    fatal_error(:bad_type_for_args, :good => "Motif", :bad => cl1.to_s) \
-      unless cl1 == Motif
-    fatal_error(:bad_type_for_args, :good => "Motif", :bad => cl2.to_s) \
-      unless cl2 == Motif
+    # Le second motif, en corrigeant le delta d'octave de sa
+    # première note
+    suite_motif2 = motif_suivant_with_delta motif1, motif2
     
-    motif1_last   = motif1.last_note
-    motif2_first  = motif2.first_note
-    valeur_abs_last_motif1  = 
-      Note::valeur_absolue(motif1_last, motif1.octave)
-    valeur_abs_first_motif2 = 
-      Note::valeur_absolue(motif2_first, motif2.octave)
+    # Motif assemblé renvoyé
+    "#{motif1.notes_with_duree} #{suite_motif2}"
+    
+  end
 
-    # Intervalle entre les deux notes
-    intervalle = valeur_abs_first_motif2 - valeur_abs_last_motif1
+  # =>  Return l'intervalle (nombre de demi-tons) entre le +motif1+ et
+  #     le +motif2+
+  # 
+  def self.intervalle_between motif1, motif2
     
-  #   # = débug =
-  #   puts <<-EOC
+    # Doivent être des motifs
+    Liby::raise_unless_motif motif1, motif2
+    
+    # = débug =
+    # if false
+    if true
+      puts "\nLast note de #{motif1.inspect} : #{motif1.last_note.inspect}"
+      puts "First note de #{motif2.inspect} : #{motif2.first_note.inspect}"
+    end
+    # = /débug =
+    
+    # Première et dernière note (class LINote)
+    last_note  = motif1.last_note
+    first_note = motif2.first_note
+    
+    # Retourner l'intervalle
+      Note::valeur_absolue( first_note.with_alter, first_note.octave) \
+    - Note::valeur_absolue( last_note.with_alter,  last_note.octave)
+    
+  end
+  
+  # =>  Retourne la +suite2+ (suite de notes string) où la première
+  #     note a été modifiée en fonction de la +motif1+ pour gérer
+  #     correctement les octaves (delta d'octave).
+  #     Un exemple parlera mieux qu'un long discours :
+  #     Soit le motif 1 : "a c e" à l'octave 3
+  #     Soit le motif 2 : "a c e" à l'octave 3 également
+  #     Si on fait simplement l'addition de leurs notes :
+  #       "a c e" + "a c e" => "a c e a c e"
+  #     alors le deuxième "a" (première note du motif 2) sera à l'octave
+  #     4 dans lilypond au lieu de l'octave 3 du motif 2.
+  #     Cette méthode va donc retourner une suite en corrigeant son
+  #     delta, c'est-à-dire : "a, c e", pour pouvoir être ajouté à
+  #     suite1
+  #     Cette méthode sert principalement pour les additions et les
+  #     multiplications.
   # 
-  # MOTIF 1           : #{motif1.notes}
-  # Last de motif 1   : #{motif1_last}
-  #     Octave        : #{motif1.octave}
-  #     Valeur absolue: #{valeur_abs_last_motif1}
-  # MOTIF 2           : #{motif2.notes}
-  # First de motif 2  : #{motif2_first}
-  #     Octave        : #{motif2.octave}
-  #     Valeur absolue: #{valeur_abs_first_motif2}
+  # @param  motif1    Premier motif de comparaison
+  # @param  motif2    Deuxième motif dont les notes seront deltaifiées
   # 
-  # Intervalle        : #{intervalle}
-  #   EOC
-  #   # = /débug =
-   
-   
+  # @return:  La *suite de notes* du second motif, dont la première
+  #           porte le delta d'octave. Donc un String.
+  # 
+  def self.motif_suivant_with_delta motif1, motif2
+
+    # Intervalle entre les deux motifs
+    intervalle = intervalle_between( motif1, motif2 )
+
+    # = débug =
+    if false
+      puts "\nIntervalle entre :\nmotif1 : #{motif1.inspect}"
+      puts "motif2: #{motif2.inspect}\n--> #{intervalle}"
+    end
+    # = / débug =
+    
     # Rappel : le changement d'octave est nécessaire dès que l'intervale
     # entre les notes dépassent la quarte.
     #  c f# => le f# est au-dessus (intervale f# - c = 6)
@@ -256,13 +319,12 @@ class LINote
     #       - intervalle < -6 => il faut forcément ajouter des « , »
     #         On prend la valeur absolue de l'intervalle, on retire
     #         6, et le reste divisé par 12 + 1 donne le nombre de virgules
-    
+
     if intervalle.between?(-6, 6)
       # Rien à faire, la note se placera naturellement
-      
-      # Le motif final retourné
-      "#{motif1.notes_with_duree} #{motif2.notes_with_duree}"
-      
+
+      return motif2.notes_with_duree
+
     else
       # Il faut ajouter des ' ou des ,
 
@@ -276,28 +338,86 @@ class LINote
       # On ajoute 1
       add_octaves += 1
       # => le nombre de signes à ajouter à la 2e note pour l'atteindre
-    
-      # Modification de la première note du motif 2
+
+      # La première note du motif 2
+      motif2_first = motif2.first_note
+      
+      # Nouvelle première note pour le motif 2
       new_first = "#{motif2_first}#{mark.x(add_octaves)}"
-      # (on utilise `sub', qui modifiera forcément la première note)
+      # (on utilise `sub', qui modifiera forcément only la 1ère note)
       new_motif2 = motif2.notes.sub(/#{motif2_first}/, new_first)
 
-  #     # = débug =
-  #     puts <<-EOC
-  # 
-  # mark              : #{mark}
-  # Octaves ajoutées  : #{add_octaves}
-  # Nouvelle première : #{new_first}
-  # Nouveau motif     : #{new_motif2}
-  #     EOC
-  #     # = /débug =
-
       # Le motif final retourné
-      "#{motif1.notes_with_duree} #{new_motif2}"
+      return new_motif2
     end
   end
-
   
+  # =>  Retourner l'octave de la deuxième LINote par rapport à la 
+  #     première.
+  # 
+  # @param  linote1   La note de référence (class LINote)
+  # @param  linote2   La note à octavier (class LINote)
+  # 
+  # @return linote2 avec le bon octave spécifié
+  # 
+  def self.set_octave_last_linote linote1, linote2
+    
+    # Conformité du type des arguments
+    Liby::raise_unless_linote linote1, linote2
+    
+    # str1 = "#{linote1.it}#{octave_as_llp(linote1.octave)}" # p.e. "c,,"
+    # str2 = "#{linote2.it}#{octave_as_llp(linote2.octave)}" # p.e. "c''"
+    
+    # Octave de départ
+    octave = linote1.octave
+    
+    # Y a-t-il changement d'octave par la valeur de la note ?
+    #  c b => oui (-1)
+    #  c a => oui (-1)
+    #  c g => oui (-1)
+    #  c fis  => non
+    #  c e    => non
+    #  c d    => non
+    #  c c    => non
+    #  a b    => non
+    #  a c    => oui + 1 (alors que l'intervalle est de 3 seulement)
+    #  a d    => oui + 1 (alors que l'intervalle est de 5 seulement)
+    #  a e    => non (e sera pris inférieur)
+    
+    # Index dans la gamme chromatique
+    # --------------------------------
+    index_note1 = linote1.index
+    index_note2 = linote2.index
+
+    # Placement de la note
+    # ---------------------
+    note2_is_after_note1 = index_note2 >= index_note1
+    
+    # Différence d'index
+    # ------------------
+    # S'il est positif, c'est que la note est placé après, sinon,
+    # elle est placée avant.
+    diff_absolue = (index_note2 - index_note1).abs
+    
+    # Si la différence absolue est < 7 et que la note 2 est après,
+    # alors il n'y a pas changement d'octave. Dans tous les autres cas
+    # il a changement d'octave, on monte si la note 2 est avant (comme
+    # dans "a c"), on descend si la note 2 est après
+    if diff_absolue < 7 && note2_is_after_note1
+      octave = octave # pour la clarté
+    else
+      octave += note2_is_after_note1 ? -1 : 1
+    end
+    
+    # Le delta d'octave de linote2 if any
+    # P.e., si linote2 est "a,,", retourne -2, si linote2 est "c''",
+    # retourne 2
+    octave = octave + octaves_from_llp(linote2.octave_llp)
+    
+    # puts "@OCTAVE EST MIS À #{octave}"
+    linote2.instance_variable_set("@octave", octave)
+    linote2
+  end
   # =>  Return la valeur string de la note en fonction du +context+
   #     soumis.
   # @param note_int La note, exprimée en entier.
@@ -345,12 +465,12 @@ class LINote
   # 
   # ATTENTION : LA VALEUR RETOURNÉE NE CORRESPOND PAS À L'OCTAVE ABSOLU
   # DE LA NOTE, PUISQUE LES APOSTROPHES ET VIRGULES S'INTERPRÊTENT PAR
-  # RAPPORT À LA HAUTEUR DE LA NOTE PRÉCÉDENTE.
+  # RAPPORT À LA HAUTEUR DE LA NOTE PRÉCÉDENTE. C'EST UN DELTA D'OCTAVE
   # 
   def self.octaves_from_llp oct_llp
     return 0 if     oct_llp.nil?    \
                 ||  oct_llp.blank?  \
-                ||  oct_llp.scan(/[',]/).nil?
+                ||  oct_llp.scan(/[',]/) == []
     octave = 0
     oct_llp.split('').each do |lettre|
       case lettre
@@ -409,7 +529,7 @@ class LINote
   # -------------------------------------------------------------------
   #   Instance
   # -------------------------------------------------------------------
-  attr_reader :note, :duration, :octave
+  attr_reader :note, :duration, :octave_llp, :alter
   
   @note_str = nil   # La note string (p.e. "g" ou "fis" ou "eb" ou "g#")
   @note_int = nil   # La note, exprimé par un entier
@@ -422,12 +542,15 @@ class LINote
                       # dernière note : "<.... a>8.", "8." est la 
                       # duree_post (@note: ça sert pour :explode et
                       # :implode)
-  @octave_llp = nil   # La donnée de changement d'octave, au format LLP
+  @octave_llp = nil   # Le delta d'octave, au format LLP (p.e. « '' »)
   @alter      = nil   # Altération de la note (p.e. "eses" ou "is")
   @jeu        = nil   # Jeu string de la note (le texte après le tiret)
   @finger     = nil   # Le doigté éventuel
   
-  @octave     = nil   # Pas utilisé pour le moment
+  @octave     = nil   # Fixé par d'autre méthode ou à l'instanciation si
+                      # dans les paramètres. Si on l'appelle par la
+                      # méthode `octave', l'octave est compté à partir
+                      # de l'octave 3, en ajoutant le delta
   
   # Instanciation
   # --------------
@@ -461,11 +584,11 @@ class LINote
   def initialize valeur = nil, params = nil
     case valeur.class.to_s
     when "Hash"
-      valeur.each {|prop, val| instance_variable_set("@#{prop}", val)}
+      set valeur
     when "String"
       @note_str = valeur
-      @note_int = NOTE_STR_TO_INT[valeur]
-      @note     = @note_str[0..0]
+      params ||= {}
+      params  = LINote::explode(@note_str)[0].to_hash.merge( params )
     when "Fixnum"
       @note_int = valeur
       @note_str = str_in_context params
@@ -475,14 +598,18 @@ class LINote
       @note_int = nil
       @note     = nil
     end
+    set params
+    @note_int = NOTE_STR_TO_INT["#{@note}#{@alter}"]
   end
   
   # => Permet de définir les valeurs
   # @usage      <linote>.set <hash_paires_prop_value>
   # 
   def set hash
+    return if hash.nil?
     hash.each { |prop, val| instance_variable_set("@#{prop}", val) }
   end
+  
   # => Recompose le string à partir des données de la linote
   # 
   # @return le string des notes reconstituées
@@ -493,9 +620,46 @@ class LINote
     << "#{jeu}#{@finger}#{@post}#{@duree_post}"
   end
   
+  # => Return la linote sous forme de hash
+  # 
+  def to_hash
+    hash = {}
+    [:note, :alter, :octave_llp, :duration, :pre, :post, :finger, :jeu
+    ].each do |prop|
+      hash = hash.merge( prop => instance_variable_get("@#{prop}") )
+    end
+    hash = hash.merge :octave => octave
+  end
+  
+  # => Renvoie la note avec son altération
+  # @usage :    <linote>.with_alter   => p.e. "deses"
+  def with_alter
+    "#{@note}#{@alter}"
+  end
+  
+  # => Return la linote sous forme d'instance de Note
+  # @TODO: SUPPRIMER CETTE MÉTHODES QUAND LA CLASSE Note SERA SUPPRIMÉE,
+  # SI ELLE L'EST UN JOUR.
+  def as_note
+    Note::new @note, :octave => octave, :duration => @duration, :alter => @alter
+  end
+  # =>  Return l'octave de la note (le calcule d'après octave_llp si
+  #     non défini, en partant de l'octave 3)
+  # @return entier représentant l'octave de la note
+  def octave
+    # puts "\n@octave_llp: #{@octave_llp}\n=> octave from llp: #{LINote::octaves_from_llp(@octave_llp)}"
+    @octave ||= 3 + LINote::octaves_from_llp(@octave_llp)
+  end
   # => Return true si la LINote est un silence
   def rest?
     @note == "r"
+  end
+  
+  # =>  Return l'index (Fixnum) absolu de la note dans la gamme 
+  #     chromatique (en tenant compte de ses altérations)
+  # @return un nombre de 0 ("c") à 11 ("b")
+  def index
+    @note_int
   end
   
   # =>  Return la note baissée de +demitons+ demi-tons dans le contexte

@@ -15,6 +15,14 @@ class Motif < NoteClass
   @octave   = nil   # L'octave du motif (par défaut, c'est 2)
   @duration = nil   # Durée du motif (optionnel)
   
+  @first_note = nil   # La première note (class Note). Calculé au besoin
+                      # en utilisant <motif>.first_note
+  @last_note  = nil   # La dernière note (class Note). Calculé au besoin,
+                      # en utilisant <motif>.last_note
+  @exploded   = nil   # Le motif "explodé", c'est-à-dire un array de 
+                      # toutes les notes (class LINote) telles que
+                      # explodées par LINote::explode
+                      # Calculé en utilisant <motif>.exploded
   # => Instanciation
   # 
   # @param  params  Paramètres définissant le nouveau motif.
@@ -146,37 +154,63 @@ class Motif < NoteClass
     motif_final = LINote::join( self, motif2 )
     change_objet_ou_new_instance motif_final, params, false
   end
-  # =>  Return la première et la dernière note (donc or silence) du
+  
+  # =>  Return la première et la dernière note (donc hors silence) du
   #     motif.
   # 
   # @usage : [premiere, derniere] = <motif>.first_et_last_note
   def first_et_last_note
-    res = @notes.scan(/\b([a-g](es|is){0,2})/)
-    fatal_error(:unable_to_find_first_note_motif, :notes => @notes ) \
-      if res.nil? || res.first.nil? || res.last.nil?
-    [res.first[0], res.last[0]]
+    [first_note, last_note]
   end
-  # =>  Retourne la première et la dernière note du motif (donc pas
-  #     un silence)
+
   # => Retourne la première note (donc pas un silence) du motif
   def first_note
-    # res = @notes.scan(/\b([a-g](es|is){0,2})/)
-    # puts "res first_note: #{res.inspect}"
-    # res.first
     return nil if @notes.nil?
-    res = @notes.scan(/\b([a-g](eses|isis|es|is)?)/)
-    fatal_error(:unable_to_find_first_note_motif, :notes => @notes ) \
-      if res.nil? || res.first.nil?
-    res.first.first
+    @first_note ||= lambda {
+      res = @notes.scan(/([a-g](eses|isis|es|is)?)/)
+      fatal_error(:unable_to_find_first_note_motif, :notes => @notes ) \
+        if res.nil? || res.first.nil?
+      note = res.first.first
+      LINote::new note, :octave => @octave
+    }.call
   end
   # => Return la dernière note (donc pas un silence) du motif
+  # 
+  # @note: la difficulté par rapport à first_note est qu'il faut calculé
+  # ici, suivant la suite de notes, la hauteur réelle de la dernière :
+  # Car dans :
+  #   "c c"   La 1ère et la dernière sont à la même octave
+  # tandis que dans :
+  #   "c e g c" La dernière ("c") est une octave au-dessus de la 1ère
   def last_note
-    # res = @notes.scan(/\b([a-g](es|is){0,2})/)
-    # puts "res last_note: #{res.inspect}"
-    # res.last
-    res = @notes.scan(/\b([a-g](es|is){0,2})/) 
-    fatal_error(:unable_to_find_last_note_motif, :notes => @notes ) if res.nil?
-    res.last.first
+    return nil if @notes.nil?
+    @last_note ||= lambda {
+      octave = @octave
+      current_note = nil
+      exploded.each do |linote|
+        next if linote.rest?
+        unless current_note.nil?
+          # On définit l'octave de la linote courante
+          # La dernière contiendra la valeur cherchée
+          # @note: il faut passer en revue chaque note impérativement,
+          # car il faut suivre l'avancée des octaves. Par exemple, 
+          # comment savoir à quelle hauteur sera le dernier do de :
+          # "c e g c e g c e g" sans calculer note à note ?
+          LINote::set_octave_last_linote current_note, linote
+        end
+        current_note = linote
+      end
+      fatal_error(:unable_to_find_last_note_motif, :notes => @notes ) \
+        if current_note.nil?
+      current_note # retourné à @last_note
+    }.call
+  end
+  
+  # => Return (et défini) les notes du motif en array explodé
+  # Cf. LINote::explode
+  def exploded
+    return nil if @notes.nil?
+    @exploded ||= LINote::explode @notes
   end
   
   # => Méthode de commodité
@@ -221,21 +255,13 @@ class Motif < NoteClass
   # -------------------------------------------------------------------
   #   Opérations sur motif
   # -------------------------------------------------------------------
+
   require 'module/operations.rb' # normalement, toujours chargé
   include OperationsSurNotes
-  
-  # => Méthode de multiplication de motif
-  # 
-  # @note: on ne peut pas utiliser la multiplication de string, car
-  # elle appelle cette méthode (=> stack level too deep)
-  # @todo: normalement, devra être supprimée quand traité dans OperationsSurNotes
-  # @todo: rationnaliser le calcul pour éviter la répétion des relative
-  def *( nombre_fois )
-    "#{mark_relative} { #{@notes} } ".x(nombre_fois).strip
-  end
+    # Définit +, * et []
   
   # -------------------------------------------------------------------
-  #   Méthodes de transformation du motif
+  #   Méthodes de transformation du motif tonal/modal
   # -------------------------------------------------------------------
 
   # => Retourne le motif baissé du nombre de +demitons+

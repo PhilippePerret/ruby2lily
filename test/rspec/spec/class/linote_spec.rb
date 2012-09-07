@@ -10,6 +10,25 @@ describe LINote do
 	# 	Classe
 	# -------------------------------------------------------------------
   describe "La classe" do
+		it "doit définir la constante LISTE_ALT_TO_ALT_SIMPLE" do
+		  defined?(LINote::LISTE_ALT_TO_ALT_SIMPLE).should be_true
+		end
+		it "LISTE_ALT_TO_ALT_SIMPLE doit définir les valeurs" do
+			# On ne teste que quelques valeurs
+		  LINote::LISTE_ALT_TO_ALT_SIMPLE["eeses"].should == "d"
+			LINote::LISTE_ALT_TO_ALT_SIMPLE["fisis"].should == "g"
+			LINote::LISTE_ALT_TO_ALT_SIMPLE["eisis"].should == "fis"
+		end
+		it "doit définir la constante GAMME_CHROMATIQUE" do
+		  defined?(LINote::GAMME_CHROMATIQUE).should be_true
+			LINote::GAMME_CHROMATIQUE.count.should == 12
+			LINote::GAMME_CHROMATIQUE.should include 'cis'
+		end
+		it "doit définir la constante GAMME_CHROMATIQUE_BEMOLS" do
+		  defined?(LINote::GAMME_CHROMATIQUE_BEMOLS).should be_true
+			LINote::GAMME_CHROMATIQUE_BEMOLS.count.should == 12
+			LINote::GAMME_CHROMATIQUE_BEMOLS.should include 'des'
+		end
     it "doit définir la constante NOTE_STR_TO_INT" do
       defined?(LINote::NOTE_STR_TO_INT).should be_true
     end
@@ -184,7 +203,7 @@ describe LINote do
 		end
 		
 		# :join
-		it "d oit r épondre à :join" do
+		it "doit répondre à :join" do
 		  LINote.should respond_to :join
 		end
 		it ":join peut r ecevoir seulement des Motifs" do
@@ -244,6 +263,95 @@ describe LINote do
 			end
 		end
 		
+		# :intervalle_between
+		it "doit répondre à :intervalle_between" do
+		  LINote.should respond_to :intervalle_between
+		end
+		it ":intervalle_between doit lever une erreur si pas motif" do
+			err = detemp(Liby::ERRORS[:bad_type_for_args], 
+							:good => "Motif", :bad => "String")
+		  expect{LINote::intervalle_between("a3", "b4")}.to \
+				raise_error(SystemExit, err)
+		end
+		it ":interalle_between doit retourner la bonne valeur" do
+			[
+				["e", 3, "a", 3, 7],
+				["a", 3, "a", 3, 0],
+				["a", 3, "a", 4, 12],
+				["a c", 3, "a c", 2, -3],
+				["a c", 3, "a c", 1, -15]
+				# @todo: d'autres tests plus complets ici
+			].each do |d|
+				notes1, oct1, notes2, oct2, res = d
+	  		mot1 = Motif::new :notes => notes1, :octave => oct1
+				mot2 = Motif::new :notes => notes2, :octave => oct2
+				LINote::intervalle_between(mot1, mot2).should == res
+			end
+		end
+		# :motif_suivant_with_delta
+		it "doit répondre à :motif_suivant_with_delta" do
+		  LINote.should respond_to :motif_suivant_with_delta
+		end
+		it ":motif_suivant_with_delta doit lever une erreur si pas motifs" do
+			err = detemp(Liby::ERRORS[:bad_type_for_args], 
+							:good => "Motif", :bad => "String")
+		  expect{LINote::motif_suivant_with_delta("a3", "b4")}.to \
+				raise_error(SystemExit, err)
+		end
+		it ":motif_suivant_with_delta doit retourner la bonne valeur" do
+			[
+				["a c e", "a c e", "a, c e"]
+				# @todo: ajouter d'autres tests ici
+			].each do |tierce|
+				sui1, sui2, sui3 = tierce
+				mot1 = Motif::new sui1
+				puts "mot1: #{mot1.inspect}"
+				mot2 = Motif::new sui2
+				puts "mot2: #{mot2.inspect}"
+		  	res  = LINote::motif_suivant_with_delta mot1, mot2
+				res.should == sui3
+			end
+		end
+		
+		# :set_octave_last_note
+		it "doit répondre à :set_octave_last_linote" do
+		  LINote.should respond_to :set_octave_last_linote
+		end
+		it ":set_octave_last_linote doit lever une erreur si pas Linotes" do
+			err = detemp(Liby::ERRORS[:bad_type_for_args], 
+							:good => "LINote", :bad => "String")
+		  expect{LINote::set_octave_last_linote("a", "b")}.to \
+				raise_error(SystemExit, err)
+			mot1 = Motif::new "a b c"
+			mot2 = Motif::new "c e d"
+			err = detemp(Liby::ERRORS[:bad_type_for_args], 
+							:good => "LINote", :bad => "Motif")
+		  expect{LINote::set_octave_last_linote(mot1, mot2)}.to \
+				raise_error(SystemExit, err)
+		end
+	  [
+			["c", 3, "c", 3],
+			["c", 2, "b", 1],
+			["cis", 1, "des", 1],
+			["cis", 1, "bes", 0],
+			["a", 3, "c", 4],
+			["c", 4, "fis", 4],
+			["c", 4, "g", 3],
+			["fis", 2, "c", 2],
+			["g", 2, "c", 3]
+		].each do |d|
+			note1, octave1, note2, octave = d
+			ln1 = LINote::new note1, :octave => octave1
+			ln2 = LINote::new note2
+			it ":set_octave_last_linote avec « #{note1}-#{octave1} #{note2}" \
+					<<" » doit mettre l'octave de la 2e à #{octave}" do
+				puts "\n\nln1: #{ln1.inspect}"
+				puts "ln2 au départ: #{ln2.inspect}"
+				LINote::set_octave_last_linote(ln1, ln2)
+				puts "ln2 après set_octave_last_linote: #{ln2.inspect}"
+				ln2.octave.should == octave
+			end
+		end
 		# :mark_relative
 		it "doit répondre à :mark_relative" do
 		  LINote::should respond_to :mark_relative
@@ -361,6 +469,49 @@ describe LINote do
 	    @ln = LINote::new "c"
 	  end
 
+		# :with_alter
+		it "doit répondre à :with_alter" do
+		  @ln.should respond_to :with_alter
+		end
+		it ":with_alter doit renvoyer la bonne valeur" do
+		  ln = LINote::new "eeses"
+			ln.note.should == "e"
+			ln.alter.should == "eses"
+			ln.with_alter.should == "eeses"
+			ln = LINote::new "c"
+			ln.note.should == "c"
+			ln.alter.should be_nil
+			ln.with_alter.should == "c"
+		end
+		# :to_hash
+		it "doit répondre à :to_hash" do
+		  @ln.should respond_to :to_hash
+		end
+		it ":to_hash doit renvoyer la bonne valeur" do
+			hash = {:note => "c", :duration => 5, :octave_llp => "''",
+							:alter => "es" }
+		  ln = LINote::new hash
+		 	ln_to_hash = ln.to_hash
+			hash.each { |prop, val| ln_to_hash[prop].should == val }
+			ln = LINote::new "aisis''8"
+			hash_ln = ln.to_hash
+			hash_ln[:note].should == "a"
+			hash_ln[:duration].should == "8"
+			hash_ln[:alter].should == "isis"
+			hash_ln[:octave_llp].should == "''"
+			hash_ln[:octave].should == 5
+		end
+		
+		# :as_note
+		it "doit répondre à :as_note" do
+		  @ln.should respond_to :as_note
+		end
+		it ":as_note doit retourner la linote en instance de Note" do
+		  ln = LINote::new :note => "c", :alter => "es", :octave => 4
+			note = ln.as_note
+			note.class.should == Note
+			note.it.should == "c"
+		end
 		# :to_llp
 		it "doit répondre à :to_llp" do
 		  @ln.should respond_to :to_llp
@@ -378,6 +529,29 @@ describe LINote do
 			@ln.set(:finger => "5")
 			iv_get(@ln, :finger).should == "5"
 		end
+		
+		# :octave
+		it "doit répondre à :octave" do
+		  @ln.should respond_to :octave
+		end
+	  [
+			["c", nil, "", 3],
+			["c", 1, "", 1],
+			["c", -2, "", -2],
+			["c", nil, "'", 4],
+			["c", nil, ",,", 1]
+		].each do |d|
+			note, octave, llp, octave_expected = d
+			texte = ":octave de #{note} "
+			texte << (octave.nil? ? "sans octave" : "d'octave #{octave}")
+			texte << (llp == "" ? "" : " avec octave llp « #{llp} »")
+			texte << " doit renvoyer #{octave_expected}"
+			it texte do
+				ln = LINote::new :note => note, :octave => octave, :octave_llp => llp
+				ln.octave.should == octave_expected
+			end
+		end
+		# :rest?
 		it "doit répondre à :rest?" do
 		  @ln.should respond_to :rest?
 		end
@@ -385,6 +559,21 @@ describe LINote do
 			@ln.should_not be_rest
 			iv_set(@ln, :note => 'r')
 			@ln.should be_rest
+		end
+		
+		# :index
+		it "doit répondre à :index" do
+		  @ln.should respond_to :index
+		end
+		it ":index doit renvoyer l'index dans la gamme chromatique" do
+		  ln = LINote::new "c"
+			ln.index.should == 0
+			ln = LINote::new "d'"
+			ln.index.should == 2
+			ln = LINote::new "b,,4"
+			ln.index.should == 11
+			ln = LINote::new 'r'
+			ln.index.should === nil
 		end
 		it "doit répondre à :str_in_context" do
 		  @ln.should respond_to :str_in_context

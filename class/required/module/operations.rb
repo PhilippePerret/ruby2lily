@@ -24,36 +24,50 @@ module OperationsSurNotes
   #                 - Un Motif
   #                 - Un Chord
   def + foo
-    
     # Cas spécial de deux motifs (appelé notamment en bas de cette
     # méthode, d'où le `return' ci-dessous)
     if self.class == Motif && foo.class == Motif
       return self.join( foo, :new => true )
-    end
-    
-    # Classe du premier membre
-    # -------------------------
-    # Détermine le motif gauche
-    motif_gauche = 
-      case self.class.to_s
-      when "Chord", "String", "Note", "Motif"
-        self.as_motif
-      else
-        # @todo : traiter d'un mauvais membre gauche
+    else
+      begin
+        motif_gauche = self.as_motif
+      rescue NoMethodError => e
+        fatal_error(:cant_add_this, :classe => self.class.to_s)
       end
-    # puts "motif_gauche: #{motif_gauche.inspect}"
-    
-    motif_droite =
-      case foo.class.to_s
-      when "String", "Note", "Motif", "Chord"
-        foo.as_motif
-      else
+      begin
+        motif_droit = foo.as_motif
+      rescue NoMethodError => e
         fatal_error(:cant_add_this, :classe => foo.class.to_s)
       end
-    # puts "motif_droite: #{motif_droite.inspect}"
-    
-    motif_gauche + motif_droite # rappelle cette méthode mais cf. haut
-    
+      motif_gauche + motif_droit # rappelle cette méthode mais cf. haut
+    end    
   end # / +
+  
+  # => Multiplication
+  # 
+  # @param  nombre_fois   Membre droit de la multiplication
+  # @param  params        Paramètres optionnels. Par exemple :
+  #                         :new => false pour modifier le self, quand
+  #                         c'est un motif qui est multiplié.
+  # @note   +self+ sera transformé en motif pour être multiplié
+  # 
+  def * nombre_fois, params = nil
+    
+    if self.class == Motif
+      motif = self
+      as_nouveau_motif = true
+    else
+      motif = self.as_motif
+      as_nouveau_motif = false
+    end
+    
+    motif.change_objet_ou_new_instance(
+      "#{motif.notes} ".x(nombre_fois).strip,
+      params,
+      as_nouveau_motif
+    )
+    # "#{mark_relative} { #{@notes} } ".x(nombre_fois).strip
+    
+  end
   
 end

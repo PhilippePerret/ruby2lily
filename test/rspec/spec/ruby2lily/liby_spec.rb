@@ -171,7 +171,7 @@ describe Liby do
 	end
 	
 	# -------------------------------------------------------------------
-	# 	Analyse des arguments
+	# 	Analyse des arguments (lignes de commande)
 	# -------------------------------------------------------------------
 	describe "Analyse des arguments" do
 		before(:each) do
@@ -346,6 +346,54 @@ describe Liby do
 		end
 	end
 	
+	# -------------------------------------------------------------------
+	# 	Méthode de contrôle de type (class)
+	# -------------------------------------------------------------------
+	describe "contrôle de type/class" do
+	  it "doit répondre à :raise_unless_motif" do
+	    Liby.should respond_to :raise_unless_motif
+	  end
+		it ":raise_unless_motif doit passer si c'est un motif" do
+			mot = Motif::new "a c e"
+		  expect{Liby::raise_unless_motif(mot)}.not_to raise_error
+		end
+		it ":raise_unless_motif doit passer si plusieurs motifs" do
+		  mot1 = Motif::new "a c e"
+			mot2 = Motif::new "b d fis"
+			expect{Liby::raise_unless_motif(mot1, mot2)}.not_to raise_error
+		end
+		it ":raise_unless_motif doit lever une erreur si pas motif" do
+			err = detemp(Liby::ERRORS[:bad_type_for_args], 
+							:good => "Motif", :bad => "String")
+		  expect{Liby::raise_unless_motif("str")}.to \
+				raise_error(SystemExit, err)
+		end
+		it ":raise_unless_motif doit lever une erreur même si 1er est motif" do
+			mot = Motif::new "a c e"
+			err = detemp(Liby::ERRORS[:bad_type_for_args], 
+							:good => "Motif", :bad => "String")
+		  expect{Liby::raise_unless_motif(mot, "str")}.to \
+				raise_error(SystemExit, err)
+		end
+		it ":doit répondre à :raise_unless_linote" do
+		  Liby.should respond_to :raise_unless_linote
+		end
+		it ":raise_unless_linote doit lever une erreur si pas LINote" do
+			ln1 = LINote::new "a"
+			ln2 = LINote::new "b"
+		  expect{Liby::raise_unless_linote(ln1, ln2)}.not_to raise_error
+			err = detemp(Liby::ERRORS[:bad_type_for_args], 
+							:good => "LINote", :bad => "String")
+			expect{Liby::raise_unless_linote("a", "b")}.to \
+				raise_error(SystemExit, err)
+			mot1 = Motif::new "a b c"
+			mot2 = Motif::new "c d e"
+			err = detemp(Liby::ERRORS[:bad_type_for_args], 
+							:good => "LINote", :bad => "Motif")
+			expect{Liby::raise_unless_linote(mot1, mot2)}.to \
+				raise_error(SystemExit, err)
+		end
+	end
 	# -------------------------------------------------------------------
 	# 	Conversion du score ruby vers le score lilypond
 	# -------------------------------------------------------------------
