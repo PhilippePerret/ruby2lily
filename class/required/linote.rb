@@ -145,13 +145,19 @@ class LINote
   # => Return les données notes du motif +str+ (motif LilyPond)
   # ------------------------------------------------------------
   # @param  str   Un string contenant les notes à analyser
+  #               OU une instance de Motif
   # 
   # @return Une liste d'instance LINote : cf. l'instance pour le 
   #         détail des propriétés
   # 
   def self.explode str
     data = []
-    ary_str = str.split(' ')
+    case str.class.to_s
+    when "String" then ary_str = str.split(' ')
+    when "Motif"  then ary_str = str.to_llp.split(' ')
+    else fatal_error( :bad_type_for_args, 
+                      :good => "String ou Motif", :bad => str.class.to_s)
+    end
     ary_str.each do |membre|
       membre.scan(REG_NOTE_COMPLEXE){
         tout, pre, note, alter, octave, duree, jeu, post, duree_post = 
@@ -227,10 +233,43 @@ class LINote
   # 
   def self.join motif1, motif2
 
-    # Le second motif, en corrigeant le delta d'octave de sa
-    # première note
-    suite_motif2 = motif_suivant_with_delta motif1, motif2
+    oui = $DEBUG === true
     
+    puts "\n\n=== DÉBUG ON ===" if oui
+
+    # Intervalle exact (nombre de demi-ton) entre les deux motifs
+    intervalle = intervalle_between( motif1, motif2 )
+
+    if oui
+      puts "intervalle entre:\n\tMOTIF 1: #{motif1.inspect}\n\tMOTIF 2: #{motif2.inspect}"
+      puts "==> #{intervalle}"
+    end
+    
+    if intervalle.between?(-6, 6)
+      suite_motif2 = motif2.notes_with_duree
+    else
+      mark            = intervalle > 0 ? "'" : ","
+      distance        = intervalle - 6
+      nombre_octaves  = (distance / 12) + 1
+      mark_octaves    = mark.x(nombre_octaves.abs)
+      motif2_exploded = explode motif2
+      motif2_exploded[0].
+        instance_variable_set("@octave_llp", mark_octaves)
+      suite_motif2 = implode( motif2_exploded )
+      
+      # if oui
+      #   puts "-----------------------------------------"
+      #   puts "L'intervalle est < -6 ou > 6"
+      #   puts "=> On doit placer des ' ou ,"
+      #   puts "Mark = #{mark}"
+      #   puts "Distance = #{distance}"
+      #   puts "Nombre d'octaves = #{nombre_octaves}"
+      #   puts "Marque octaves   = #{mark_octaves}"
+      #   puts "suite_motif2 obtenu: #{suite_motif2}"
+      #   puts "-----------------------------------------"
+      # end
+    end
+        
     # Motif assemblé renvoyé
     "#{motif1.notes_with_duree} #{suite_motif2}"
     
@@ -239,18 +278,13 @@ class LINote
   # =>  Return l'intervalle (nombre de demi-tons) entre le +motif1+ et
   #     le +motif2+
   # 
+  # @note: la valeur sera positive si +motif2+ est plus haut que
+  # +motif1+, négative dans le cas contraire
+  # 
   def self.intervalle_between motif1, motif2
     
     # Doivent être des motifs
     Liby::raise_unless_motif motif1, motif2
-    
-    # = débug =
-    if false
-    # if true
-      puts "\nLast note de #{motif1.inspect} : #{motif1.last_note.inspect}"
-      puts "First note de #{motif2.inspect} : #{motif2.first_note.inspect}"
-    end
-    # = /débug =
     
     # Première et dernière note (class LINote)
     last_note  = motif1.last_note
@@ -261,99 +295,7 @@ class LINote
     - Note::valeur_absolue( last_note.with_alter,  last_note.octave)
     
   end
-  
-  # =>  Retourne la +suite2+ (suite de notes string) où la première
-  #     note a été modifiée en fonction de la +motif1+ pour gérer
-  #     correctement les octaves (delta d'octave).
-  #     Un exemple parlera mieux qu'un long discours :
-  #     Soit le motif 1 : "a c e" à l'octave 3
-  #     Soit le motif 2 : "a c e" à l'octave 3 également
-  #     Si on fait simplement l'addition de leurs notes :
-  #       "a c e" + "a c e" => "a c e a c e"
-  #     alors le deuxième "a" (première note du motif 2) sera à l'octave
-  #     4 dans lilypond au lieu de l'octave 3 du motif 2.
-  #     Cette méthode va donc retourner une suite en corrigeant son
-  #     delta, c'est-à-dire : "a, c e", pour pouvoir être ajouté à
-  #     suite1
-  #     Cette méthode sert principalement pour les additions et les
-  #     multiplications.
-  # 
-  # @param  motif1    Premier motif de comparaison
-  # @param  motif2    Deuxième motif dont les notes seront deltaifiées
-  # 
-  # @return:  La *suite de notes* du second motif, dont la première
-  #           porte le delta d'octave. Donc un String.
-  # 
-  def self.motif_suivant_with_delta motif1, motif2
-
-    # Intervalle entre les deux motifs
-    intervalle = intervalle_between( motif1, motif2 )
-
-    # = débug =
-    if false
-      puts "\nIntervalle entre :\nmotif1 : #{motif1.inspect}"
-      puts "motif2: #{motif2.inspect}\n--> #{intervalle}"
-    end
-    # = / débug =
     
-    # Rappel : le changement d'octave est nécessaire dès que l'intervale
-    # entre les notes dépassent la quarte.
-    #  c f# => le f# est au-dessus (intervale f# - c = 6)
-    #  c g  => le g est au dessous (intervale g  - c = 7)
-    # 
-    #   Étudier :
-    #     d f a (3) - d a f (3)     => d f a d, a f
-    #     d f a (3) - d a f (4)     => d f a d  a f
-    #     d f a (3) - d a f (5)     => d f a d' a f
-    #     d f a (3) - d a f (2)     => d f a d,, a f
-    # 
-    #     Intervalle entre a3 et d3 = -7
-    #     Intervalle entre a3 et d4 = 5
-    #     Intervalle entre a3 et d5 = 5 + 12 = 17
-    #     Intervalle entre a3 et d2 = - (7 + 12)
-    # 
-    #   On en déduit que : 
-    #       - intervalle entre 0 et 6   => on ne fait rien
-    #       - intervalle entre 0 et -6  => on ne fait rien
-    #       - intervalle > 6  => il faut forcément ajouter des « ' »
-    #         On retire 6 (intervalle - 6) et on divise par 12 et on
-    #         ajoute 1 pour savoir le nombre d'apostrophes à ajouter.
-    #       - intervalle < -6 => il faut forcément ajouter des « , »
-    #         On prend la valeur absolue de l'intervalle, on retire
-    #         6, et le reste divisé par 12 + 1 donne le nombre de virgules
-
-    if intervalle.between?(-6, 6)
-      # Rien à faire, la note se placera naturellement
-
-      return motif2.notes_with_duree
-
-    else
-      # Il faut ajouter des ' ou des ,
-
-      # La marque d'octave qui sera utilisée (au-dessus ou en dessous)
-      mark = intervalle > 0 ? "'" : ","
-
-      # On retire 6
-      add_octaves = intervalle.abs - 6
-      # On divise par 12
-      add_octaves = add_octaves / 12
-      # On ajoute 1
-      add_octaves += 1
-      # => le nombre de signes à ajouter à la 2e note pour l'atteindre
-
-      # La première note du motif 2
-      motif2_first = motif2.first_note
-      
-      # Nouvelle première note pour le motif 2
-      new_first = "#{motif2_first}#{mark.x(add_octaves)}"
-      # (on utilise `sub', qui modifiera forcément only la 1ère note)
-      new_motif2 = motif2.notes.sub(/#{motif2_first}/, new_first)
-
-      # Le motif final retourné
-      return new_motif2
-    end
-  end
-  
   # =>  Retourner l'octave de la deuxième LINote par rapport à la 
   #     première.
   # 
@@ -364,72 +306,50 @@ class LINote
   # 
   def self.set_octave_last_linote linote1, linote2
     
-    oui = $DEBUG === true
+    # Exemple donné avec "fis" octave 2 et "c"
     
     # Conformité du type des arguments
     Liby::raise_unless_linote linote1, linote2
     
-    if oui
-      puts "linote 1: #{linote1.inspect}"
-      puts "linote 2: #{linote2.inspect}"
-    end
-    
     # Octave de départ
-    octave = linote1.octave
-    
-    puts "octave linote 1: #{octave}" if oui
+    octave = linote1.octave               # Ex: 2
     
     # Index dans la gamme chromatique
     # --------------------------------
-    index_note1 = linote1.index
-    index_note2 = linote2.index
-
-    if oui
-      puts "Index note 1: #{index_note1}"
-      puts "Index note 2: #{index_note2}"
-    end
+    index_note1 = linote1.index           # Ex: 7 (fa#)
+    index_note2 = linote2.index           # Ex: 0 (do)
 
     # Placement de la note
     # ---------------------
     # Il faut tenir compte du cas de la note Si# et la note Dob. Si#
     # renvoie l'index 0 (=Do) et Dob renvoie l'index 11 (=Si), ce qui
     # inverse la position des notes.
-    note2_is_after_note1 = linote2.after? linote1    
-    
-    if oui
-      puts "Note 2 après note 1 ? #{note2_is_after_note1 ? 'oui' : 'non'}"
-    end
+    note2_is_after_note1 = linote2.after? linote1   # Ex: false
     
     # Différence d'index
     # ------------------
     # S'il est positif, c'est que la note est placé après, sinon,
     # elle est placée avant.
-    diff_absolue = (index_note2 - index_note1).abs
-    
-    puts "Différence absolue : #{diff_absolue}" if oui
-    
+    diff_absolue = (index_note2 - index_note1).abs  # Ex: 7
+        
     # Si la différence absolue est < 7 et que la note 2 est après,
     # alors il n'y a pas changement d'octave. Dans tous les autres cas
     # il a changement d'octave, on monte si la note 2 est avant (comme
     # dans "a c"), on descend si la note 2 est après
-    if diff_absolue < 7 && note2_is_after_note1
-      puts "L'octave reste la même" if oui
+    if  diff_absolue < 7 && note2_is_after_note1
+      octave = octave # pour la clarté
+    elsif diff_absolue < 13 && !note2_is_after_note1
       octave = octave # pour la clarté
     else
       octave += note2_is_after_note1 ? -1 : 1
-      puts "L'octave devient : #{octave}" if oui
     end
     
     # Le delta d'octave de linote2 if any
     # P.e., si linote2 est "a,,", retourne -2, si linote2 est "c''",
     # retourne 2
     octave = octave + octaves_from_llp(linote2.octave_llp)
-    puts "Octave après delta de la note : #{octave}" if oui
-    
-    # puts "@OCTAVE EST MIS À #{octave}"
+
     linote2.instance_variable_set("@octave", octave)
-    
-    puts "Octave de linote 2 : #{linote2.octave}" if oui
     
     linote2
   end
@@ -476,7 +396,7 @@ class LINote
   end
   
   # =>  Return le DELTA d'octave exprimé en nombre d'après une marque 
-  #     lilypond
+  #     lilypond (en apostrophes et/ou virgules)
   # 
   # ATTENTION : LA VALEUR RETOURNÉE NE CORRESPOND PAS À L'OCTAVE ABSOLU
   # DE LA NOTE, PUISQUE LES APOSTROPHES ET VIRGULES S'INTERPRÊTENT PAR

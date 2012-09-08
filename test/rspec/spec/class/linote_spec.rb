@@ -99,11 +99,11 @@ describe LINote do
 		end
 		
 		# :data_notes
-		it "d oit répondre à :explode" do
+		it "doit répondre à :explode" do
 		  LINote.should respond_to :explode
 		end
 		# :implode
-		it "d oit répondre à :implode" do
+		it "doit répondre à :implode" do
 		  LINote.should respond_to :implode
 			# @note: la méthode est vérifiée ci-dessous
 		end
@@ -159,25 +159,27 @@ describe LINote do
 			liste_tests << [notes, comp]
 			
 			# Notes et accords
-			notes = "ces <a c eeses>8 e <gis bes>156. r4."
+			notes = "ces <a c'' eeses,,>8 e <gis bes>156. r4."
+			dpo = "duree_post"
+			ollp = "octave_llp"
 			comp_str = <<-DEFA
-				note	pre		post	jeu		duration		alter		duree_post
+				note	pre		post	jeu		duration		alter		#{dpo} #{ollp}
 				--------------------------------------------------------			
-				c			-			-			-			-				es			-
-				a			<			-			-			-				-				-
-				c			-			-			-			-				-				-
-				e			-			>			-			-				eses		8
-				e			-			-			-			-				-				-
-				g			<			-			-			-				is			-
-				b			-			>			-			-				es			156.
-				r 		-			-			-			4.			-				-
+				c			-			-			-			-		 		 		es			-				-
+				a			<			-			-			-		 		 		-				-				-
+				c			-			-			-			-		 		 		-				-				''
+				e			-			>			-			-		 		 		eses		8				,,
+				e			-			-			-			-		 		 		-				-				-
+				g			<			-			-			-		 		 		is			-				-
+				b			-			>			-			-		 		 		es			156.		-
+				r 		-			-			-			4.	 		 		-				-				-
 			--------------------------------------------------------			
 			DEFA
 			comp = comp_str.to_array
 			liste_tests << [notes, comp]
 		
 			liste_tests.each do |donne|
-				it "d oivent fonctionner pour #{donne[0]}" do
+				it "doivent fonctionner pour #{donne[0]}" do
 					compare_notes_et_data donne[0], donne[1]
 				end
 			end
@@ -277,43 +279,24 @@ describe LINote do
 		  expect{LINote::intervalle_between("a3", "b4")}.to \
 				raise_error(SystemExit, err)
 		end
-		it ":interalle_between doit retourner la bonne valeur" do
-			[
-				["e", 3, "a", 3, 7],
-				["a", 3, "a", 3, 0],
-				["a", 3, "a", 4, 12],
-				["a c", 3, "a c", 2, -3],
-				["a c", 3, "a c", 1, -15]
-				# @todo: d'autres tests plus complets ici
-			].each do |d|
-				notes1, oct1, notes2, oct2, res = d
+		[
+			["e", 3, "a", 3, 5],
+			["a", 3, "a", 3, 0],
+			["a", 3, "a", 4, 12],
+			["a c", 3, "a c", 2, -15],
+			["a c", 3, "a c", 1, -27],
+			["ces", 3, "bis", 2, 1],
+			["eis", 2, "fes", 2, -1]
+			# @todo: d'autres tests plus complets ici
+		].each do |d|
+			notes1, oct1, notes2, oct2, res = d
+			texte = ":intervalle_between "
+			texte << "Motif(\"#{notes1}\", oct:#{oct1}) et "
+			texte << "Motif(\"#{notes2}\", oct:#{oct2}) doit : #{res}"
+			it texte do
 	  		mot1 = Motif::new :notes => notes1, :octave => oct1
 				mot2 = Motif::new :notes => notes2, :octave => oct2
 				LINote::intervalle_between(mot1, mot2).should == res
-			end
-		end
-		# :motif_suivant_with_delta
-		it "doit répondre à :motif_suivant_with_delta" do
-		  LINote.should respond_to :motif_suivant_with_delta
-		end
-		it ":motif_suivant_with_delta doit lever une erreur si pas motifs" do
-			err = detemp(Liby::ERRORS[:bad_type_for_args], 
-							:good => "Motif", :bad => "String")
-		  expect{LINote::motif_suivant_with_delta("a3", "b4")}.to \
-				raise_error(SystemExit, err)
-		end
-		it ":motif_suivant_with_delta doit retourner la bonne valeur" do
-			[
-				["a c e", "a c e", "a, c e"]
-				# @todo: ajouter d'autres tests ici
-			].each do |tierce|
-				sui1, sui2, sui3 = tierce
-				mot1 = Motif::new sui1
-				puts "mot1: #{mot1.inspect}"
-				mot2 = Motif::new sui2
-				puts "mot2: #{mot2.inspect}"
-		  	res  = LINote::motif_suivant_with_delta mot1, mot2
-				res.should == sui3
 			end
 		end
 		
@@ -349,8 +332,8 @@ describe LINote do
 			ln2 = LINote::new note2
 			it ":set_octave_last_linote avec « #{note1}-#{octave1} #{note2}" \
 					<<" » doit mettre l'octave de la 2e à #{octave}" do
-				puts "\n\nln1: #{ln1.inspect}"
-				puts "ln2 au départ: #{ln2.inspect}"
+				# puts "\n\nln1: #{ln1.inspect}"
+				# puts "ln2 au départ: #{ln2.inspect}"
 				LINote::set_octave_last_linote(ln1, ln2)
 				puts "ln2 après set_octave_last_linote: #{ln2.inspect}"
 				ln2.octave.should == octave

@@ -145,6 +145,11 @@ class Motif < NoteClass
   
   end
   
+  # => Return le motif au format lilypond (MAIS sans la marque d'octave)
+  def to_llp
+    notes_with_duree
+  end
+  
   # =>  Join le motif +motif2+ au motif courant (c'est-à-dire que le
   #     motif courant va changer de @notes — ça n'est pas une nouvelle
   #     instance Motif qui est créée, sauf si +params+ contient 
@@ -176,7 +181,7 @@ class Motif < NoteClass
   end
   # => Return la dernière note (donc pas un silence) du motif
   # 
-  # @note: la difficulté par rapport à first_note est qu'il faut calculé
+  # @note: la difficulté par rapport à first_note est qu'il faut calculer
   # ici, suivant la suite de notes, la hauteur réelle de la dernière :
   # Car dans :
   #   "c c"   La 1ère et la dernière sont à la même octave
@@ -185,34 +190,106 @@ class Motif < NoteClass
   def last_note
     return nil if @notes.nil?
     @last_note ||= lambda {
-      octave = @octave
-      current_note = nil
-      exploded.each do |linote|
-        next if linote.rest?
-        unless current_note.nil?
-          # On définit l'octave de la linote courante
-          # La dernière contiendra la valeur cherchée
-          # @note: il faut passer en revue chaque note impérativement,
-          # car il faut suivre l'avancée des octaves. Par exemple, 
-          # comment savoir à quelle hauteur sera le dernier do de :
-          # "c e g c e g c e g" sans calculer note à note ?
-          LINote::set_octave_last_linote current_note, linote
-        else
-          linote.instance_variable_set("@octave", octave)
+      
+    oui = $DEBUG === true
+    puts "\n\n=== DÉBUG ===" if oui
+    puts "Trouver la dernière note de #{self.notes}" if oui
+    # NOUVELLE MÉTHODE
+    # On ne conserve que les notes, les altérations et les marques d'octaves
+    liste_notes = []
+    " #{@notes}".gsub(/ (?:<?([a-g])(eses|isis|es|is)?([',]*))/){
+      note, alter, delta = [$1, $2, $3]
+      liste_notes << {:note => note, :alter => alter, :delta => delta, :notealt => "#{note}#{alter}"}
+    }
+    
+    puts "liste_notes: #{liste_notes.inspect}" if oui
+    
+    octave_courant  = @octave || 3
+    
+    puts "octave courant : #{octave_courant}" if oui
+    
+    previous_note   = nil
+    liste_notes.each do |dnote|
+      puts "---\n* Étude de #{dnote.inspect}" if oui
+      note_seule = dnote[:note]
+      unless previous_note.nil?
+        
+        curr_is_after_prev = note_seule.after? previous_note[:note]
+        puts "Courante après prévious ? #{curr_is_after_prev ? 'oui' : 'non '}" if oui
+        interval = dnote[:notealt].interval_with previous_note[:notealt]
+        puts "Intervalle : #{interval}" if oui
+        interval_abs = interval.abs
+        
+        # Y a-t-il changement d'octave
+        if dnote[:note] == previous_note[:note]
+          puts "Les notes sont identiques, donc même octave (hors delta)" if oui
+          octave_courant = octave_courant # pour la clarté
+        elsif interval_abs <= 6
+          puts "L'intervalle est entre -6 et 6" if oui
+          if curr_is_after_prev
+            puts "Je garde la même octave" if oui
+            octave_courant = octave_courant # pour la clarté
+          else
+            octave_courant += interval >= 0 ? 1 : -1
+            puts "Je mets l'octave à #{octave_courant} puisque la note est avant" if oui
+          end
+        else # Si l'interval et < -6 ou > 6
+          octave_courant += curr_is_after_prev ? -1 : 1
+          puts "Je mets l'octave à #{octave_courant} puisque l'intervalle est hors -6 <-> 6" if oui
         end
-        current_note = linote
+        
+        # On ajoute éventuellement le delta d'octave de la note courante
+        delta_octaves = LINote::octaves_from_llp dnote[:delta]
+        puts "Le delta est de #{delta_octaves}" if oui
+        octave_courant += delta_octaves
+        puts "L'OCTAVE FINAL EST DONC : #{octave_courant}" if oui
+      else
+        # La première note étudiée
       end
-      fatal_error(:unable_to_find_last_note_motif, :notes => @notes ) \
-        if current_note.nil?
-      current_note # retourné à @last_note
+      dnote = dnote.merge(:octave => octave_courant)
+      previous_note = dnote
+      puts "Prévious note mise à :#{previous_note.inspect}" if oui
+    end
+    
+    # On retourne une linote
+    linote = LINote::new(
+      :note         => previous_note[:notealt],
+      :octave_llp   => previous_note[:delta],
+      :octave       => previous_note[:octave]
+    )
+    puts "*** Linote obtenu (donc dernière note) : #{linote.inspect}" if oui
+    linote
     }.call
+    
+    # @last_note ||= lambda {
+    #   octave = @octave
+    #   current_note = nil
+    #   exploded.each do |linote|
+    #     next if linote.rest?
+    #     unless current_note.nil?
+    #       # On définit l'octave de la linote courante
+    #       # La dernière contiendra la valeur cherchée
+    #       # @note: il faut passer en revue chaque note impérativement,
+    #       # car il faut suivre l'avancée des octaves. Par exemple, 
+    #       # comment savoir à quelle hauteur sera le dernier do de :
+    #       # "c e g c e g c e g" sans calculer note à note ?
+    #       LINote::set_octave_last_linote current_note, linote
+    #     else
+    #       linote.instance_variable_set("@octave", octave)
+    #     end
+    #     current_note = linote
+    #   end
+    #   fatal_error(:unable_to_find_last_note_motif, :notes => @notes ) \
+    #     if current_note.nil?
+    #   current_note # retourné à @last_note
+    # }.call
   end
   
-  # => Return (et défini) les notes du motif en array explodé
+  # => Return (et définit) les notes du motif en array explodé
   # Cf. LINote::explode
   def exploded
     return nil if @notes.nil?
-    @exploded ||= LINote::explode @notes
+    @exploded ||= LINote::explode self
   end
   
   # => Méthode de commodité

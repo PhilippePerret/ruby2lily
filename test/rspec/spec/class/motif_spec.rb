@@ -112,6 +112,19 @@ describe Motif do
 				"\\relative c' { c8 c c a''' a a }"
 		end
 		
+		# :to_llp
+		it "doit répondre à :to_llp" do
+		  @m.should respond_to :to_llp
+		end
+		it ":to_llp doit retourner la bonne valeur" do
+		  mo = Motif::new "c d e"
+			mo.to_llp.should == "c d e"
+			mo = Motif::new "do# sib la##"
+			mo.to_llp.should == "cis bes aisis"
+			iv_set(mo, :duration => 8)
+			mo.to_llp.should == "cis8 bes aisis"
+		end
+		
 		# :first_note
 		it "doit répondre à :first_note" do
 		  @m.should respond_to :first_note
@@ -145,19 +158,34 @@ describe Motif do
 			mo = Motif::new "c e g"
 		  mo.last_note.class.should == LINote
 		end
-		it ":last_note doit retourner une dernière note valide" do
-			[
-				["c d e", 3, "e", 3],			# Même octave
-				["a b c", 2, "c", 3],			# Suite mais octave suivante
-				["a c e", 3, "e", 4],			# Changement d'octave arpège
-				["<b d fis>", 1, "fis", 2],
-				["d <d fis a>8 r", 2, "a", 2],
-				["d <g bb d>4 r", 2, "d", 3]
-				# @note: des tests plus complets en testant first_et_last_note
-			].each do |d|
-				suite, octave_motif, last, octave_last = d
-				mot = Motif::new(:notes => suite, :octave => octave_motif)
-				last_note = mot.last_note
+		[
+			["c d e", 3, "e", 3],			# Même octave
+			["a b c", 2, "c", 3],			# Suite mais octave suivante
+			["a c e", 3, "e", 4],			# Changement d'octave arpège
+			["<b d fis>", 1, "fis", 2],
+			["d <d fis a>8 r", 2, "a", 2],
+			["d <g bb d>4 r", 2, "d", 3],
+			["d d, d,", 1, "d", -1],
+			["e e' e'", 2, "e", 4],
+			["d( <d, fis' aeses,,>8 gis')r", 2, "gis", 0],
+			['gis aeses', 3, 'aeses', 3]
+			# @note: des tests plus complets en testant first_et_last_note
+		].each do |d|
+			suite, octave_motif, last, octave_last = d
+			it ":last_note de « #{suite}»-oct:#{octave_motif} doit retourner #{last}-#{octave_last}" do
+				$DEBUG = false
+				begin
+					mot = Motif::new(:notes => suite, :octave => octave_motif)
+					last_note = mot.last_note
+					raise if last_note.octave != octave_last
+				rescue
+					if $DEBUG 
+						$DEBUG = false
+					else
+						$DEBUG = true
+						retry
+					end
+				end
 				last_note.with_alter.should == last
 				last_note.octave.should == octave_last
 				last_note.duration.should be_nil
@@ -181,12 +209,22 @@ describe Motif do
 			["r a( c <e g b d>) r r4", "a", 3, "d", 5]
 		].each do |d|
 			suite, firstexp, firstexp_oct, lastexp, lastexp_oct = d
-			$DEBUG = lastexp == "ces"
-			puts "\n\n$DEBUG ON" if $DEBUG
-			first, last = Motif::new(suite).first_et_last_note
-			texte = ":first_et_last_note avec motif «#{suite}» "
-			texte << "doit renvoyer la 1ère note «#{firstexp}-#{firstexp_oct}» "
-			texte << "et la dernière «#{lastexp}-#{lastexp_oct}»"
+			$DEBUG = false
+			begin
+				puts "\n\n$DEBUG ON" if $DEBUG
+				first, last = Motif::new(suite).first_et_last_note
+				texte = ":first_et_last_note avec motif «#{suite}» "
+				texte << "doit renvoyer la 1ère note «#{firstexp}-#{firstexp_oct}» "
+				texte << "et la dernière «#{lastexp}-#{lastexp_oct}»"
+				raise if first.octave != firstexp_oct || last.octave != lastexp_oct
+			rescue
+				if $DEBUG == true
+					$DEBUG = false
+				else
+					$DEBUG = true
+					retry
+				end
+			end
 			it texte do
 				first.class.			should == LINote
 				last.class.				should == LINote

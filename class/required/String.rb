@@ -88,6 +88,27 @@ class String
     end
   end
   
+  # Renvoie true si le self (qui doit être une note de "a" à "g") se
+  # trouve après +note+ (qui doit être seulement une note de "a" à
+  # "g") dans la gamme diatonique (qui commence à "c")
+  def after? note
+    LINote::GAMME_DIATONIQUE.index(self) \
+    > LINote::GAMME_DIATONIQUE.index(note)
+  end
+  
+  # =>  Return le nombre de demi-tons entre +note+ (une note avec 
+  #     altérations lilypond) et self (note avec altérations llp)
+  # 
+  # @note:  Le nombre est positif si self est au-dessus de +note+,
+  #         négatif dans le cas contraire.
+  def interval_with note
+    LINote::NOTE_STR_TO_INT[self] - LINote::NOTE_STR_TO_INT[note]
+  end
+  
+  # -------------------------------------------------------------------
+  #   Méthodes compensatrices
+  # -------------------------------------------------------------------
+  
   # Pour remplacer "*" modifiée ci-dessus
   def fois nombre
     t = ""
