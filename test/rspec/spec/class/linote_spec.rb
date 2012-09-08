@@ -29,6 +29,10 @@ describe LINote do
 			LINote::GAMME_CHROMATIQUE_BEMOLS.count.should == 12
 			LINote::GAMME_CHROMATIQUE_BEMOLS.should include 'des'
 		end
+		it "doit définir la constante GAMME_DIATONIQUE" do
+		  defined?(LINote::GAMME_DIATONIQUE).should be_true
+			LINote::GAMME_DIATONIQUE.should include "g"
+		end
     it "doit définir la constante NOTE_STR_TO_INT" do
       defined?(LINote::NOTE_STR_TO_INT).should be_true
     end
@@ -113,14 +117,14 @@ describe LINote do
 					comp		= data_comp[i_linote]
 					comp.each do |prop, val|
 						prop_value = linote.instance_variable_get("@#{prop}")
-						if prop_value != val
-							puts "Comparaison Linote et données ne matche pas (sur la propriété #{prop}):"
-							puts "Suite : #{notes}"
-							puts "Note d'indice : #{i_linote}"
-							puts "Linote: #{linote.inspect}"
-							puts "Data comparées : #{comp.inspect}"
-							prop_value.should == val
-						end
+						# if prop_value != val
+						# 	puts "Comparaison Linote et données ne matche pas (sur la propriété #{prop}):"
+						# 	puts "Suite : #{notes}"
+						# 	puts "Note d'indice : #{i_linote}"
+						# 	puts "Linote: #{linote.inspect}"
+						# 	puts "Data comparées : #{comp.inspect}"
+						# 	prop_value.should == val
+						# end
 					end
 				end
 				LINote::implode(liste_linotes).should == notes
@@ -559,6 +563,24 @@ describe LINote do
 			@ln.should_not be_rest
 			iv_set(@ln, :note => 'r')
 			@ln.should be_rest
+		end
+		
+		# :after?
+		it "doit répondre à :after?" do
+		  @ln.should respond_to :after?
+		end
+	  [
+			["c", "c", true],
+			["c", "d", true],
+			["cis", "c", true], 		# cas spécial
+			["ces", "bis", true]		# cas spécial
+		].each do |d|
+			suite1, suite2, expected = d
+			it "#{suite1} :after? #{suite2} doit renvoyer #{expected}" do
+				ln1 = LINote::new suite1
+				ln2 = LINote::new suite2
+				ln2.after?( ln1 ).should === expected
+			end
 		end
 		
 		# :index

@@ -171,7 +171,7 @@ class Motif < NoteClass
       fatal_error(:unable_to_find_first_note_motif, :notes => @notes ) \
         if res.nil? || res.first.nil?
       note = res.first.first
-      LINote::new note, :octave => @octave
+      LINote::new :note => note, :octave => @octave
     }.call
   end
   # => Return la dernière note (donc pas un silence) du motif
@@ -197,6 +197,8 @@ class Motif < NoteClass
           # comment savoir à quelle hauteur sera le dernier do de :
           # "c e g c e g c e g" sans calculer note à note ?
           LINote::set_octave_last_linote current_note, linote
+        else
+          linote.instance_variable_set("@octave", octave)
         end
         current_note = linote
       end

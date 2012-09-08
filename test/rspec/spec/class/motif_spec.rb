@@ -167,29 +167,35 @@ describe Motif do
 		it "doit répondre à :first_et_last_note" do
 		  @m.should respond_to :first_et_last_note
 		end
-		it ":first_et_last_note doit retourner la bonne valeur" do
-			[
-				["c d e", "c", 3, "e", 3],
-				["g a b", "g", 3, "b", 3],
-				["b c d", "b", 3, "d", 4],
-				["r c d e r", "c", 3, "e", 3],
-				["r g a b r", "g", 3, "b", 3],
-				["r b c d r", "b", 3, "d", 4],
-				["c <c e g>", "c", 3, "g", 3],
-				["c <e g c>", "c", 3, "c", 4],
-				["r r aes b c", "aes", 3, "c", 4],
-				["r a( b ces r)", "a", 3, "ces", 4],
-				["r a( c <e g b d>) r r4", "a", 3, "d", 5]
-			].each do |d|
-				suite, firstexp, firstexp_oct, lastexp, lastexp_oct = d
-				first, last = Motif::new(suite).first_et_last_note
-				first.class.should == LINote
-				last.class.should == LINote
-				first.with_alter.should == firstexp
-				last.with_alter.should  == lastexp
-				first.octave.should == firstexp_oct
-				last.octave.should == lastexp_oct
+		[
+			["c d e", "c", 3, "e", 3],
+			["g a b", "g", 3, "b", 3],
+			["b c d", "b", 3, "d", 4],
+			["r c d e r", "c", 3, "e", 3],
+			["r g a b r", "g", 3, "b", 3],
+			["r b c d r", "b", 3, "d", 4],
+			["c <c e g>", "c", 3, "g", 3],
+			["c <e g c>", "c", 3, "c", 4],
+			["r r aes b c", "aes", 3, "c", 4],
+			["r a( b ces r)", "a", 3, "ces", 4],
+			["r a( c <e g b d>) r r4", "a", 3, "d", 5]
+		].each do |d|
+			suite, firstexp, firstexp_oct, lastexp, lastexp_oct = d
+			$DEBUG = lastexp == "ces"
+			puts "\n\n$DEBUG ON" if $DEBUG
+			first, last = Motif::new(suite).first_et_last_note
+			texte = ":first_et_last_note avec motif «#{suite}» "
+			texte << "doit renvoyer la 1ère note «#{firstexp}-#{firstexp_oct}» "
+			texte << "et la dernière «#{lastexp}-#{lastexp_oct}»"
+			it texte do
+				first.class.			should == LINote
+				last.class.				should == LINote
+				first.with_alter.	should == firstexp
+				last.with_alter.	should == lastexp
+				first.octave.			should == firstexp_oct
+				last.octave.			should == lastexp_oct
 			end
+			$DEBUG = false if $DEBUG
 		end
 		
 		# :change_durees_in_motif

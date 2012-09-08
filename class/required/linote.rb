@@ -40,6 +40,8 @@ class LINote
     # La gamme chromatique (seulement bémols)
     GAMME_CHROMATIQUE_BEMOLS = 
       ["c", "des", "d", "ees", "e", "f", "ges", "g", "aes", "a", "bes", "b"]
+    # La gamme diatonique
+    GAMME_DIATONIQUE = ["c", "d", "e", "f", "g", "a", "b"]
     
     # Table de correspondance entre la note en string ("g") et la valeur
     # entière
@@ -129,7 +131,7 @@ class LINote
         -                 # Délimité par un moins
         [.^_-]            # Les signes qu’on peut trouver
       )?
-      ([\(\)>])?          # post - ce qui peut se trouver après la note
+      (>?[\(\)]?)?         # post - ce qui peut se trouver après la note
       ([0-9.]{1,4})?      # Durée post éventuelle - après accord p.e.
       $
       }x
@@ -243,8 +245,8 @@ class LINote
     Liby::raise_unless_motif motif1, motif2
     
     # = débug =
-    # if false
-    if true
+    if false
+    # if true
       puts "\nLast note de #{motif1.inspect} : #{motif1.last_note.inspect}"
       puts "First note de #{motif2.inspect} : #{motif2.first_note.inspect}"
     end
@@ -362,36 +364,41 @@ class LINote
   # 
   def self.set_octave_last_linote linote1, linote2
     
+    oui = $DEBUG === true
+    
     # Conformité du type des arguments
     Liby::raise_unless_linote linote1, linote2
     
-    # str1 = "#{linote1.it}#{octave_as_llp(linote1.octave)}" # p.e. "c,,"
-    # str2 = "#{linote2.it}#{octave_as_llp(linote2.octave)}" # p.e. "c''"
+    if oui
+      puts "linote 1: #{linote1.inspect}"
+      puts "linote 2: #{linote2.inspect}"
+    end
     
     # Octave de départ
     octave = linote1.octave
     
-    # Y a-t-il changement d'octave par la valeur de la note ?
-    #  c b => oui (-1)
-    #  c a => oui (-1)
-    #  c g => oui (-1)
-    #  c fis  => non
-    #  c e    => non
-    #  c d    => non
-    #  c c    => non
-    #  a b    => non
-    #  a c    => oui + 1 (alors que l'intervalle est de 3 seulement)
-    #  a d    => oui + 1 (alors que l'intervalle est de 5 seulement)
-    #  a e    => non (e sera pris inférieur)
+    puts "octave linote 1: #{octave}" if oui
     
     # Index dans la gamme chromatique
     # --------------------------------
     index_note1 = linote1.index
     index_note2 = linote2.index
 
+    if oui
+      puts "Index note 1: #{index_note1}"
+      puts "Index note 2: #{index_note2}"
+    end
+
     # Placement de la note
     # ---------------------
-    note2_is_after_note1 = index_note2 >= index_note1
+    # Il faut tenir compte du cas de la note Si# et la note Dob. Si#
+    # renvoie l'index 0 (=Do) et Dob renvoie l'index 11 (=Si), ce qui
+    # inverse la position des notes.
+    note2_is_after_note1 = linote2.after? linote1    
+    
+    if oui
+      puts "Note 2 après note 1 ? #{note2_is_after_note1 ? 'oui' : 'non'}"
+    end
     
     # Différence d'index
     # ------------------
@@ -399,23 +406,31 @@ class LINote
     # elle est placée avant.
     diff_absolue = (index_note2 - index_note1).abs
     
+    puts "Différence absolue : #{diff_absolue}" if oui
+    
     # Si la différence absolue est < 7 et que la note 2 est après,
     # alors il n'y a pas changement d'octave. Dans tous les autres cas
     # il a changement d'octave, on monte si la note 2 est avant (comme
     # dans "a c"), on descend si la note 2 est après
     if diff_absolue < 7 && note2_is_after_note1
+      puts "L'octave reste la même" if oui
       octave = octave # pour la clarté
     else
       octave += note2_is_after_note1 ? -1 : 1
+      puts "L'octave devient : #{octave}" if oui
     end
     
     # Le delta d'octave de linote2 if any
     # P.e., si linote2 est "a,,", retourne -2, si linote2 est "c''",
     # retourne 2
     octave = octave + octaves_from_llp(linote2.octave_llp)
+    puts "Octave après delta de la note : #{octave}" if oui
     
     # puts "@OCTAVE EST MIS À #{octave}"
     linote2.instance_variable_set("@octave", octave)
+    
+    puts "Octave de linote 2 : #{linote2.octave}" if oui
+    
     linote2
   end
   # =>  Return la valeur string de la note en fonction du +context+
@@ -653,6 +668,18 @@ class LINote
   # => Return true si la LINote est un silence
   def rest?
     @note == "r"
+  end
+  
+  # Return true si la note courante est après la li-note +ninote+
+  # ATTENTION : il ne s'agit pas du *son* mais seulement du *nom* de
+  # la note dans la gamme diatonique. Ici, Mi#.after? Fab # renverra
+  # false alors que Mi# est pourtant après Fab pour la même octave donné
+  # 
+  # @return true/false ou nil si l'une des @note n'est pas définie
+  def after? linote
+    return nil if @note.nil? || linote.note.nil?
+    return     GAMME_DIATONIQUE.index(self.note)   \
+            >= GAMME_DIATONIQUE.index(linote.note)
   end
   
   # =>  Return l'index (Fixnum) absolu de la note dans la gamme 
