@@ -9,6 +9,10 @@
 require 'noteclass'
 class Chord < NoteClass
   
+  require 'module/operations.rb' # normalement, toujours chargé
+  include OperationsSurNotes
+    # Définit +, * et []
+  
   # -------------------------------------------------------------------
   #   Instance
   # -------------------------------------------------------------------
@@ -79,43 +83,4 @@ class Chord < NoteClass
   #   
   # end
 
-  # => Retourne une nouvelle instance de l'accord (sauf si :new => false)
-  #     avec les données définies dans les +params+
-  # 
-  # Pour la valeur de +params+ cf. `params_crochet_to_hash'
-  # 
-  # @return : la nouvelle instance créée ou self si :new => false
-  # 
-  # @todo: mettre ça dans le module operations MAIS ATTENTION :
-  #         ci-dessous, on utilise self, qui doit pouvoir être interprété
-  #         par toutes les classes de note (Note, Motif, Chord) pour
-  #         prendre ses paramètres
-  #         ATTENTION : VOIR SI [] NE DOIT PAS ÊTRE RÉSERVÉ À L'AUTRE
-  #         UTILISATION QUE J'EN FAIS (MOTIF ?)
-  def []( *params)
-
-    param1 = params[0]  # peut être nil
-    param2 = params[1]  # peut être nil
-    
-    # Nouvelle instance (défaut) ou self
-    if param1.class == Hash && param1.has_key?(:new) && param1[:new]
-      new_inst = self
-    else
-      new_inst = self.class::new self
-    end
-    
-    # Analyse paramètres entre crochets
-    # ----------------------------------
-    # @note: gère toutes les erreurs possibles
-    params = self.class::params_crochet_to_hash params
-    
-    # Affectation des valeurs
-    params.each do |property, value|
-      new_inst.instance_variable_set("@#{property}", value)
-    end
-    
-    # On retourne la nouvelle instance (ou self if any)
-    new_inst
-  end
-  
 end

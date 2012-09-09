@@ -80,4 +80,46 @@ module OperationsSurNotes
     
   end
   
+  # =>  Retourne une nouvelle instance de l'objet (sauf si :new => false)
+  #     avec les données définies dans les +params+
+  #     S'utilise couramment pour définir la durée (en string) et
+  #     l'octave. Par exemple :
+  #       Soit le motif mo1
+  #       mo1[4, "8."] va retourner un clone du motif, où l'octave est
+  #       mis à 4 et la durée à 8.
+  # 
+  # @return : la nouvelle instance créée ou self si :new => false
+  # 
+  # @param  *params   cf. `params_crochet_to_hash'
+  # 
+  # @note: pour pouvoir fonctionner
+  def []( *params)
+
+    param1 = params[0]  # peut être nil
+    param2 = params[1]  # peut être nil
+    
+    # Nouvelle instance (défaut) ou self
+    if param1.class == Hash && param1.has_key?(:new) && param1[:new]
+      new_inst = self
+    else
+      # new_inst = self.class::new self
+      # J'essaie avec ça pour que ça fonctionne avec n'importe quel
+      # classe d'objet.
+      new_inst = self.clone
+    end
+    
+    # Analyse paramètres entre crochets
+    # ----------------------------------
+    # @note: gère toutes les erreurs possibles
+    params = self.class::params_crochet_to_hash params
+    
+    # Affectation des valeurs
+    params.each do |property, value|
+      new_inst.instance_variable_set("@#{property}", value)
+    end
+    
+    # On retourne la nouvelle instance (ou self if any)
+    new_inst
+  end
+  
 end
