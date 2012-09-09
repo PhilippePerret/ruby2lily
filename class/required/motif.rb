@@ -6,6 +6,10 @@ require 'noteclass'
 
 class Motif < NoteClass
   
+  require 'module/operations.rb' # normalement, toujours chargé
+  include OperationsSurNotes
+    # Définit +, * et []
+  
   # -------------------------------------------------------------------
   #   Instance
   # -------------------------------------------------------------------
@@ -286,15 +290,7 @@ class Motif < NoteClass
   def mark_relative ajout = 0
     "\\relative #{LINote::mark_octave( octave + ajout )}"
   end
-  
-  # -------------------------------------------------------------------
-  #   Opérations sur motif
-  # -------------------------------------------------------------------
-
-  require 'module/operations.rb' # normalement, toujours chargé
-  include OperationsSurNotes
-    # Définit +, * et []
-  
+    
   # -------------------------------------------------------------------
   #   Méthodes de transformation du motif tonal/modal
   # -------------------------------------------------------------------

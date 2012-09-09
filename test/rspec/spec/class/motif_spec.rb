@@ -76,9 +76,13 @@ describe Motif do
 				err = detemp(Liby::ERRORS[:invalid_arguments_pour_motif], :args => args.inspect)
 				expect{@m.set_with_hash(args)}.to raise_error(SystemExit, err)
 			end
+			# Pas un hash mais un string
 			expected_error_with "string"
+			# Hash vide
 			expected_error_with( {} )
+			# Note invalide
 			expected_error_with( :notes => "h-^")
+			# Mauvaise erreur
 			expected_error_with( :notes => "c d e", :duration => 15)
 		end
 		
