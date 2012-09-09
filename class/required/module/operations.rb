@@ -51,22 +51,32 @@ module OperationsSurNotes
   #                         c'est un motif qui est multiplié.
   # @note   +self+ sera transformé en motif pour être multiplié
   # 
+  # @principe : deux motifs sont issus de l'opération : le premier,
+  #             normal et le second, qui doit contenir le delta d'octave
+  #             par rapport au premier, pour que :
+  #             "c e g" * 3 donne "c e g c, e g c, e g"
+  # 
   def * nombre_fois, params = nil
     
-    if self.class == Motif
-      motif = self
-      as_nouveau_motif = true
-    else
-      motif = self.as_motif
-      as_nouveau_motif = false
-    end
+    motif = if self.class == Motif
+            as_new_motif = true
+            self
+          else
+            as_new_motif = false
+            self.as_motif
+          end
     
+    # On fait un double motif pour voir comment sera altéré le second
+    double_motif = motif + motif
+    # La suite du motif
+    suite_motif = motif.to_llp
+    suite_double_motif = double_motif.to_llp
+    motif_suivant = suite_double_motif.sub(/#{suite_motif} /, '')
+    # On procède à la multiplication
+    motif_final = suite_motif.plus(" #{motif_suivant}".x(nombre_fois - 1))
+    # On construit ou on modifie le motif
     motif.change_objet_ou_new_instance(
-      "#{motif.notes} ".x(nombre_fois).strip,
-      params,
-      as_nouveau_motif
-    )
-    # "#{mark_relative} { #{@notes} } ".x(nombre_fois).strip
+      motif_final, params, as_new_motif)
     
   end
   

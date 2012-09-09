@@ -167,7 +167,8 @@ describe Motif do
 			["d <g bb d>4 r", 2, "d", 3],
 			["d d, d,", 1, "d", -1],
 			["e e' e'", 2, "e", 4],
-			["d( <d, fis' aeses,,>8 gis')r", 2, "gis", 0],
+			["d( <d, fis' aeses,,>8 gis')r", 2, "gis", 1],
+			#  d-2, d-1, fis-2, aeses-0, gis-1
 			['gis aeses', 3, 'aeses', 3]
 			# @note: des tests plus complets en testant first_et_last_note
 		].each do |d|
@@ -186,9 +187,8 @@ describe Motif do
 						retry
 					end
 				end
-				last_note.with_alter.should == last
+				last_note.with_alter.should 	== last
 				last_note.octave.should == octave_last
-				last_note.duration.should be_nil
 			end
 		end
 		# :first_et_last_note

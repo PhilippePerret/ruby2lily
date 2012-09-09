@@ -21,7 +21,7 @@ describe "Multiplication" do
       mot = Motif::new "a c e"
 			res = mot * 2
 			res.class.should == Motif
-			res.notes.should == "a c e a, c e a, c e"
+			res.notes.should == "a c e a, c e"
 			res.duration.should be_nil
 			res.octave.should == 3
     end
@@ -38,7 +38,7 @@ describe "Multiplication" do
 	#  Mutliplication de String
 	# -------------------------------------------------------------------
 	describe "de String" do
-	  it "doit retourner la bonne valeur quand x 2" do
+	  it "doit retourner la bonne valeur quand * 2" do
 	  	res = "a" * 2
 			res.class.should == Motif
 			res.notes.should == "a a"
@@ -50,8 +50,9 @@ describe "Multiplication" do
 			res.notes.should == "b d fis b, d fis b, d fis"
 			res.to_s.should  == "\\relative c''' { b d fis b, d fis b, d fis }"
 		end
-		it "doit produire une erreur si le string est mauvais" do
-			expect{("str" * 2)}.to raise_error(SystemExit)
+		it "doit faire une multiplication simple si ce n'est pas un motif lilypond" do
+			("str" * 2).should == "strstr"
+			("-^ 8." * 2).should == "-^ 8.-^ 8."
 		end
 	end
 	# -------------------------------------------------------------------

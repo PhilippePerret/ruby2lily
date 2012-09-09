@@ -19,6 +19,6 @@ def orchestre
 end
 
 def score
-  GIT1.add "fis c <a c e>8 c8( b c d c b)"
+  GIT1.add "b f c fis fis c gis' d<a c e>8 c8( b c d c b)"
   GIT1.add "a( g f e f g)"
 end

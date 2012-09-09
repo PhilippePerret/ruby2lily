@@ -46,18 +46,18 @@ class LINote
     # Table de correspondance entre la note en string ("g") et la valeur
     # entière
     NOTE_STR_TO_INT = {
-      "deses" => 0, "bis"   => 0, "c"   => 0,
-      "cis"   => 1,               "des" => 1, 
-      "eeses" => 2, "cisis" => 2, "d"   => 2,
-      "dis"   => 3, "feses" => 3, "ees" => 3,
-      "disis" => 4, "fes"   => 4, "e"   => 4,
-      "eis"   => 5, "geses" => 5, "f"   => 5,
-      "ges"   => 6,               "fis" => 6,
-      "fisis" => 7, "aeses" => 7, "g"   => 7, 
-      "gis"   => 8,               "aes" => 8,
-      "gisis" => 9, "beses" => 9, "a"   => 9,
-      "ais"   => 10,              "bes" => 10,
-      "aisis" => 11, "ces"  => 11, "b"  => 11
+      "deses" => 0,   "bis"   => 0,   "c"   => 0,
+      "cis"   => 1,   "bisis" => 1,   "des" => 1, 
+      "eeses" => 2,   "cisis" => 2,   "d"   => 2,
+      "dis"   => 3,   "feses" => 3,   "ees" => 3,
+      "disis" => 4,   "fes"   => 4,   "e"   => 4,
+      "eis"   => 5,   "geses" => 5,   "f"   => 5,
+      "ges"   => 6,   "eisis" => 6,   "fis" => 6,
+      "fisis" => 7,   "aeses" => 7,   "g"   => 7, 
+      "gis"   => 8,                   "aes" => 8,
+      "gisis" => 9,   "beses" => 9,   "a"   => 9,
+      "ais"   => 10,  "ceses" => 10,  "bes" => 10,
+      "aisis" => 11,  "ces"   => 11,  "b"  => 11
     }
     NOTE_INT_TO_STR = {
       0   => {:natural => "c",    :tonal => {'is' => 'bis', 'es' => 'deses'} },
@@ -121,19 +121,17 @@ class LINote
     # Expression régulière permettant d'exploder les notes
     # de la suite de notes LilyPond fournie
     REG_NOTE_COMPLEXE = %r{
-      ^
       ([<])?              # Texte préliminaire éventuel
       ([a-gr])            # La note ou le silence
       (isis|eses|is|es)?  # Altération éventuelle
       ([',]+)?            # Octaves éventuels
-      ([0-9.]{1,4})?      # Durée éventuelle
+      ([0-9]{1,4}\.?)?      # Durée éventuelle
       (                   # Notes de jeu ou de doigté
         -                 # Délimité par un moins
         [.^_-]            # Les signes qu’on peut trouver
       )?
       (>?[\(\)]?)?         # post - ce qui peut se trouver après la note
       ([0-9.]{1,4})?      # Durée post éventuelle - après accord p.e.
-      $
       }x
     
   end # / si constantes déjà définies (tests)
@@ -159,7 +157,7 @@ class LINote
                       :good => "String ou Motif", :bad => str.class.to_s)
     end
     ary_str.each do |membre|
-      membre.scan(REG_NOTE_COMPLEXE){
+      membre.scan(/^#{REG_NOTE_COMPLEXE}$/){
         tout, pre, note, alter, octave, duree, jeu, post, duree_post = 
           [$&, $1, $2, $3, $4, $5, $6, $7, $8]
           
@@ -296,63 +294,7 @@ class LINote
     
   end
     
-  # =>  Retourner l'octave de la deuxième LINote par rapport à la 
-  #     première.
-  # 
-  # @param  linote1   La note de référence (class LINote)
-  # @param  linote2   La note à octavier (class LINote)
-  # 
-  # @return linote2 avec le bon octave spécifié
-  # 
-  def self.set_octave_last_linote linote1, linote2
-    
-    # Exemple donné avec "fis" octave 2 et "c"
-    
-    # Conformité du type des arguments
-    Liby::raise_unless_linote linote1, linote2
-    
-    # Octave de départ
-    octave = linote1.octave               # Ex: 2
-    
-    # Index dans la gamme chromatique
-    # --------------------------------
-    index_note1 = linote1.index           # Ex: 7 (fa#)
-    index_note2 = linote2.index           # Ex: 0 (do)
 
-    # Placement de la note
-    # ---------------------
-    # Il faut tenir compte du cas de la note Si# et la note Dob. Si#
-    # renvoie l'index 0 (=Do) et Dob renvoie l'index 11 (=Si), ce qui
-    # inverse la position des notes.
-    note2_is_after_note1 = linote2.after? linote1   # Ex: false
-    
-    # Différence d'index
-    # ------------------
-    # S'il est positif, c'est que la note est placé après, sinon,
-    # elle est placée avant.
-    diff_absolue = (index_note2 - index_note1).abs  # Ex: 7
-        
-    # Si la différence absolue est < 7 et que la note 2 est après,
-    # alors il n'y a pas changement d'octave. Dans tous les autres cas
-    # il a changement d'octave, on monte si la note 2 est avant (comme
-    # dans "a c"), on descend si la note 2 est après
-    if  diff_absolue < 7 && note2_is_after_note1
-      octave = octave # pour la clarté
-    elsif diff_absolue < 13 && !note2_is_after_note1
-      octave = octave # pour la clarté
-    else
-      octave += note2_is_after_note1 ? -1 : 1
-    end
-    
-    # Le delta d'octave de linote2 if any
-    # P.e., si linote2 est "a,,", retourne -2, si linote2 est "c''",
-    # retourne 2
-    octave = octave + octaves_from_llp(linote2.octave_llp)
-
-    linote2.instance_variable_set("@octave", octave)
-    
-    linote2
-  end
   # =>  Return la valeur string de la note en fonction du +context+
   #     soumis.
   # @param note_int La note, exprimée en entier.
@@ -573,7 +515,7 @@ class LINote
   end
   
   # => Return la linote sous forme d'instance de Note
-  # @TODO: SUPPRIMER CETTE MÉTHODES QUAND LA CLASSE Note SERA SUPPRIMÉE,
+  # @TODO: SUPPRIMER CETTE MÉTHODE QUAND LA CLASSE Note SERA SUPPRIMÉE,
   # SI ELLE L'EST UN JOUR.
   def as_note
     Note::new @note, :octave => octave, :duration => @duration, :alter => @alter

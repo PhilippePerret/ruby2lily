@@ -90,11 +90,7 @@ class NoteClass
         case param1.class.to_s
         when "Hash" # Envoi des paramètres par un hash
           hash  = param1
-          duree = if hash.has_key? :duree
-                    hash.delete(:duree)
-                  elsif hash.has_key? :duration
-                    hash[:duration]
-                  end
+          hash[:duration] = hash.delete(:duree) if hash.has_key? :duree
         when "String" # => Durée
           duree   = param1    unless param1.nil?
         when "Fixnum" # => Octave
@@ -129,14 +125,17 @@ class NoteClass
     
     if hash.nil?
       hash = {}
-      hash = hash.merge(:duration => duree.to_s)  unless duree.nil?
-      hash = hash.merge(:octave   => octave)      unless octave.nil?
+      hash = hash.merge(:duration => duree)   unless duree.nil?
+      hash = hash.merge(:octave   => octave)  unless octave.nil?
     end
     
+    
     # Dernière vérification sur la validité de la durée
-    if  hash.has_key?(:duration) \
-        && !NoteClass::DUREES.has_key?(hash[:duration])
-      fatal_error(:bad_value_duree, :bad => hash[:duration])
+    if hash.has_key?(:duration)
+      hash[:duration] = hash[:duration].to_s
+      if !NoteClass::DUREES.has_key?(hash[:duration])
+        fatal_error(:bad_value_duree, :bad => hash[:duration])
+      end
     end
     
     return hash

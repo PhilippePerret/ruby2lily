@@ -32,13 +32,11 @@ describe "Addition à String" do
 			res.notes.should == "a b"
 			res = "a" + "bb" + "dois" + "la#"
 			res.class.should == Motif
-			res.notes.should == "a bes cis ais"
+			res.notes.should == "a bes cis, ais'"
 			res = "a'" + "bb"
 			res.class.should == Motif
-			res.notes.should == "a bes"
-			res.octave.should == 3			# l'apostrophe est un delta, il doit
-																	# être oublié quand il est en premier
-																	# argument
+			res.notes.should == "a bes,"
+			res.octave.should == 4
     end
   end
 	describe "String + Note" do
@@ -62,7 +60,7 @@ describe "Addition à Note" do
 		  n = Note::new "c"
 			res = (n + "a'")
 			res.class.should == Motif
-			res.to_s.should == "\\relative c''' { c a' }"
+			res.to_s.should == "\\relative c''' { c a'' }"
 		end
 		it "autre tests Notes + String" do
 		  pending "à implémenter"
@@ -151,14 +149,14 @@ describe "Addition et Chord" do
     end
 		it "doit réussir avec un accord dont on change l'octave et la durée" do
 		  lam = Chord::new "a c e"
-			str = "c'"
-			res = lam[2,"8"] + str
+			str = "c'" # donc à l'octave 4
+			res = lam[2,"8"] + str # donc à l'octave 2
 			res.class.should == Motif
-			res.to_s.should == "\\relative c'' { <a c e>8 c'' }"
+			res.to_s.should == "\\relative c'' { <a c e>8 c' }"
 			
 			res = lam[blanche, -2] + str
 			res.class.should == Motif
-			res.to_s.should == "\\relative c,, { <a c e>2 c'''''' }"
+			res.to_s.should == "\\relative c,, { <a c e>2 c''''' }"
 		end
   end
 	describe "Chord + Note" do

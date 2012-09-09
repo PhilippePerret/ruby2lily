@@ -49,22 +49,42 @@ class String
     end
   end
   
-  # => Retourne la note String sous forme de Motif
+  # => Retourne la suite +self+ sous forme de Motif
   # 
   # @note : les italiennes est les altérations #/b sont traités par
   # la méthode LINote::to_llp
+  # 
+  # @note   Self peut être une suite, pas seulement une note seule
   # 
   # @note : les octaves, dans les strings, peuvent être stipulés à
   # l'aide d'apostrophes et de dièses. En sachant que ce sont des deltas
   # et pas des valeurs absolues, et ces deltas se calculent à partir de
   # c'''. Donc "a'" signifiera a-4e octave.
   def as_motif
-    dlt_octaves = LINote::octaves_from_llp self
-    notes = self.gsub(/[',]/, '')
-    data = { :notes => LINote::to_llp( notes ) }
-    data = data.merge(:octave => 3 + dlt_octaves ) if dlt_octaves != 0
+    # On traduit en lilypond (italiennes et altérations)
+    suite_llp = LINote::to_llp( self )
+    exploded  = LINote::explode( suite_llp )
+    data = {:notes => [], :duration => nil, :octave => nil}
+    first_note_traited = false
+    exploded.each do |linote|
+      unless first_note_traited
+        data[:duration] = linote.duration
+        data[:notes]    << linote.with_alter
+        octave = linote.octave
+        data[:octave]   = octave unless octave == 3
+        first_note_traited = true
+      else
+        data[:notes] << 
+          "#{linote.with_alter}#{linote.octave_llp}#{linote.duration}"
+      end
+    end 
+    data[:notes] = data[:notes].join(' ')
+    # On retourne le motif
     Motif::new( data )
   end
+  
+  
+  
   # => Multiplie la note ou le groupe de notes string
   # 
   # @usage      <notes> = "<note/notes>" * <nombre>
@@ -78,14 +98,171 @@ class String
   #         "\\relative c'' { a b c } \\relative c'' { a b c }"
   # @todo: String#* doit être supprimé car ajouté et traité par OperationsSurNotes
   def *( nombre )
-    is_simple_note = self.match(/ /).nil?
-    if is_simple_note
-      t = ""
-      nombre.times { |i| t  << "#{self} " }
-      t.strip
-    else
+    if self.is_lilypond?
+      # Multiplication pour une suite de notes LilyPond
       Motif::new( self ) * nombre
+    else
+      # Multiplication conventionnelle
+      self.x nombre
     end
+  end
+  
+  # =>  Retourne la distance de la note à ut
+  def dut
+    @dut ||= lambda {
+      LINote::NOTE_STR_TO_INT[note_with_alter]
+    }.call
+  end
+  
+  # => Retourne true si +self+ peut être un motif LilyPond
+  def is_lilypond?
+    # tested = self.gsub(/(#{LINote::REG_NOTE_COMPLEXE}| )/, '')
+    # puts "\nSelf = '#{self}'"
+    # puts "Reste = '#{tested}'"
+    self.gsub(/(#{LINote::REG_NOTE_COMPLEXE}| )/, '') == ""
+  end 
+  
+  # =>  Retourne la note avec son altération
+  #     Ex: si self = "<fisis8-^", retourne "fisis"
+  def note_with_alter
+    @note_with_alter ||= lambda {
+      res = self.scan(/([a-g](eses|isis|es|is)?)/)
+      return nil if res.nil? || res.first.nil?
+      res.first.first
+    }.call
+  end
+  
+  # =>  Retourne la distance de la note à do, en montant ou en descendant
+  #     suivant la valeur de +en_montant+
+  # 
+  def distance_to_do en_montant = true
+    note = note_with_alter
+    # return en_montant ? 12 : 0 if note == "c"
+    dtd = LINote::NOTE_STR_TO_INT[note]
+    dtd = 12 - dtd if en_montant
+    dtd
+  end
+  
+  
+  # => Retourne la note la plus proche de self, soit la +note+ supérieure
+  #    soit la note inférieure, pour l'octave donné 
+  # 
+  # @param    note      La note qu'il faut trouver
+  # @param    octave    Octave de self. Si nil, on renvoie la note
+  #                     par rapport à 3
+  # 
+  # @return   Un hash contenant 
+  #             :note     La note, avec altérations
+  #             :octave   Son octave
+  #             :sup      true si la note est supérieure à self
+  # 
+  # 
+  def closest note, octave = nil                                          # "fis d"   "a d"     "c3 fis"    "fis c"     "gis d"
+    
+    # Le delta d'octave de la +note+
+    # -------------------------------
+    delta_note = LINote::octaves_from_llp note
+    delta_self = LINote::octaves_from_llp self
+
+    # Retrait des marques d'octave des membres à étudier
+    note = note.gsub(/[',]/, '')
+    self_sans_delta = self.gsub(/[',]/, '')
+    
+    # L'octave réel, en tenant du delta d'octave du self
+    octave ||= 3
+    octave += delta_self
+    
+    # Le delta qu'il faudra ajouter à toutes les octaves
+    delta_octaves = delta_note - delta_self
+
+    # Cas piège que je n'ai pas réussi à rationnaliser :
+    # Quand la première note est un b au-dessus d'un c avec une
+    # altération qui fait passer le b au-dessus (ou égal) au do, 
+    # comme par exemple dans :
+    # "bis c", "bis ces"
+    if self_sans_delta[0..0] == "b" && note[0..0] == "c"
+      octave_note = octave + 1 + delta_octaves
+      sup =   Note::valeur_absolue(self_sans_delta, octave) \
+            <= Note::valeur_absolue( note, octave_note)
+      return {:note => note, :octave => octave_note, :sup => sup}
+    end
+    
+    # Cas simple où les deux notes sont identiques
+    if self_sans_delta[0..0] == note[0..0]
+      octave_note = octave + delta_octaves
+      sup = Note::valeur_absolue(self_sans_delta, octave) \
+            <= Note::valeur_absolue(note, octave_note)
+      return {:note => note, :octave => octave_note, :sup => sup}
+    end
+    
+    # "DUT" des deux notes
+    # ---------------------
+    # C'est-à-dire la distance de leur note par rapport à do sur la
+    # gamme chromatique
+    # dut_self = self_sans_delta.dut                                                 # fis = 6   a = 9     c3  => 0    fis => 6    8
+    # dut_note = note.dut                                                 # d = 2     d = 2     fis => 6    c => 0      2
+    
+    # La note est-elle avant self ?
+    # -----------------------------
+    # Il s'agit ici d'une estimation dans l'absolu, sans tenir compte
+    # ni de l'octave ni du comportement de LilyPond par rapport aux
+    # notes.
+    note_is_avant_self = note.dut < self_sans_delta.dut                              # OUI       OUI       NON         OUI         OUI
+    
+    # On calcule le dut de la deuxième note possible
+    dut_other_note = note.dut + (note_is_avant_self ? 12 : -12)           # 14        14        -6          12          14
+    
+    # Dut de la note sous self et de la note au-dessus de self. Une de
+    # ces deux notes sera choisie comme note finale.
+    dut_note_up   = [note.dut, dut_other_note].max                       # 14          6          12          14
+    dut_note_down = [note.dut, dut_other_note].min                       # 2           -6         0           2
+    
+    # Une vérification de routine
+    unless dut_note_up - dut_note_down == 12
+      fatal_error "Mauvaise valeur de calcul obtenu dans String#closest…"
+    end
+    
+    # Distances des deux notes par rapport à self
+    # --------------------------------------------
+    dist_to_up   = dut_note_up - self_sans_delta.dut                                 # 8         6           6           6
+    dist_to_down = self_sans_delta.dut - dut_note_down                               # 4         6           6           6
+        
+    # Le Hash de la note qui sera renvoyé
+    # ------------------------------------
+    # Par défaut, on met l'octave à l'octave courante
+    hash_note = {:note => note, :sup => nil, :octave => octave + delta_octaves}
+    
+    # Est-ce qu'on monte ou est-ce qu'on descend ? 
+    # ---------------------------------------------
+    # Le principe est qu'on va toujours à la note la plus proche et que
+    # is les deux distances sont égales, on va vers la note de la même 
+    # octave.
+    if dist_to_up == dist_to_down
+      # L'octave reste forcément la même dans ce cas
+    else
+      en_montant      = dist_to_up < dist_to_down
+      # Est-ce qu'on franchit une octave
+      # --------------------------------
+      # On le détermine en calculant la distance de self par rapport au
+      # do le plus proche et en voyant si cette distance est strictement
+      # supérieure à la distance à la note (pas de changement d'octave)
+      dist_to_do = self_sans_delta.distance_to_do( en_montant )
+      # Distance la plus courte
+      shortest_dist = [dist_to_up, dist_to_down].min
+      if dist_to_do <= shortest_dist
+        # => Changement d'octave
+        hash_note[:octave] += en_montant ? 1 : -1
+      end
+    end
+
+    # Est-ce que ça monte ou ça descend ?
+    # 
+    self_absolue = Note::valeur_absolue(self_sans_delta, octave)
+    note_absolue = Note::valeur_absolue(hash_note[:note], hash_note[:octave])
+    hash_note[:sup] = note_absolue >= self_absolue
+    
+    # On retourne le hash de la note
+    hash_note
   end
   
   # Renvoie true si le self (qui doit être une note de "a" à "g") se

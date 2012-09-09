@@ -172,10 +172,9 @@ class Motif < NoteClass
   def first_note
     return nil if @notes.nil?
     @first_note ||= lambda {
-      res = @notes.scan(/([a-g](eses|isis|es|is)?)/)
+      note = @notes.note_with_alter # retourne seulement la première
       fatal_error(:unable_to_find_first_note_motif, :notes => @notes ) \
-        if res.nil? || res.first.nil?
-      note = res.first.first
+        if note.nil?
       LINote::new :note => note, :octave => @octave
     }.call
   end
@@ -191,15 +190,18 @@ class Motif < NoteClass
     return nil if @notes.nil?
     @last_note ||= lambda {
       
-    oui = $DEBUG === true
+    oui = false # $DEBUG === true
+    
     puts "\n\n=== DÉBUG ===" if oui
     puts "Trouver la dernière note de #{self.notes}" if oui
     # NOUVELLE MÉTHODE
     # On ne conserve que les notes, les altérations et les marques d'octaves
     liste_notes = []
-    " #{@notes}".gsub(/ (?:<?([a-g])(eses|isis|es|is)?([',]*))/){
-      note, alter, delta = [$1, $2, $3]
-      liste_notes << {:note => note, :alter => alter, :delta => delta, :notealt => "#{note}#{alter}"}
+    " #{@notes}".gsub(/ <?(([a-g])(eses|isis|es|is)?([',]*))/){
+      tout, note, alter, delta = [$1, $2, $3, $4]
+      liste_notes << {
+        :whole => tout,
+        :note => note, :alter => alter, :delta => delta, :notealt => "#{note}#{alter}"}
     }
     
     puts "liste_notes: #{liste_notes.inspect}" if oui
@@ -214,35 +216,13 @@ class Motif < NoteClass
       note_seule = dnote[:note]
       unless previous_note.nil?
         
-        curr_is_after_prev = note_seule.after? previous_note[:note]
-        puts "Courante après prévious ? #{curr_is_after_prev ? 'oui' : 'non '}" if oui
-        interval = dnote[:notealt].interval_with previous_note[:notealt]
-        puts "Intervalle : #{interval}" if oui
-        interval_abs = interval.abs
+        # On cherche la note la plus proche de la précédente
+        the_closest = previous_note[:whole].closest( 
+                        dnote[:whole], octave_courant 
+                        )
+        puts "Closest retournée : #{the_closest.inspect}" if oui
+        octave_courant = the_closest[:octave]
         
-        # Y a-t-il changement d'octave
-        if dnote[:note] == previous_note[:note]
-          puts "Les notes sont identiques, donc même octave (hors delta)" if oui
-          octave_courant = octave_courant # pour la clarté
-        elsif interval_abs <= 6
-          puts "L'intervalle est entre -6 et 6" if oui
-          if curr_is_after_prev
-            puts "Je garde la même octave" if oui
-            octave_courant = octave_courant # pour la clarté
-          else
-            octave_courant += interval >= 0 ? 1 : -1
-            puts "Je mets l'octave à #{octave_courant} puisque la note est avant" if oui
-          end
-        else # Si l'interval et < -6 ou > 6
-          octave_courant += curr_is_after_prev ? -1 : 1
-          puts "Je mets l'octave à #{octave_courant} puisque l'intervalle est hors -6 <-> 6" if oui
-        end
-        
-        # On ajoute éventuellement le delta d'octave de la note courante
-        delta_octaves = LINote::octaves_from_llp dnote[:delta]
-        puts "Le delta est de #{delta_octaves}" if oui
-        octave_courant += delta_octaves
-        puts "L'OCTAVE FINAL EST DONC : #{octave_courant}" if oui
       else
         # La première note étudiée
       end
@@ -261,28 +241,6 @@ class Motif < NoteClass
     linote
     }.call
     
-    # @last_note ||= lambda {
-    #   octave = @octave
-    #   current_note = nil
-    #   exploded.each do |linote|
-    #     next if linote.rest?
-    #     unless current_note.nil?
-    #       # On définit l'octave de la linote courante
-    #       # La dernière contiendra la valeur cherchée
-    #       # @note: il faut passer en revue chaque note impérativement,
-    #       # car il faut suivre l'avancée des octaves. Par exemple, 
-    #       # comment savoir à quelle hauteur sera le dernier do de :
-    #       # "c e g c e g c e g" sans calculer note à note ?
-    #       LINote::set_octave_last_linote current_note, linote
-    #     else
-    #       linote.instance_variable_set("@octave", octave)
-    #     end
-    #     current_note = linote
-    #   end
-    #   fatal_error(:unable_to_find_last_note_motif, :notes => @notes ) \
-    #     if current_note.nil?
-    #   current_note # retourné à @last_note
-    # }.call
   end
   
   # => Return (et définit) les notes du motif en array explodé

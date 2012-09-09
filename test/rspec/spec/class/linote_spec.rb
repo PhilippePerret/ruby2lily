@@ -75,7 +75,7 @@ describe LINote do
 		end
 		
 		# REG_NOTE_COMPLEXE
-		it "d oit définir REG_NOTE_COMPLEXE" do
+		it "doit définir REG_NOTE_COMPLEXE" do
 		  defined?(LINote::REG_NOTE_COMPLEXE).should be_true
 		end
 		
@@ -241,7 +241,7 @@ describe LINote do
 			["d f a", 3, "d f a", 2, "d f a d,, f a"],
 			
 			# Essais motifs complexes
-			["ces( ees ges) r", 3, "c e g", 3, "ces( ees ges) r c e g"],
+			["ces( ees ges) r", 3, "c e g", 3, "ces( ees ges) r c, e g"],
 			["ces( ees ges) r", 3, "c e g", 4, "ces( ees ges) r c e g"],
 			["ces( ees ges) r", 3, "c e g", 2, "ces( ees ges) r c,, e g"],
 			["ces( ees ges) r", 3, "c e g", 1, "ces( ees ges) r c,,, e g"],
@@ -300,45 +300,6 @@ describe LINote do
 			end
 		end
 		
-		# :set_octave_last_note
-		it "doit répondre à :set_octave_last_linote" do
-		  LINote.should respond_to :set_octave_last_linote
-		end
-		it ":set_octave_last_linote doit lever une erreur si pas Linotes" do
-			err = detemp(Liby::ERRORS[:bad_type_for_args], 
-							:good => "LINote", :bad => "String")
-		  expect{LINote::set_octave_last_linote("a", "b")}.to \
-				raise_error(SystemExit, err)
-			mot1 = Motif::new "a b c"
-			mot2 = Motif::new "c e d"
-			err = detemp(Liby::ERRORS[:bad_type_for_args], 
-							:good => "LINote", :bad => "Motif")
-		  expect{LINote::set_octave_last_linote(mot1, mot2)}.to \
-				raise_error(SystemExit, err)
-		end
-	  [
-			["c", 3, "c", 3],
-			["c", 2, "b", 1],
-			["cis", 1, "des", 1],
-			["cis", 1, "bes", 0],
-			["a", 3, "c", 4],
-			["c", 4, "fis", 4],
-			["c", 4, "g", 3],
-			["fis", 2, "c", 2],
-			["g", 2, "c", 3]
-		].each do |d|
-			note1, octave1, note2, octave = d
-			ln1 = LINote::new note1, :octave => octave1
-			ln2 = LINote::new note2
-			it ":set_octave_last_linote avec « #{note1}-#{octave1} #{note2}" \
-					<<" » doit mettre l'octave de la 2e à #{octave}" do
-				# puts "\n\nln1: #{ln1.inspect}"
-				# puts "ln2 au départ: #{ln2.inspect}"
-				LINote::set_octave_last_linote(ln1, ln2)
-				puts "ln2 après set_octave_last_linote: #{ln2.inspect}"
-				ln2.octave.should == octave
-			end
-		end
 		# :mark_relative
 		it "doit répondre à :mark_relative" do
 		  LINote::should respond_to :mark_relative

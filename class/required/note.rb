@@ -54,7 +54,7 @@ class Note < NoteClass
   def self.valeur_absolue note, octaves
     return nil if note == "r"
     nombre_dieses, nombre_bemols = dieses_et_bemols_in note
-    NOTE_TO_VAL_ABS[note[0..0]] + # => 1 pour a
+    NOTE_TO_VAL_ABS[note[0..0]] + # => 0 pour c
     (12 * octaves)        +
     (nombre_dieses * 1 )  +
     (nombre_bemols * -1)
