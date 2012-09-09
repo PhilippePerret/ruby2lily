@@ -133,7 +133,7 @@ describe Note do
 				it ":initialize doit traiter une note fournie avec octave" do
 				  @n = Note::new "c,"
 					@n.it.should == "c"
-					@n.octave.should == -1
+					@n.octave.should == 2
 				end
 				
 				# :set
@@ -156,13 +156,13 @@ describe Note do
 				  @n.set "f'"
 					@n.it.should == "f"
 					iv_get(@n, :itit).should == "fa"
-					@n.octave.should == 1
+					@n.octave.should == 4
 				end
 				it ":set doit traiter une italienne avec octave" do
 				  @n.set "sol,,"
 					@n.it.should == "g"
 					iv_get(@n, :itit).should == "sol"
-					@n.octave.should == -2
+					@n.octave.should == 1
 				end
 				it ":set doit traiter un silence" do
 				  @n.set "r"
@@ -190,7 +190,7 @@ describe Note do
 					mo = n.as_motif
 					mo.class.should == Motif
 					mo.notes.should == "c"
-					mo.octave.should == -3
+					mo.octave.should == 0
 				end
 				it ":to_silence" do
 				  @n.should respond_to :to_silence

@@ -46,6 +46,16 @@ class Motif < NoteClass
   # 
   # @todo: Test de validité du hash transmis à la méthode
   def set_with_hash hash
+    begin
+      raise if hash.class != Hash
+      raise unless hash.has_key?( :notes )
+      raise unless hash[:notes].is_lilypond?
+      # Durée invalide
+      duree = hash[:duration] || hash[:duree]
+      raise if duree != nil && ! NoteClass::DUREES.has_key?(duree.to_s)
+    rescue
+      fatal_error(:invalid_arguments_pour_motif, :args => hash.inspect)
+    end
     @notes    = hash[:notes]
     @octave   = hash[:octave].to_i unless hash[:octave].nil?
     @duration = hash[:duration] || hash[:duree]
@@ -190,10 +200,7 @@ class Motif < NoteClass
     return nil if @notes.nil?
     @last_note ||= lambda {
       
-    oui = false # $DEBUG === true
     
-    puts "\n\n=== DÉBUG ===" if oui
-    puts "Trouver la dernière note de #{self.notes}" if oui
     # NOUVELLE MÉTHODE
     # On ne conserve que les notes, les altérations et les marques d'octaves
     liste_notes = []
@@ -203,16 +210,11 @@ class Motif < NoteClass
         :whole => tout,
         :note => note, :alter => alter, :delta => delta, :notealt => "#{note}#{alter}"}
     }
-    
-    puts "liste_notes: #{liste_notes.inspect}" if oui
-    
+        
     octave_courant  = @octave || 3
-    
-    puts "octave courant : #{octave_courant}" if oui
-    
+        
     previous_note   = nil
     liste_notes.each do |dnote|
-      puts "---\n* Étude de #{dnote.inspect}" if oui
       note_seule = dnote[:note]
       unless previous_note.nil?
         
@@ -220,7 +222,6 @@ class Motif < NoteClass
         the_closest = previous_note[:whole].closest( 
                         dnote[:whole], octave_courant 
                         )
-        puts "Closest retournée : #{the_closest.inspect}" if oui
         octave_courant = the_closest[:octave]
         
       else
@@ -228,17 +229,14 @@ class Motif < NoteClass
       end
       dnote = dnote.merge(:octave => octave_courant)
       previous_note = dnote
-      puts "Prévious note mise à :#{previous_note.inspect}" if oui
     end
     
-    # On retourne une linote
-    linote = LINote::new(
+    # On produit une linote
+    LINote::new(
       :note         => previous_note[:notealt],
       :octave_llp   => previous_note[:delta],
       :octave       => previous_note[:octave]
     )
-    puts "*** Linote obtenu (donc dernière note) : #{linote.inspect}" if oui
-    linote
     }.call
     
   end

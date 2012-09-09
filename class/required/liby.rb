@@ -42,6 +42,7 @@ class Liby
                                     << "(elle devrait être une valeur parmi #{LINote::TONALITES.keys.join(', ')}).",
       
       # ==== Motif ==== #
+      :invalid_arguments_pour_motif => "Les arguments pour définir le motif sont invalides… (\#{args})",
       :invalid_motif              => "Le motif fourni ('\#{bad}') est invalide.",
       :bad_argument_for_as_motif  => "L'argument `\#{bad}' est invalide pour la méthode :as_motif",
       :invalid_duree_notes        => "La durée pour les notes est invalides",

@@ -118,20 +118,25 @@ class LINote
     # d'obtenir la note anglosaxonne.
     REG_ITAL_TO_LLP = %r{\b(ut|do|re|ré|mi|fa|sol|la|si)}
     
+    # Le motif de crescendo/decrescendo :
+    # commence toujours par : "\\"
+    REG_DYNAMIQUE = /\\(?:>|<|\!|f+|p+)/
+
     # Expression régulière permettant d'exploder les notes
     # de la suite de notes LilyPond fournie
     REG_NOTE_COMPLEXE = %r{
-      ([<])?              # Texte préliminaire éventuel
-      ([a-gr])            # La note ou le silence
-      (isis|eses|is|es)?  # Altération éventuelle
-      ([',]+)?            # Octaves éventuels
+      ([<])?                # Texte préliminaire éventuel
+      ([a-gr])              # La note ou le silence
+      (isis|eses|is|es)?    # Altération éventuelle
+      ([',]+)?              # Octaves éventuels
       ([0-9]{1,4}\.?)?      # Durée éventuelle
-      (                   # Notes de jeu ou de doigté
-        -                 # Délimité par un moins
-        [.^_-]            # Les signes qu’on peut trouver
+      (                     # Notes de jeu ou de doigté
+        -                   # Délimité par un moins
+        [.^_-]              # Les signes qu’on peut trouver
       )?
-      (>?[\(\)]?)?         # post - ce qui peut se trouver après la note
-      ([0-9.]{1,4})?      # Durée post éventuelle - après accord p.e.
+      (>?[\(\)]?)?          # post - ce qui peut se trouver après la note
+      ([0-9.]{1,4})?        # Durée post éventuelle - après accord p.e.
+      (#{REG_DYNAMIQUE})?   # Marque de crescendo ou decrescendo
       }x
     
   end # / si constantes déjà définies (tests)
@@ -158,8 +163,9 @@ class LINote
     end
     ary_str.each do |membre|
       membre.scan(/^#{REG_NOTE_COMPLEXE}$/){
-        tout, pre, note, alter, octave, duree, jeu, post, duree_post = 
-          [$&, $1, $2, $3, $4, $5, $6, $7, $8]
+        tout, pre, note, alter, octave, duree, jeu, post, duree_post,
+        mark_dyna = 
+          [$&, $1, $2, $3, $4, $5, $6, $7, $8, $9]
           
         # Étude du jeu
         # ------------
@@ -173,6 +179,7 @@ class LINote
           :note => note, :duration => duree, :duree_post => duree_post, 
           :octave_llp => octave,
           :pre  => pre,  :alter => alter, :jeu => jeu, :post => post,
+          :dynamique => mark_dyna,
           :finger => nil  # @todo: implémenter la relève du doigté
                           # (il est à prendre dans "jeu")
           )
@@ -423,6 +430,8 @@ class LINote
   @alter      = nil   # Altération de la note (p.e. "eses" ou "is")
   @jeu        = nil   # Jeu string de la note (le texte après le tiret)
   @finger     = nil   # Le doigté éventuel
+  @dynamique  = nil   # Éventuellement la marque de dynamique (quelque
+                      # chose comme « \\! » ou « \\< » ou « \\fff »)
   
   @octave     = nil   # Fixé par d'autre méthode ou à l'instanciation si
                       # dans les paramètres. Si on l'appelle par la
@@ -491,11 +500,27 @@ class LINote
   # 
   # @return le string des notes reconstituées
   # 
-  def to_llp
-    jeu = @jeu.nil? ? "" : "-#{@jeu}"
-    "#{@pre}#{@note}#{@alter}#{@octave_llp}#{@duration}" \
-    << "#{jeu}#{@finger}#{@post}#{@duree_post}"
+  # @param params   Paramètres optionnels.
+  #                 Permettent par exemple de stipuler qu'il ne faut
+  #                 par prendre certaines données, comme par exemple
+  #                 l'octave_llp
+  #                 Dans ce cas, on indique dans params :
+  #                   :except => {:octave_llp => true}
+  def to_llp params = nil
+    params ||= {}
+    except = params[:except] || {}
+    
+    note_llp = "#{@pre}#{@note}#{@alter}"
+    note_llp << "#{@octave_llp}" unless except[:octave_llp]  === true
+    note_llp << "#{@duration}"   unless except[:duration]    === true
+    unless except[:jeu] === true
+      jeu = @jeu.nil? ? "" : "-#{@jeu}"
+      note_llp << jeu
+    end
+    note_llp << "#{@finger}#{@post}#{@duree_post}#{@dynamique}"
+    return note_llp
   end
+  alias :to_s :to_llp
   
   # => Return la linote sous forme de hash
   # 
@@ -513,7 +538,7 @@ class LINote
   def with_alter
     "#{@note}#{@alter}"
   end
-  
+    
   # => Return la linote sous forme d'instance de Note
   # @TODO: SUPPRIMER CETTE MÉTHODE QUAND LA CLASSE Note SERA SUPPRIMÉE,
   # SI ELLE L'EST UN JOUR.

@@ -431,6 +431,37 @@ describe LINote do
 			ln.alter.should be_nil
 			ln.with_alter.should == "c"
 		end
+		
+		# :with_all
+		it "doit répondre à :to_s (alias de :to_llp)" do
+		  @ln.should respond_to :to_s
+		end
+		dur = "duration"
+		dup = "duree_post"
+		olp = "octave_llp"
+		dyn = "dynamique"
+		data_test = <<-DEFH
+			note			pre		post	#{dur} #{dup} #{olp} alter jeu finger #{dyn} res
+		-------------------------------------------------------------------
+			c					-			-			-			-				-			-			-			-			-			c
+			c					-			(			4			-				'			es		-			-			-			ces'4(
+			c					<     -			8			-				,,		isis	^		-			\\!		<cisis,,8-^\\!
+		-------------------------------------------------------------------
+		DEFH
+		data_test = data_test.to_array
+		data_test.each do |dlinote|
+			res = dlinote.delete(:res)
+			data_displayed = {}
+			dlinote.each do |k, v| 
+				next if v.nil? 
+				data_displayed[k] = v 
+			end
+			it ":to_s avec {#{data_displayed.inspect}} doit rendre : '#{res}'" do
+				linote = LINote::new dlinote
+				linote.to_s.should == res
+			end
+		end
+		
 		# :to_hash
 		it "doit répondre à :to_hash" do
 		  @ln.should respond_to :to_hash
@@ -464,6 +495,8 @@ describe LINote do
 		it "doit répondre à :to_llp" do
 		  @ln.should respond_to :to_llp
 			# @note: la méthode est vérifiée ci-dessus, avec LINote::explode
+			# @note: et elle est encore testée plus loin avec son alias
+			# :to_s
 		end
 		
 		it "doit répondre à :set" do

@@ -119,36 +119,19 @@ class Note < NoteClass
   end
   
   def set valeur
-    octave = nil
-    if valeur == "r"
-      @it   = @itit = nil
+    linote = LINote::explode( LINote::to_llp( valeur ) ).first
+    puts "\nLINOTE: #{linote.inspect}"
+    @it     = linote.note
+    unless linote.octave_llp.nil?
+      @octave = 3 + LINote::octaves_from_llp( linote.octave_llp )
+    end
+    if @it == "r"
+      @it = @itit = nil
       @rest = true
     else
-      if valeur.length > 1
-        # Trois cas peuvent se présenter ici :
-        #   1. La note est fournie avec une octave (p.e. "c,,")
-        #   2. La note est fournie en italien (p.e. "si")
-        #   3. La note est fournie en italien avec octave (p.e. "si''")
-        if valeur.match(/[',]/).nil?
-          # Valeur italienne simple
-          @it = ITAL_TO_ANGLO[valeur.to_s]
-        else
-          # Valeur fournie avec octave
-          unless valeur.match(/^(ut|do|re|mi|fa|sol|la|si)/).nil?
-            valeur = valeur.sub(/^(ut|do|re|mi|fa|sol|la|si)/){
-              ITAL_TO_ANGLO[$1.to_s]
-            }
-          end
-          # Valeur anglaise avec octave
-          @it, octave = Note::split_note_et_octave valeur
-        end        
-      else
-        # Valeur anglaise simple (une seule lettre)
-        @it   = valeur
-      end
       @rest   = false
       @itit   = ANGLO_TO_ITAL[@it]
-      @octave = octave unless octave.nil?
+      @alter  = linote.alter
     end
   end
     
@@ -158,7 +141,9 @@ class Note < NoteClass
   
   # => Return la note sous la forme d'un motif
   def as_motif
-    Motif::new :notes => @it, :octave => @octave, :duration => @duration
+    Motif::new  :notes => "#{@it}#{@alter}", 
+                :octave => @octave, 
+                :duration => @duration
   end
   
   # -------------------------------------------------------------------

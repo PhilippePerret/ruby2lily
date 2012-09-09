@@ -165,6 +165,14 @@ describe String do
 			mo.notes.should == "c"
 			mo.octave.should == 0
 		end
+		
+		it ":as_motif doit retourner le bon motif (avec accord)" do
+		  mo = "<c e g>".as_motif
+			mo.class.should == Motif
+			mo.notes.should == "<c e g>"
+			mo.octave.should == 3
+			mo.duration.should be_nil
+		end
 	end
 	
 	# -------------------------------------------------------------------

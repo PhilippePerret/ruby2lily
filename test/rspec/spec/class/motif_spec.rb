@@ -72,7 +72,14 @@ describe Motif do
 			@m.octave.should == -6
 		end
 		it ":set_with_hash doit lever une erreur en cas de mauvais arguments" do
-		  pending "à implémenter"
+			def expected_error_with args
+				err = detemp(Liby::ERRORS[:invalid_arguments_pour_motif], :args => args.inspect)
+				expect{@m.set_with_hash(args)}.to raise_error(SystemExit, err)
+			end
+			expected_error_with "string"
+			expected_error_with( {} )
+			expected_error_with( :notes => "h-^")
+			expected_error_with( :notes => "c d e", :duration => 15)
 		end
 		
 		# :to_s
@@ -315,13 +322,11 @@ describe Motif do
 			iv_get(m3, :octave).should == 4
 		end
 		it ":+ permet d'ajouter une note (Note) à un motif et produire un nouveau motif" do
-		  n = Note::new "c'''"
+		  n = Note::new "c'''" # => octave 6
 			m = Motif::new "c d e"
 			res = (m + n)
 			res.class.should == Motif
-			res.to_s.should == "\\relative c''' { c d e c }"
-			# @todo: plus tard, devra être égal à :
-			# res.to_s.should == "\\relative c''' { c d e c }"
+			res.to_s.should  == "\\relative c''' { c d e c''' }"
 		end
 		# Note: le traitement de l'ajout d'un motif et d'une note est
 		# traité dans '+' de la note

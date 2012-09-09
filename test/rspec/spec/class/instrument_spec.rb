@@ -138,8 +138,20 @@ describe Instrument do
 			  score = @instru.to_lilypond
 				score.class.should == String
 				score.should == 
-					"\\new Staff {\n\t\\relative c'' {\n\t\t\\clef \"treble\"\n\t\t\\time 4/4\n\t\t\n\t}\n}"
-				pending "Un test plus poussé est nécessaire"
+					"\\new Staff {\n\t\\relative c'' {" \
+					<< "\n\t\t\\clef \"treble\"" \
+					<< "\n\t\t\\time 4/4\n\t\t" \
+					<< "\n\t}\n}"
+				suite = "c d e f g a b c"
+				@instru << suite
+				@instru.to_lilypond.should == 
+					"\\new Staff {\n\t\\relative c'' {" \
+					<< "\n\t\t\\clef \"treble\"" \
+					<< "\n\t\t\\time 4/4\n\t\t" \
+					<< suite \
+					<<"\n\t}\n}"
+				# @note: des tests plus poussés sont effectués par le biais
+				# des partitions.
 			end
 			
 			# :staff_header

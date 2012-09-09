@@ -69,13 +69,19 @@ class String
     exploded.each do |linote|
       unless first_note_traited
         data[:duration] = linote.duration
-        data[:notes]    << linote.with_alter
+        
+        data[:notes]    << linote.to_s(:except => {:octave_llp => true, :duration => true})
+            # @note : il ne faut pas mettre la marque d'octave lilypond
+            # éventuellement enregistrée dans la LINote, car elle sera
+            # considérée ci-dessous. Au début d'un motif, on évite de
+            # mettre une marque d'octave (apostrophe ou virgule), au
+            # profit d'une marque d'octave juste (\relative)
+            
         octave = linote.octave
         data[:octave]   = octave unless octave == 3
         first_note_traited = true
       else
-        data[:notes] << 
-          "#{linote.with_alter}#{linote.octave_llp}#{linote.duration}"
+        data[:notes] << linote.to_s
       end
     end 
     data[:notes] = data[:notes].join(' ')

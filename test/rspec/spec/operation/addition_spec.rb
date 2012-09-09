@@ -40,13 +40,44 @@ describe "Addition à String" do
     end
   end
 	describe "String + Note" do
-	  
+		it "doit retourner un motif contenant les notes" do
+		  no = Note::new( "c" )
+			res = "a" + no
+			res.class.should == Motif
+			res.to_s.should == "\\relative c''' { a c, }"
+		end
 	end
 	describe "String + Motif" do
-	  
+	  it "doit retourner un motif (simple) contenant les notes" do
+	    mo = Motif::new("d")
+			res = "c" + mo
+			res.class.should == Motif
+			res.to_s.should == "\\relative c''' { c d }"
+	  end
+		it "doit retourner un motif (semi-complexe) contenant les notes" do
+		  mo = Motif::new(:notes => "d e4 f,", :duree => 8, :octave => 1)
+			res = "c c," + mo
+			res.class.should == Motif
+			res.to_s.should == "\\relative c''' { c c, d,8 e4 f, }"
+		end
+		it "doit retourner un motif (complexe) contenant les notes" do
+		  # @todo: implémenter le motif complexe (note : le faire partout)
+			# (un motif complexe comprend toutes les marques possibles pour 
+			# les notes, c'est-à-dire, ici, le jeu et le doigté, ainsi que
+			# la dynamique)
+		end
 	end
 	describe "String + Chord" do
-	  
+		it "doit retourner un motif (simple) contenant les notes" do
+		  acc = Chord.new ["c", "e", "g"]
+		  res = "c" + acc
+			res.class.should == Motif
+			res.to_s.should == "\\relative c''' { c <c e g> }"
+			res = "c e g c" + acc[6]
+			res.to_s.should == "\\relative c''' { c e g c <c'' e g> }"
+			res = "<c e g> c8" + acc["4", 3]
+			res.to_s.should == "\\relative c''' { <c e g> c8 <c, e g>4 }"
+		end
 	end
 end
 
@@ -62,8 +93,11 @@ describe "Addition à Note" do
 			res.class.should == Motif
 			res.to_s.should == "\\relative c''' { c a'' }"
 		end
-		it "autre tests Notes + String" do
-		  pending "à implémenter"
+		it "autres tests Notes + String" do
+			no = Note::new "c##"
+			res = no + "<c d e> r g"
+		  res.class.should == Motif
+			res.to_s.should == "\\relative c''' { cisis <c d e> r g }"
 		end
   end
 	describe "Note + Note" do
@@ -92,9 +126,6 @@ describe "Addition à Note" do
 			mo.to_s.should == "\\relative c' { c d' }"
 		end
 		
-		it "autres tests Note + Note" do
-			pending "à implémenter"
-		end
 	end
 	describe "Note + Motif" do
 		it "doit renvoyer un motif conforme" do
@@ -107,7 +138,24 @@ describe "Addition à Note" do
 		end
 	end
 	describe "Note + Chord" do
-	  
+	  it "doit retourner un motif conforme" do
+	    
+			# Note simple
+			no = Note::new "c"
+			acc = Chord::new ["c e g"]
+			(no + acc).to_s.should == "\\relative c''' { c <c e g> }"
+
+			# Note altérée
+			no = Note::new "c##"
+			res = no + acc
+			res.class.should == Motif
+			res.to_s.should == "\\relative c''' { cisis <c e g> }"
+			
+			# Note altérée avec delta d'octave
+			no = Note::new "c##,"
+			(no + acc).to_s.should == "\\relative c'' { cisis <c' e g> }"
+			
+	  end
 	end
 end
 
@@ -117,16 +165,16 @@ end
 describe "Addition et Motif" do
 	
   describe "Motif + String" do
-    
+	  pending "à implémenter"
   end
 	describe "Motif + Note" do
-	  
+	  pending "à implémenter"
 	end
 	describe "Motif + Motif" do
-	  
+	  pending "à implémenter"
 	end
 	describe "Motif + Chord" do
-	  
+	  pending "à implémenter"
 	end
 end
 
