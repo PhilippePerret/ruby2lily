@@ -399,6 +399,27 @@ describe LINote do
 		
   end # / classe
 	describe "Méthodes de classe" do
+		# :pose_first_and_last_note
+		it "doit répondre à :pose_first_and_last_note" do
+		  LINote.should respond_to :pose_first_and_last_note
+		end
+		previous_suite = nil
+		[
+			["a b c d", 'IN', 'OUT', "aIN b c dOUT"],
+			[nil, '(', ')', "a( b c d)"],
+			[nil, '\(', '\)', "a\\( b c d\\)"],
+			[nil, '\<', '\!', "a\\< b c d\\!"],
+			["aeses,8-^ b c disis''-.", '(', ')', "aeses,8-^( b c disis''-.)"]
+		].each do |d|
+			suite, markin, markout, expected = d
+			suite = previous_suite if suite.nil?
+			it ":pose_first_and_last_note sur «#{suite}» avec «#{markin}» et «#{markout}»" do
+				res = LINote::pose_first_and_last_note(suite, markin, markout)
+				res.should == expected
+			end
+			previous_suite = suite
+		end
+
 		it "doit répondre à :note_str_in_context" do
 		  LINote.should respond_to :note_str_in_context
 		end

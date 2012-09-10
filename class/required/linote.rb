@@ -125,20 +125,25 @@ class LINote
     # Expression régulière permettant d'exploder les notes
     # de la suite de notes LilyPond fournie
     REG_NOTE_COMPLEXE = %r{
-      ([<])?                # Texte préliminaire éventuel
-      ([a-gr])              # La note ou le silence
-      (isis|eses|is|es)?    # Altération éventuelle
-      ([',]+)?              # Octaves éventuels
-      ([0-9]{1,4}\.?)?      # Durée éventuelle
-      (                     # Notes de jeu ou de doigté
-        -                   # Délimité par un moins
-        [.^_-]              # Les signes qu’on peut trouver
+      (<)?                    # Texte préliminaire éventuel
+      ([a-gr])                # La note ou le silence
+      (isis|eses|is|es)?      # Altération éventuelle
+      ([',]+)?                # Octaves éventuels
+      ([0-9]{1,4}\.?)?        # Durée éventuelle
+      (                       # Notes de jeu ou de doigté
+        -                     # Délimité par un moins
+        [.^_-]                # Les signes de jeu qu’on peut trouver ---
       )?
-      (>?[\(\)]?)?          # post - ce qui peut se trouver après la note
-      ([0-9.]{1,4})?        # Durée post éventuelle - après accord p.e.
-      (#{REG_DYNAMIQUE})?   # Marque de crescendo ou decrescendo
+      (
+        >?                    # post - ce qui peut se trouver après la note
+        [\(\)\[\]]{0,3}       # comme la marque de fin d’accord, la marque
+        (?:\\\)|\\\()?        # de fin de slur, la marque de détachement
+        [\(\)\[\]]{0,3}       # des beams — crochets – etc.
+      )?
+      ([0-9.]{1,4})?          # Durée post éventuelle - après accord p.e.
+      (#{REG_DYNAMIQUE})?     # Marque de crescendo ou decrescendo
       }x
-    
+      # --- @todo: il faudra ajouter les marques de doigté
   end # / si constantes déjà définies (tests)
   
   # -------------------------------------------------------------------
@@ -300,7 +305,26 @@ class LINote
     - Note::valeur_absolue( last_note.with_alter,  last_note.octave)
     
   end
-    
+
+  # =>  Pose une marque de début (donc après la première note) et de fin
+  #     (donc après la dernière note) sur les +notes+
+  # 
+  # @return   +notes+ modifié
+  # 
+  # @note: ne cherche que les notes, pas les silences
+  # 
+  def self.pose_first_and_last_note notes, markin, markout
+    dmotif = notes.split(' ') # => vers des notes mais aussi des marques
+    ifirst = 0
+    while dmotif[ifirst].match(/^[a-g]/).nil? do ifirst += 1 end
+    dmotif[ifirst] = "#{dmotif[ifirst]}#{markin}"
+    ilast = dmotif.count - 1
+    while dmotif[ilast].match(/^[a-g]/).nil? do ilast -= 1 end
+    dmotif[ilast] = "#{dmotif[ilast]}#{markout}"
+    dmotif.join(' ')
+  end
+
+
 
   # =>  Return la valeur string de la note en fonction du +context+
   #     soumis.
