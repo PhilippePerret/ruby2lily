@@ -42,23 +42,32 @@ class Motif < NoteClass
                       # sur le motif : <first>\( <autres notes>\)
   # => Instanciation
   # 
+  # @param  notes   SOIT Les notes String du motif
+  #                 SOIT Un hash contenant toutes les propriétés
+  #                 SOIT nil pour un motif vierge
   # @param  params  Paramètres définissant le nouveau motif.
   #         Peut être :
   #         - un string définissant les notes
   #         - un array de motifs
   #         - un hash contenant :notes et :octave pour définir
   #           précisément la hauteur du motif.
-  def initialize params = nil
+  def initialize notes = nil, params = nil
     @notes    = nil
     @octave   = 3
     @duration = nil
     @slured   = false
     @legato   = false
-    case params.class.to_s
-    when "String" then set_with_string params
-    when "Array"  then @notes = params # Liste de motifs
-    when "Hash"   then set_with_hash params
+    case notes.class.to_s
+    when "Hash"   then set_with_hash notes
+    when "String" then set_with_string notes
     end
+    
+    params.each do |prop, value| 
+      instance_variable_set("@#{prop}", value)
+    end unless params.nil?
+    
+    @duration = @duration.to_s unless @duration.nil?
+    
   end
   
   # => Définit l'instance Motif à partir d'un Hash de données

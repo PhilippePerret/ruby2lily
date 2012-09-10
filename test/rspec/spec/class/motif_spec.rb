@@ -23,6 +23,15 @@ describe Motif do
 			@m.octave.should == 3
 			@m.duration.should be_nil
 		end
+		it "avec deux arguments, les notes et les paramètres" do
+		  mo = Motif::new "d b a", :octave => 1, :duration => "4.", :slured => true
+			mo.class.should == Motif
+			mo.notes.should == "d b a"
+			mo.should be_slured
+			mo.octave.should == 1
+			mo.duration.should == "4."
+			mo.to_s.should == "\\relative c' { d4.( b a) }"
+		end
 		it "avec argument hash pour définir le motif et l'octave" do
 		  @m = Motif::new :notes => "d b a", :octave => 4
 			iv_get(@m, :notes).should 	== "d b a"
