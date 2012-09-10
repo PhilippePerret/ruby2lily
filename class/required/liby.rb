@@ -13,6 +13,7 @@ class Liby
   unless defined?(Liby::USAGE)
     USAGE   = "@usage:\n\t$ ./ruby2lily.rb <path/to/score/ruby> <options>"
     ERRORS  = {
+      :hash_required              => "un hash est requis",
       :command_line_empty         => "`ruby2site` doit s'appeler avec des arguments." \
                                      << "Utilisez `ruby2site -h` pour obtenir de l'aide.",
       :unknown_option             => "L'option `\#{option}` est inconnue…",
@@ -42,13 +43,15 @@ class Liby
                                     << "(elle devrait être une valeur parmi #{LINote::TONALITES.keys.join(', ')}).",
       
       # ==== Motif ==== #
-      :invalid_arguments_pour_motif => "Les arguments pour définir le motif sont invalides… (\#{args})",
+      :invalid_arguments_pour_motif => "Les arguments pour définir le motif sont invalides… (\#{raison} dans \#{args})",
       :invalid_motif              => "Le motif fourni ('\#{bad}') est invalide.",
       :bad_argument_for_as_motif  => "L'argument `\#{bad}' est invalide pour la méthode :as_motif",
       :invalid_duree_notes        => "La durée pour les notes est invalides",
       :cant_add_any_to_motif      => "Un objet de type \#{classe} ne peut être ajouté à un motif…",
       :unable_to_find_first_note_motif  => "Impossible de trouver la première note dans le motif \#{notes}…",
       :unable_to_find_last_note_motif   => "Impossible de trouver la dernière note dans le motif \#{notes}…",
+      :motif_cant_be_surslured      => "Aucune liaison ne peut être ajoutée à \#{motif} (déjà lié) !",
+      :motif_legato_cant_be_slured  => "Un motif legato ne peut être sluré…",
       
       # ==== Note ==== #
       :bad_args_for_join_linote   => "Les arguments pour la méthode LINote::join sont invalides",
