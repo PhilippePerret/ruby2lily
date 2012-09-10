@@ -339,17 +339,38 @@ describe "Addition et Chord" do
 		end
 	end
 	describe "Chord + Motif" do
-	  it "un motif d oit pouvoir être ajouté à un accord" do
-	    pending "à implémenter"
+	  it "un motif doit pouvoir être ajouté à un accord" do
+	    # @note: on fait simple entendu que ça revient à tester 
+			# l'adition d'un motif et d'un motif si Chord est correctement
+			# transformé en motif
+			acc = Chord::new "a c e", :octave => 2, :duration => 8
+			mot = Motif::new "a c e", :octave => 4, :slured => true
+			res = acc + mot
+			res.class.should == Motif
+			res.to_s.should == "\\relative c'' { <a c e>8 a'( c e) }"
+			# Le contraire
+			res = mot + acc
+			res.class.should == Motif
+			res.to_s.should == "\\relative c'''' { a( c e) <a,,, c e>8 }"
 	  end
 	end
 	describe "Chord + Chord" do
-	  it "un accord d oit pouvoir être ajouté à un accord" do
-	    pending "à implémenter"
+	  it "un accord doit pouvoir être ajouté à un accord" do
+	    # @note : on fait simple entendu que ça revient à tester
+			# l'addition de deux motifs qui contiendrait des accords
+			acc1 = Chord::new %w(c e g), :octave => 1, :duration => 4
+			acc2 = Chord::new "a c e", :octave => 4, :duration => 16
+			res = acc1 + acc2
+			res.class.should == Motif
+			res.to_s.should == "\\relative c' { <c e g>4 <a''' c e>16 }"
+			# Le contraire
+			res = acc2 + acc1
+			res.class.should == Motif
+			res.to_s.should == "\\relative c'''' { <a c e>16 <c,,,, e g>4 }"
 	  end
 	end
 	describe "Chord + Autre" do
-	  it "d oit lever une erreur fatale" do
+	  it "doit lever une erreur fatale" do
 	    expect{@chord + 12}.to raise_error
 	  end
 	end
