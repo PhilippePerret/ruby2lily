@@ -260,6 +260,23 @@ describe Motif do
 			@m.notes_with_duree(2).should == "a2 b c des e4"
 		end
 		
+		# :notes_with_liaison
+		it "doit répondre à :notes_with_liaison" do
+		  @m.should respond_to :notes_with_liaison
+		end
+		it ":notes_with_liaison doit retourner la bonne valeur" do
+			suite = "a b c d e"
+		  mo = Motif::new suite
+			mo.notes_with_liaison.should == suite
+			mo.slure
+			mo.notes_with_liaison.should == "a( b c d e)"
+			mo.notes_with_liaison("a b c").should == "a( b c)"
+			
+			mo = Motif::new :notes => suite, :legato => true
+			mo.notes_with_liaison.should == "a\\( b c d e\\)"
+			mo.notes_with_liaison("b c").should == "b\\( c\\)"
+		end
+		
 		# :octave_from
 		it "doit répondre à :octave_from" do
 		  @m.should respond_to :octave_from
@@ -412,6 +429,16 @@ describe Motif do
 				iv_get(@mo, :slured).should == false
 				iv_get(new_mo, :slured).should === true
 			end
+			it "-d doit pouvoir être défini à l'instanciation" do
+			  mo = Motif::new(:notes => "a b c d", :slured => true)
+				iv_get(mo, :slured).should be_true
+				mo.should be_slured
+				mo.to_s.should == "\\relative c''' { a( b c d) }"
+			end
+			it "-d à l'instanciation doit produire une erreur si impossible par le motif" do
+				data = {:notes => "a b\\( c d( e)\\)", :slured => true}
+			  expect{Motif::new(data)}.to raise_error(SystemExit)
+			end
 			it "doit retourner l'instance du motif" do
 			  new_mo = @mo.slure
 				new_mo.class.should == Motif
@@ -482,6 +509,16 @@ describe Motif do
 		describe ":legato" do
 			it "doit exister" do 
 				@m.should respond_to :legato
+			end
+			it "doit pouvoir être spécifié à l'instanciation" do
+			  mo = Motif::new "a b c d e"
+				mo.should_not be_legato
+				mo = Motif::new :notes => "a b c d e", :legato => true
+				mo.should be_legato
+			end
+			it "doit produire une erreur à l'instanciation si impossible" do
+				data = {:notes => "a b c\\( b d\\)", :legato => true}
+			  expect{Motif::new(data)}.to raise_error(SystemExit)
 			end
 			it ":legato doit renvoyer une instance du motif" do
 			  @m.legato.class.should == Motif

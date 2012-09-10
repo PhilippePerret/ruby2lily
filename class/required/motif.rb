@@ -83,7 +83,14 @@ class Motif < NoteClass
     @octave   = hash[:octave].to_i unless hash[:octave].nil?
     @duration = hash[:duration] || hash[:duree]
     @duration = @duration.to_s unless @duration.nil?
+    # Les méthodes suivantes, permettant de préciser le motif de façon
+    # générale, permettent aussi de vérifier si la valeur est possible.
+    # Par exemple, si on demande à « slurer » un motif qui contient déjà
+    # des « ( ) » et des « \( \) », une erreur fatale sera produite.
+    slure   if hash[:slured] === true
+    legato  if hash[:legato] === true
   end
+  
   # => Définit le Motif (notes et durée) à partir d'un string
   #
   # @param  str   Un string définissant les notes du motif.
@@ -162,12 +169,7 @@ class Motif < NoteClass
                 else notes_with_duree(duree) end 
 
     # Liaisons ?
-    if @slured || @legato
-      markin  = @slured ? '(' : '\('
-      markout = @slured ? ')' : '\)'
-      notes_str = 
-        LINote::pose_first_and_last_note notes_str, markin, markout
-    end
+    notes_str = notes_with_liaison notes_str
     
     # Finalisation
     return "#{mk_relative} { #{notes_str} }"
@@ -176,7 +178,9 @@ class Motif < NoteClass
   
   # => Return le motif au format lilypond (MAIS sans la marque d'octave)
   def to_llp
-    notes_with_duree
+    suite_llp = notes_with_duree
+    suite_llp = notes_with_liaison(suite_llp) if @slured || @legato
+    suite_llp
   end
   
   # =>  Join le motif +motif2+ au motif courant (c'est-à-dire que le
@@ -288,6 +292,17 @@ class Motif < NoteClass
     duree ||= @duration
     return LINote::fixe_notes_length( self.notes, duree )
   end
+  
+  # =>  Retourne les @notes du motif (ou les +notes+ passés en 
+  #     paramètres) avec la marque de slur ou de legato
+  def notes_with_liaison notes = nil
+    notes ||= @notes
+    return notes unless @slured || @legato
+    markin  = @slured ? '(' : '\('
+    markout = @slured ? ')' : '\)'
+    LINote::pose_first_and_last_note notes, markin, markout
+  end
+  
   
   # =>  @return la différence d'octave positive ou négative de 
   #     l'octave du motif avec +oct+.
