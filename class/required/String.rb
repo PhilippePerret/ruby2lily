@@ -125,7 +125,17 @@ class String
     # tested = self.gsub(/(#{LINote::REG_NOTE_COMPLEXE}| )/, '')
     # puts "\nSelf = '#{self}'"
     # puts "Reste = '#{tested}'"
-    self.gsub(/(#{LINote::REG_NOTE_COMPLEXE}| )/, '') == ""
+    reste = self.gsub(/(#{LINote::REG_NOTE_COMPLEXE}| )/, '')
+    unless reste == ""
+      puts "\n=== EXPRESSION LILYPOND INCORRECTE ==="
+      puts "= Expression : #{self}"
+      puts "= Reste après filtre LINote::REG-NOTE-COMPLEXE: '#{reste}'"
+      puts "= Détail :"
+      self.gsub(/(#{LINote::REG_NOTE_COMPLEXE}| )/){
+        puts "= capture de: '#{$&}'"
+      }
+    end
+    reste == ""
   end 
   
   # =>  Retourne la note avec son altération
