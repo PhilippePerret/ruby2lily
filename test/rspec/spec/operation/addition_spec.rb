@@ -199,7 +199,7 @@ describe "Addition et Motif" do
 			[@mo_complex, "cisis( ges ges4)", "\\relative c'' { r4\\( <ais c e> geses8( b[ e4])\\) r2 cisis,( ges ges4) }"]
 		].each do |d|
 			motif, str, res = d
-			it "Motif «#{motif.notes}» + String «#{str}" do
+			it "Motif « #{motif.notes} » + String « #{str} »" do
 			 	new_mo = motif + str
 				new_mo.class.should == Motif
 				new_mo.object_id.should_not == motif.object_id
