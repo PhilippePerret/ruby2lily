@@ -244,7 +244,31 @@ describe "Addition et Motif" do
 		end
 	end
 	describe "Motif + Motif" do
-	  pending "à implémenter"
+		define_motifs if @mo_slured.nil?
+		[
+			[@motif_simple, @motif_simple, "c''' { c e g c, e g }"],
+			[@motif_simple, @motif_octave_2, "c''' { c e g c,, e g }"],
+			[@motif_octave_2, @motif_simple, "c'' { c e g c e g }"],
+			[@motif_octave_2, @mo_accord, "c'' { c e g <a' c e> }"],
+			[@mo_accord, @motif_octave_2, "c''' { <a c e> c,, e g }"],
+			[@motif_octave_2, @mo_chord_et_rest, "c'' { c e g r <b' d fis> r g }"],
+			[@mo_chord_et_rest, @motif_octave_2, "c''' { r <b d fis> r g c,,, e g }"],
+			[@mo_chord_et_rest, @mo_accord, "c''' { r <b d fis> r g <a, c e> }"],
+			[@mo_chord_et_rest, @mo_complex, 
+				"c''' { r <b d fis> r g " \
+				<< "r4\\( <ais,, c e> geses8( b[ e4])\\) r2 }"],
+			[@mo_complex, @mo_chord_et_rest,
+				"c'' { r4\\( <ais c e> geses8( b[ e4])\\) r2 " \
+				<< "r <b d fis> r g }"
+				]
+		].each do |d|
+			mot1, mot2, expected = d
+			it "Motif « #{mot1.notes} »-oct:#{mot1.octave} + Motif « #{mot2.notes} »-oct:#{mot2.octave}" do
+				res = mot1 + mot2
+				res.class.should == Motif
+				res.to_s.should == "\\relative #{expected}"
+			end
+		end
 	end
 	describe "Motif + Chord" do
 	  pending "à implémenter"
