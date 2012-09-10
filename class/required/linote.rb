@@ -281,7 +281,8 @@ class LINote
     end
         
     # Motif assemblé renvoyé
-    "#{motif1.notes_with_duree} #{suite_motif2}"
+    # "#{motif1.notes_with_duree} #{suite_motif2}"
+    "#{motif1.to_llp} #{suite_motif2}"
     
   end
 

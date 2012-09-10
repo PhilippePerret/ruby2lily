@@ -65,23 +65,32 @@ class String
     suite_llp = LINote::to_llp( self )
     exploded  = LINote::explode( suite_llp )
     data = {:notes => [], :duration => nil, :octave => nil}
-    first_note_traited = false
+    first_note_or_rest_traited = false
     exploded.each do |linote|
-      unless first_note_traited
+      unless first_note_or_rest_traited
         data[:duration] = linote.duration
         
         data[:notes]    << linote.to_s(:except => {:octave_llp => true, :duration => true})
             # @note : il ne faut pas mettre la marque d'octave lilypond
             # éventuellement enregistrée dans la LINote, car elle sera
             # considérée ci-dessous. Au début d'un motif, on évite de
-            # mettre une marque d'octave (apostrophe ou virgule), au
-            # profit d'une marque d'octave juste (\relative)
+            # mettre une marque d'octave (apostrophe ou virgule), il vaut
+            # mieux mettre une marque d'octave juste au motif
             
-        octave = linote.octave
-        data[:octave]   = octave unless octave == 3
-        first_note_traited = true
+        first_note_or_rest_traited = true
       else
-        data[:notes] << linote.to_s
+        # Autre que la première note
+        # MAIS : si les premières étaient des silences, la note courante
+        # peut comporter une marque de delta d'octave. Il faut donc
+        # retirer la marque d'octave tant que data[:octave] est nil
+        except = { :octave_llp => data[:octave].nil? }
+        data[:notes] << linote.to_s(:except => except)
+      end
+      # On définit l'octave s'il est défini
+      # @note : pas mis sur la première note car ça peut être un silence
+      unless linote.rest?
+        octave = linote.octave
+        data[:octave] = octave if data[:octave].nil?# && octave != 3
       end
     end 
     data[:notes] = data[:notes].join(' ')

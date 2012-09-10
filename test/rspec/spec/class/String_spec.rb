@@ -164,6 +164,12 @@ describe String do
 			mo.class.should == Motif
 			mo.notes.should == "c"
 			mo.octave.should == 0
+			
+			mo = "c,, d e'".as_motif
+			mo.class.should == Motif
+			mo.notes.should == "c d e'"
+			mo.octave.should == 1
+			mo.duration.should be_nil
 		end
 		
 		it ":as_motif doit retourner le bon motif (avec accord)" do
@@ -172,6 +178,21 @@ describe String do
 			mo.notes.should == "<c e g>"
 			mo.octave.should == 3
 			mo.duration.should be_nil
+		end
+		
+		it ":as_motif doit retourner le bon motif (avec silences)" do
+		  mo = "r r c r".as_motif
+			mo.class.should == Motif
+			mo.notes.should == "r r c r"
+			mo.octave.should == 3
+			mo.duration.should be_nil
+		end
+		it ":as_motif doit retourner le bon motif (avec silences, octave et durée)" do
+			mo = "r8 r c, r".as_motif
+			mo.class.should == Motif
+			mo.notes.should == "r r c r"
+			mo.octave.should == 2
+			mo.duration.should == "8"
 		end
 	end
 	
