@@ -263,8 +263,13 @@ class LINote
       nombre_octaves  = (distance / 12) + 1
       mark_octaves    = mark.x(nombre_octaves.abs)
       motif2_exploded = explode motif2
-      motif2_exploded[0].
-        instance_variable_set("@octave_llp", mark_octaves)
+      # @note : on ne doit pas poser le delta d'octave sur un
+      # silence, donc on cherche la première note
+      i = -1
+      while motif2_exploded[ i+=1 ].rest? do end
+      motif2_exploded[i].instance_variable_set("@octave_llp", mark_octaves)
+
+      # On recompose le motif
       suite_motif2 = implode( motif2_exploded )
       
       # if oui
