@@ -191,15 +191,17 @@ describe "Addition et Motif" do
 			# Motif simple
 			[@motif_simple, "c", "\\relative c''' { c e g c, }"],
 			[@motif_octave_2, "c", "\\relative c'' { c e g c }"],
-			[@mo_octave_diff, "c", "\\relative c''' { a c e a c,,}"],
+			[@mo_octave_diff, "c", "\\relative c''' { a c e a c,, }"],
 			[@mo_accord, "a''", "\\relative c''' { <a c e> a' }"],
-			[@mo_chord_et_rest, "r r c,", "\\relative c''' { r <b d fis> r g r r c,, }"],
-			[@mo_slur, "a'( b c)", "\\relative c, { a( b c d) e( f g) r a( b c) }"],
+			[@mo_chord_et_rest, "r r c,", "\\relative c''' { r <b d fis> r g r r c,,, }"],
+			[@mo_chord_et_rest, "r c,", "\\relative c''' { r <b d fis> r g r c,,, }"],
+			[@mo_chord_et_rest, "c,", "\\relative c''' { r <b d fis> r g c,,, }"],
+			[@mo_slur, "a'( b c)", "\\relative c, { a( b c d) e( f g) r a''''( b c) }"],
 			[@mo_slured, "<a c e>", "\\relative c''' { a( b c d e) <a, c e> }"],
 			[@mo_complex, "cisis( ges ges4)", "\\relative c'' { r4\\( <ais c e> geses8( b[ e4])\\) r2 cisis,( ges ges4) }"]
 		].each do |d|
 			motif, str, res = d
-			it "Motif « #{motif.notes} » + String « #{str} »" do
+			it "Motif « #{motif.notes} » (octave #{motif.octave}) + String « #{str} »" do
 			 	new_mo = motif + str
 				new_mo.class.should == Motif
 				new_mo.object_id.should_not == motif.object_id
