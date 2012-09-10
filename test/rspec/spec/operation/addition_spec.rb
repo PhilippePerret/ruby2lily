@@ -320,9 +320,23 @@ describe "Addition et Chord" do
 		end
   end
 	describe "Chord + Note" do
-	  it "Une note d oit pouvoir être ajoutée à un accord" do
-	    pending "à implémenter"
-	  end
+		[
+			["c e g", nil, nil, "c", nil, nil, "c''' { <c e g> c, }"],
+			["c e g", nil, 4, "c", nil, 8, "c''' { <c e g>4 c,8 }"],
+			["c e g", nil, nil, "c", 4, nil, "c''' { <c e g> c }"],
+			["c e g", nil, "8.", "c", 4, nil, "c''' { <c e g>8. c }"],
+			["c e g c", nil, nil, "c", 4, nil, "c''' { <c e g c> c }"],
+			["c e g c", nil, nil, "c", 4, 16, "c''' { <c e g c> c16 }"]
+		].each do |d|
+			accord, oct_acc, dur_acc, note, oct_note, dur_note, expected = d
+		  it "Chord « #{accord} »-oct:#{oct_acc} + Note #{note}-oct:#{oct_note}" do
+		    acc 	= Chord::new :notes => accord, :octave => oct_acc, :duration => dur_acc
+				note 	= Note::new note, :octave => oct_note, :duration => dur_note
+				res = acc + note
+				res.class.should == Motif
+				res.to_s.should == "\\relative #{expected}"
+		  end
+		end
 	end
 	describe "Chord + Motif" do
 	  it "un motif d oit pouvoir être ajouté à un accord" do
