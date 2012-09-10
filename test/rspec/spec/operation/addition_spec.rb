@@ -188,29 +188,60 @@ describe "Addition et Motif" do
   describe "Motif + String" do
 		define_motifs if @mo_slured.nil?
 	  [
-			# Motif simple
-			[@motif_simple, "c", "\\relative c''' { c e g c, }"],
-			[@motif_octave_2, "c", "\\relative c'' { c e g c }"],
-			[@mo_octave_diff, "c", "\\relative c''' { a c e a c,, }"],
-			[@mo_accord, "a''", "\\relative c''' { <a c e> a' }"],
-			[@mo_chord_et_rest, "r r c,", "\\relative c''' { r <b d fis> r g r r c,,, }"],
-			[@mo_chord_et_rest, "r c,", "\\relative c''' { r <b d fis> r g r c,,, }"],
-			[@mo_chord_et_rest, "c,", "\\relative c''' { r <b d fis> r g c,,, }"],
-			[@mo_slur, "a'( b c)", "\\relative c, { a( b c d) e( f g) r a''''( b c) }"],
-			[@mo_slured, "<a c e>", "\\relative c''' { a( b c d e) <a, c e> }"],
-			[@mo_complex, "cisis( ges ges4)", "\\relative c'' { r4\\( <ais c e> geses8( b[ e4])\\) r2 cisis,( ges ges4) }"]
+			[@motif_simple, "c", "c''' { c e g c, }"],
+			[@motif_octave_2, "c", "c'' { c e g c }"],
+			[@mo_octave_diff, "c", "c''' { a c e a c,, }"],
+			[@mo_accord, "a''", "c''' { <a c e> a' }"],
+			[@mo_chord_et_rest, "r r c,", "c''' { r <b d fis> r g r r c,,, }"],
+			[@mo_chord_et_rest, "r c,", "c''' { r <b d fis> r g r c,,, }"],
+			[@mo_chord_et_rest, "c,", "c''' { r <b d fis> r g c,,, }"],
+			[@mo_slur, "a'( b c)", "c, { a( b c d) e( f g) r a''''( b c) }"],
+			[@mo_slured, "<a c e>", "c''' { a( b c d e) <a, c e> }"],
+			[@mo_complex, "cisis( ges ges4)", "c'' { r4\\( <ais c e> geses8( b[ e4])\\) r2 cisis,( ges ges4) }"]
 		].each do |d|
 			motif, str, res = d
 			it "Motif « #{motif.notes} » (octave #{motif.octave}) + String « #{str} »" do
 			 	new_mo = motif + str
 				new_mo.class.should == Motif
 				new_mo.object_id.should_not == motif.object_id
-				new_mo.to_s.should == res
+				new_mo.to_s.should == "\\relative #{res}"
 			end
 		end
   end
 	describe "Motif + Note" do
-	  pending "à implémenter"
+		define_motifs if @mo_slured.nil?
+		[
+			[@motif_simple, "c", nil, "c''' { c e g c, }"],
+			[@motif_simple, "c", 2, "c''' { c e g c,, }"],
+			[@motif_simple, "c", 4, "c''' { c e g c }"],
+			[@motif_simple, "c", 0, "c''' { c e g c,,,, }"],
+			[@motif_octave_2, "c", nil, "c'' { c e g c }"],
+			[@motif_octave_2, "c", 4, "c'' { c e g c' }"],
+			[@mo_octave_diff, "c", nil, "c''' { a c e a c,, }"],
+			[@mo_octave_diff, "c", 6, "c''' { a c e a c' }"],
+			[@mo_accord, "c", nil, "c''' { <a c e> c, }"],
+			[@mo_accord, "a", nil, "c''' { <a c e> a, }"],
+			[@mo_accord, "b", nil, "c''' { <a c e> b }"],
+			[@mo_chord_et_rest, "c", nil, "c''' { r <b d fis> r g c,, }"],
+			[@mo_chord_et_rest, "b", nil, "c''' { r <b d fis> r g b, }"],
+			[@mo_chord_et_rest, "c", 5, "c''' { r <b d fis> r g c }"],
+			[@mo_slur, "c", nil, "c, { a( b c d) e( f g) r c'' }"],
+			[@mo_slur, "b", nil, "c, { a( b c d) e( f g) r b''' }"],
+			[@mo_slur, "d", 0, "c, { a( b c d) e( f g) r d }"],
+			[@mo_slured, "c", nil, "c''' { a( b c d e) c, }"],
+			[@mo_slured, "b", nil, "c''' { a( b c d e) b }"],
+			[@mo_slured, "d", 5, "c''' { a( b c d e) d' }"],
+			[@mo_complex, "c", nil, "c'' { r4\\( <ais c e> geses8( b[ e4])\\) r2 c, }"],
+			[@mo_complex, "ces", 4, "c'' { r4\\( <ais c e> geses8( b[ e4])\\) r2 ces }"]
+		].each do |d|
+			motif, note, octave, expected = d
+			it "Motif « #{motif.notes} » (octave #{motif.octave}) + Note « #{note}-#{octave} »" do
+				note = Note::new note, :octave => octave
+				res = motif + note
+				res.class.should == Motif
+				res.to_s.should == "\\relative #{expected}"
+			end
+		end
 	end
 	describe "Motif + Motif" do
 	  pending "à implémenter"
