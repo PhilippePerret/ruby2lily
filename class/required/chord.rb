@@ -52,6 +52,8 @@ class Chord < NoteClass
       instance_variable_set("@#{prop}", value)
     end unless params.nil?
 
+    @duration = @duration.to_s unless @duration.nil?
+    
     # On met les notes en Array (est-ce vraiment intéressant ?)
     @notes = @notes.split(' ') if @notes.class == String
     
