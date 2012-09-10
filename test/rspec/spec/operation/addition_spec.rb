@@ -271,7 +271,22 @@ describe "Addition et Motif" do
 		end
 	end
 	describe "Motif + Chord" do
-	  pending "à implémenter"
+	  define_motifs if @mo_slured.nil?
+		[
+			[@motif_simple, "c e g", nil, "c''' { c e g <c, e g> }"],
+			[@motif_simple, "c e g", 4, "c''' { c e g <c e g> }"],
+			[@mo_chord_et_rest, "a c e", nil, "c''' { r <b d fis> r g <a, c e> }"],
+			[@mo_chord_et_rest, "a c e", 2, "c''' { r <b d fis> r g <a,, c e> }"],
+			[@mo_complex, "c e g c", nil, "c'' { r4\\( <ais c e> geses8( b[ e4])\\) r2 <c, e g c> }"],
+			[@mo_complex, "c e g c", 6, "c'' { r4\\( <ais c e> geses8( b[ e4])\\) r2 <c'' e g c> }"]
+		].each do |d|
+			motif, accord, chord_octave, expected = d
+			it "Motif « #{motif.notes} »-oct:#{motif.octave} + accord <#{accord}>-oct:#{chord_octave}" do
+			  res = motif + Chord::new( accord, :octave => chord_octave)
+				res.class.should == Motif
+				res.to_s.should == "\\relative #{expected}"
+			end
+		end
 	end
 end
 
