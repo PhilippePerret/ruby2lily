@@ -26,27 +26,35 @@ class Chord < NoteClass
   
   # Instanciation
   # 
+  # @param  notes     Peut être la liste des notes, sous forme de String
+  #                   ou d'Array, ou un Hash contenant toutes les data
   # @param  params    Peut être nil ou la liste des notes, de la plus
-  #                   basse à la plus haute
+  #                   basse à la plus haute, ou les données 
+  #                   hors-notes pour définir l'accord
   #                   Peut-être un hash (non utilisé encore)
-  def initialize params = nil
+  # 
+  def initialize notes = nil, params = nil
     @octave   = 3
     @duration = nil
     @notes    = []
-    case params.class.to_s
-    when "Array"
-      @notes = LINote::to_llp params
-    when "String" 
-      @notes = LINote::to_llp( params ).split(' ')
+    case notes.class.to_s
+    when "String", "Array"
+      @notes = LINote::to_llp( notes )
+      # Dans le cas d'un String ou d'un Array, +params+ peut contenir
+      # d'autres données
     when "Hash"
-      @octave   = params[:octave] unless params[:octave].nil?
-      @duration = params[:duration] # même si nil
-      @notes    = params[:notes]
-    when "Chord" # clone
-      @octave   = params.octave
-      @duration = params.duration
-      @notes    = params.notes
+      params = notes
+    when "Chord" # clonage
+      params = notes.to_hash
     end
+    
+    params.each do |prop, value|
+      instance_variable_set("@#{prop}", value)
+    end unless params.nil?
+
+    # On met les notes en Array (est-ce vraiment intéressant ?)
+    @notes = @notes.split(' ') if @notes.class == String
+    
   end
   
   # =>  Retourne l'accord comme string. Si +duree+ est fournie, elle est
@@ -72,6 +80,13 @@ class Chord < NoteClass
   def to_acc duree = nil
     duree ||= ""
     "<#{@notes.join(' ')}>#{duree.to_s}"
+  end
+  
+  # => Retourne les propriétés de l'accord sous forme de hash
+  def to_hash
+    {
+      :notes => @notes, :duration => @duration, :octave => octave
+    }
   end
   
   # => Ajoute une tierce à l'accord

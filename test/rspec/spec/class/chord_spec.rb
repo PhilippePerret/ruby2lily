@@ -99,6 +99,21 @@ describe Chord do
 			chord.to_acc.should == "<a c e>"
 			chord.to_acc(4).should == "<a c e>4"
 		end
+		
+		# :to_hash
+		it "doit répondre à :to_hash" do
+		  @chord.should respond_to :to_hash
+		end
+		it ":to_hash doit retourner le bon hash" do
+			notes = "a c e"
+		  acc = Chord::new notes
+			acc.to_hash.should == { :notes => notes.split(' '), 
+															:duration => nil, :octave => 3}
+			notes = "c e g"
+			acc = Chord::new :notes => notes, :octave => 4, :duration => "4."
+			acc.to_hash.should == { :notes => notes.split(' '), 
+															:duration => "4.", :octave => 4}
+		end
 		# :as_motif
 		it "doit répondre à :as_motif" do
 		  @chord.should respond_to :as_motif
