@@ -120,7 +120,6 @@ class Note < NoteClass
   
   def set valeur
     linote = LINote::explode( LINote::to_llp( valeur ) ).first
-    puts "\nLINOTE: #{linote.inspect}"
     @it     = linote.note
     unless linote.octave_llp.nil?
       @octave = 3 + LINote::octaves_from_llp( linote.octave_llp )
