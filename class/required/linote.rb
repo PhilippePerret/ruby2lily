@@ -8,6 +8,10 @@ require 'note'
 
 class LINote
   
+  require 'module/operations.rb' # normalement, toujours chargé
+  include OperationsSurNotes
+    # Définit +, * et []
+  
   # -------------------------------------------------------------------
   #   Constantes
   # -------------------------------------------------------------------
