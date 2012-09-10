@@ -6,6 +6,13 @@ require 'noteclass'
 
 class Motif < NoteClass
   
+  unless defined? Motif::ERRORS # quand tests
+    ERRORS = {
+      :notes_undefined    => "valeur :notes non définie",
+      :notes_non_lilypond => "valeur `:notes' non lilypond"
+    }
+  end
+  
   require 'module/operations.rb' # normalement, toujours chargé
   include OperationsSurNotes
     # Définit +, * et []
@@ -27,6 +34,12 @@ class Motif < NoteClass
                       # toutes les notes (class LINote) telles que
                       # explodées par LINote::explode
                       # Calculé en utilisant <motif>.exploded
+  
+  # --- Propriétés de modification ---
+  @slured   = false   # Mis à true quand on doit poser une liaison
+                      # simple sur le motif : <first>( <autres notes>)
+  @legato   = false   # Mis à true quand on doit poser une sur-liaison
+                      # sur le motif : <first>\( <autres notes>\)
   # => Instanciation
   # 
   # @param  params  Paramètres définissant le nouveau motif.
@@ -39,6 +52,8 @@ class Motif < NoteClass
     @notes    = nil
     @octave   = 3
     @duration = nil
+    @slured   = false
+    @legato   = false
     case params.class.to_s
     when "String" then set_with_string params
     when "Array"  then @notes = params # Liste de motifs
@@ -51,14 +66,18 @@ class Motif < NoteClass
   # @todo: Test de validité du hash transmis à la méthode
   def set_with_hash hash
     begin
-      raise if hash.class != Hash
-      raise unless hash.has_key?( :notes )
-      raise unless hash[:notes].is_lilypond?
+      raise Liby::ERRORS[:hash_required]        if hash.class != Hash
+      raise Motif::ERRORS[:notes_undefined]     unless hash.has_key?( :notes )
+      raise Motif::ERRORS[:notes_non_lilypond]  unless hash[:notes].is_lilypond?
       # Durée invalide
       duree = hash[:duration] || hash[:duree]
-      raise if duree != nil && ! NoteClass::DUREES.has_key?(duree.to_s)
-    rescue
-      fatal_error(:invalid_arguments_pour_motif, :args => hash.inspect)
+      if duree != nil && ! NoteClass::DUREES.has_key?(duree.to_s)
+        raise detemp(Liby::ERRORS[:bad_value_duree], :bad => duree.to_s) 
+      end
+    rescue Exception => e
+      fatal_error(:invalid_arguments_pour_motif, 
+        :args   => hash.inspect, 
+        :raison => e.message)
     end
     @notes    = hash[:notes]
     @octave   = hash[:octave].to_i unless hash[:octave].nil?
@@ -133,30 +152,26 @@ class Motif < NoteClass
                         params[:add_octave]
                       else 0 end
     
-    if @notes.class == String
 
-      # --- Motif string --- #
+    # Mark relative (\\relative c...) pour le motif
+    # ----------------------------------------------
+    mk_relative = mark_relative octaves_to_add
 
-      # Mark relative (\\relative c...) pour le motif
-      # ----------------------------------------------
-      mk_relative = mark_relative octaves_to_add
+    # Changement des durées si nécessaire
+    notes_str = if duree.nil? then @notes 
+                else notes_with_duree(duree) end 
 
-      # Changement des durées si nécessaire
-      notes_str = if duree.nil? then @notes 
-                  else notes_with_duree(duree) end 
-      # Finalisation
-      return "#{mk_relative} { #{notes_str} }"
-
-    else
-      
-      # --- Notes de motifs --- #
-
-      pms = { :add_octave => octaves_to_add }
-      pms = pms.merge(:duration => duree) unless duree.nil?
-      return @notes.collect { |mo| mo.to_s(pms) }.join(' ')
-      
+    # Liaisons ?
+    if @slured || @legato
+      markin  = @slured ? '(' : '\('
+      markout = @slured ? ')' : '\)'
+      notes_str = 
+        LINote::pose_first_and_last_note notes_str, markin, markout
     end
-  
+    
+    # Finalisation
+    return "#{mk_relative} { #{notes_str} }"
+
   end
   
   # => Return le motif au format lilypond (MAIS sans la marque d'octave)
@@ -337,27 +352,67 @@ class Motif < NoteClass
     change_objet_ou_new_instance new_motif, params, true
   end
   
-  # => Retourne le motif avec les notes liées
+  
+  # => Retourne l'objet slured (liaisons simples)
   # 
-  # @return L'OBJET LUI-MÊME (contrairement à d'autres méthodes de
-  # transformation)
-  def legato params = nil
-    motif_leg = pose_first_and_last_note '(', ')'
-    change_objet_ou_new_instance motif_leg, params, false
+  # @note: si le motif contient déjà une marque de slured, on 
+  # utilise le legato. S'il utilise déjà le sur-legato, on produit une
+  # erreur
+  def slure
+    
+    if @legato === true
+      fatal_error(:motif_legato_cant_be_slured)
+    elsif legato?
+      fatal_error(:motif_cant_be_surslured, :motif => @notes)
+    elsif slured?
+      if legato?
+        fatal_error(:motif_cant_be_surslured, :motif => @notes)
+      else
+        @legato = true
+      end
+    else
+      @slured = true
+    end
+    self
   end
   
-  # => Retourne le motif avec les notes sur-liées (*)
-  # 
-  # (*) Cette méthode est à utiliser quand le motif contient déjà des
-  # liaisons slur
-  # 
-  # @return L'OBJET LUI-MÊME (contrairement à d'autres méthodes de
-  # transformation)
-  def surlegato params = nil
-    motif_leg = pose_first_and_last_note '\(', '\)'
-    change_objet_ou_new_instance motif_leg, params, false
+  # => Renvoie un nouveau motif slured (sauf si params[:new] = false)
+  def slured params = nil
+    if params != nil && params[:new] == false
+      self.slure
+    else
+      self.clone.slure
+    end
   end
-
+  
+  # =>  Retourne le motif en legato (...\( ...\))
+  # 
+  # @return L'OBJET LUI-MÊME (ou la nouvelle instance si :new => true)
+  def legato params = nil
+    if @notes.match(/\\[\(\)]/) != nil
+      fatal_error(:motif_cant_be_surslured, :motif => @notes)
+    end
+    if params != nil && params[:new] === true
+      inst = self.clone
+      inst.instance_variable_set("@legato", true)
+      inst
+    else
+      @legato = true
+      self
+    end
+  end
+  
+  # =>  Return true si le motif est slured (soit par sa propriété
+  #     @slured, soit par sa suite de notes)
+  def slured?
+    @slured || @notes.match(/[^\\][\(\)]/) != nil
+  end
+  # =>  Return true si le motif est legato (soit par sa propriété 
+  #     @legato soit par sa suite de notes)
+  def legato?
+    @legato || @notes.match(/\\[\(\)]/) != nil
+  end
+  
   # => Crée un crescendo à partir du motif
   # 
   # @param  params  Options:
@@ -372,24 +427,10 @@ class Motif < NoteClass
     start   = params.has_key?( :start ) ? "\\#{params[:start]} " : ''
     markin  = for_crescendo ? '\<' : '\>'
     markout = params.has_key?( :end   ) ? " \\#{params[:end]}" : '\!'
-    motif_leg = "#{start}#{pose_first_and_last_note(markin, markout)}"
+    notes_str = LINote::pose_first_and_last_note @notes, markin, markout
+    # @todo: fonctionner comme pour @slured et @legato : en appliquant la marque seulement dans to_s
+    motif_leg = "#{start}#{notes_str}"
     change_objet_ou_new_instance motif_leg, params, true
-  end
-  
-  
-  # =>  Pose une marque de début (donc après la première note) et de fin
-  #     (donc après la dernière note) sur le motif de l'objet courant
-  # 
-  # @return   Le motif courant modifié
-  def pose_first_and_last_note markin, markout
-    dmotif = @notes.split(' ') # => vers des notes mais aussi des marques
-    ifirst = 0
-    while dmotif[ifirst].match(/^[a-g]/).nil? do ifirst += 1 end
-    dmotif[ifirst] = "#{dmotif[ifirst]}#{markin}"
-    ilast = dmotif.count - 1
-    while dmotif[ilast].match(/^[a-g]/).nil? do ilast -= 1 end
-    dmotif[ilast] = "#{dmotif[ilast]}#{markout}"
-    dmotif.join(' ')
   end
   
   # =>  Méthode appelée à la fin de toutes les méthodes, créant une

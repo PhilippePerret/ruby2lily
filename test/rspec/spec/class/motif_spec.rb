@@ -72,18 +72,22 @@ describe Motif do
 			@m.octave.should == -6
 		end
 		it ":set_with_hash doit lever une erreur en cas de mauvais arguments" do
-			def expected_error_with args
-				err = detemp(Liby::ERRORS[:invalid_arguments_pour_motif], :args => args.inspect)
+			def expected_error_with args, raison
+				err = detemp(Liby::ERRORS[
+					:invalid_arguments_pour_motif], 
+					:args 	=> args.inspect,
+					:raison => raison)
 				expect{@m.set_with_hash(args)}.to raise_error(SystemExit, err)
 			end
 			# Pas un hash mais un string
-			expected_error_with "string"
+			expected_error_with "string", Liby::ERRORS[:hash_required]
 			# Hash vide
-			expected_error_with( {} )
+			expected_error_with( {}, Motif::ERRORS[:notes_undefined] )
 			# Note invalide
-			expected_error_with( :notes => "h-^")
+			expected_error_with( {:notes => "h-^"}, Motif::ERRORS[:notes_non_lilypond] )
 			# Mauvaise erreur
-			expected_error_with( :notes => "c d e", :duration => 15)
+			err = detemp(Liby::ERRORS[:bad_value_duree], :bad => 15 )
+			expected_error_with( {:notes => "c d e", :duration => 15}, err)
 		end
 		
 		# :to_s
@@ -325,23 +329,9 @@ describe Motif do
 			m3 = (@m + m2)
 			iv_get(m3, :octave).should == 4
 		end
-		it ":+ permet d'ajouter une note (Note) à un motif et produire un nouveau motif" do
-		  n = Note::new "c'''" # => octave 6
-			m = Motif::new "c d e"
-			res = (m + n)
-			res.class.should == Motif
-			res.to_s.should  == "\\relative c''' { c d e c''' }"
-		end
 		# Note: le traitement de l'ajout d'un motif et d'une note est
-		# traité dans '+' de la note
+		# traité dans le module de test des opérations d'addition
 		
-		it ":+ doit permettre d'ajouter un accord à un motif" do
-		  mo = Motif::new "c d e"
-			ac = Chord::new "c e g"
-			res = mo + ac
-			res.class.should == Motif
-			res.to_s.should == "\\relative c''' { c d e <c e g> }"
-		end
 		it ":+ avec un type invalide doit lever une erreur fatale" do
 			mo = Motif::new "c d e"
 		  h = {:un => "un", :deux => "deux" }
@@ -350,7 +340,7 @@ describe Motif do
 		end
 		
 		# :join 
-		it "d oit r espond à :join" do
+		it "doit répondre à :join" do
 		  mo = Motif::new("d f a")
 			mo.should respond_to :join
 			# LE TEST DU FONCTIONNEMENT SE FAIT AVEC LA MÉTHODE STATIQUE
@@ -366,20 +356,8 @@ describe Motif do
 		  m1 = Motif::new "c e g"
 			(m1 * 3).to_s.should == "\\relative c''' { c e g c, e g c, e g }"
 		end
-		
-		# :pose_first_and_last_note
-		it "doit répondre à :pose_first_and_last_note" do
-		  repond_a :pose_first_and_last_note
-		end
-		it ":pose_first_and_last_note doit poser les balises" do
-		  @mo = Motif::new "a b c d"
-			res = @mo.pose_first_and_last_note('IN', 'OUT')
-			res.should == "aIN b c dOUT"
-			res = @mo.pose_first_and_last_note('(', ')')
-			res.should == "a( b c d)"
-			res = @mo.pose_first_and_last_note('\(', '\)')
-			res.should == "a\\( b c d\\)"
-		end
+		# @note: les autres opérations sont traitées dans le module
+		# de tests operation/multiplication
 		
 		# :change_objet_ou_new_instance
 		it "doit répondre à :change_objet_ou_new_instance" do
@@ -414,6 +392,129 @@ describe Motif do
 			@m.set_new_if_not_defined params, true
 			params[:new].should === false
 		end
+		
+		# :slured
+		describe ":slure" do
+			before(:each) do
+			  @mo = Motif::new(:notes => "a b c d e")
+			end
+			it "doit exister" do
+			  @mo.should respond_to :slured
+			end
+			it "doit définir la propriété @slured" do
+				iv_get(@mo, :slured).should === false
+			  @mo.slure
+				iv_get(@mo, :slured).should === true
+			end
+			it "-d doit renvoyer un nouveau motif correct sans modifier l'original" do
+			  iv_get(@mo, :slured).should == false
+				new_mo = @mo.slured
+				iv_get(@mo, :slured).should == false
+				iv_get(new_mo, :slured).should === true
+			end
+			it "doit retourner l'instance du motif" do
+			  new_mo = @mo.slure
+				new_mo.class.should == Motif
+				new_mo.object_id.should == @mo.object_id
+			end
+			it "doit ajouter le slur au motif" do
+			  @mo.to_s.should == "\\relative c''' { a b c d e }"
+				@mo.slure
+				@mo.to_s.should == "\\relative c''' { a( b c d e) }"
+			end
+			it "doit ajouter un « sur-slur » s'il existe déjà une liaison" do
+			  mo = Motif::new "a b( c) d( e)"
+				iv_get(mo, :legato).should  == false
+				iv_get(mo, :slured).should  == false
+				# La propriété @slured doit être false, mais le motif doit
+				# répondre true à slured? par la suite de notes
+				mo.should be_slured
+				mo.to_s.should == "\\relative c''' { a b( c) d( e) }"
+				mo.slure
+				mo.to_s.should == "\\relative c''' { a\\( b( c) d( e)\\) }"
+				iv_get(mo, :legato).should === true
+				iv_get(mo, :slured).should == false
+				mo.should be_slured
+				mo.should be_legato
+			end
+			it "doit ajouter un « sur-slur » si le motif est marqué slured" do
+			  mo = Motif::new "a b c d e"
+				mo.slure
+				iv_get(mo, :legato).should == false
+				iv_get(mo, :slured).should === true
+				mo.slure
+				iv_get(mo, :legato).should === true
+			end
+			it "ne doit pas pouvoir être appliqué s'il y a déjà un sur-slur" do
+				suite = "a b\\( c d\\)"
+			  mo = Motif::new suite
+				err = detemp(Liby::ERRORS[:motif_cant_be_surslured], :motif => suite)
+				expect{mo.slure}.to raise_error(SystemExit, err)
+				iv_get(mo, :legato).should  == false
+				iv_get(mo, :slured).should  == false
+			end
+			it "ne doit pas pouvoir être appliqué si le motif est marqué legato" do
+			  suite = "a b c d"
+				mo 		= Motif::new suite
+				mo.legato
+				expect{mo.slure}.to raise_error(
+					SystemExit, 
+					Liby::ERRORS[:motif_legato_cant_be_slured])
+				iv_get(mo, :legato).should  == true
+				iv_get(mo, :slured).should  == false
+			end
+			it "? doit exister" do
+			  @mo.should respond_to :slured?
+			end
+			it "? doit retourner la bonne valeur" do
+			  mo = Motif::new "a b c d"
+				mo.should_not be_slured
+				mo.slure
+				mo.should be_slured
+				iv_set(mo, :slured => false)
+				mo.should_not be_slured
+				iv_set(mo, :notes => "a b c( d e)")
+				mo.should be_slured
+			end
+		end
+		
+		# :legato
+		describe ":legato" do
+			it "doit exister" do 
+				@m.should respond_to :legato
+			end
+			it ":legato doit renvoyer une instance du motif" do
+			  @m.legato.class.should == Motif
+			end
+			it ":legato doit renvoyer une valeur modifiée" do
+			  @mo = Motif::new "a b cis r4 a-^ |"
+				res = @mo.legato
+				res.to_s.should == "\\relative c''' { a\\( b cis r4 a-^\\) }"
+			end
+			it ":legato avec :new => true doit renvoyer un nouveau motif" do
+			  @mo = Motif::new "a b d"
+				@mo.legato
+				iv_get(@mo, :notes).should == "a b d"
+				iv_get(@mo, :legato).should === true
+			  @mo = Motif::new "a b d"
+				@mo.legato(:new => true)
+				iv_get(@mo, :legato).should === false
+			end
+			it "? doit exister" do
+			  @m.should respond_to :legato?
+			end
+			it "? doit retourner la bonne valeur" do
+			  mo = Motif::new "a b c d"
+				mo.should_not be_legato
+				mo.legato
+				mo.should be_legato
+				iv_set(mo, :legato => false)
+				mo.should_not be_legato
+				iv_set(mo, :notes => "a b c\\( d e\\)")
+				mo.should be_legato
+			end
+		end
+
 		
 		# :moins
 		it "doit répondre à :moins" do repond_a :moins end
@@ -472,36 +573,6 @@ describe Motif do
 			iv_get(@motif, :notes).should == "des ees f"
 		end
 	
-		# :legato
-		it "doit répondre à :legato" do repond_a :legato end
-		it ":legato doit renvoyer une instance du motif" do
-		  @m.legato.class.should == Motif
-		end
-		it ":legato doit renvoyer une valeur modifiée" do
-		  @mo = Motif::new "a b cis r4 a-^ |"
-			res = @mo.legato
-			res.to_s.should == "\\relative c''' { a( b cis r4 a-^) }"
-		end
-		it ":legato avec :new => true doit renvoyer un nouveau motif" do
-		  @mo = Motif::new "a b d"
-			@mo.legato
-			iv_get(@mo, :notes).should == "a( b d)"
-		  @mo = Motif::new "a b d"
-			@mo.legato(:new => true)
-			iv_get(@mo, :notes).should == "a b d"
-		end
-
-		# :surlegato
-		it "doit répondre à :surlegato" do repond_a :surlegato end
-		it ":surlegato doit renvoyer une instance du motif" do
-		  @m.surlegato.class.should == Motif
-		end
-		it ":surlegato doit renvoyer une valeur modifiée" do
-		  @mo = Motif::new "a b cis r4 a-^ |"
-			res = @mo.surlegato
-			res.to_s.should == "\\relative c''' { a\\( b cis r4 a-^\\) }"
-		end
-		
 		# :crescendo
 		it "doit répondre à :crescendo" do
 		  repond_a :crescendo

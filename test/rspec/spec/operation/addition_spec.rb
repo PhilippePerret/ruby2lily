@@ -162,10 +162,50 @@ end
 # -------------------------------------------------------------------
 # 	Motif
 # -------------------------------------------------------------------
+def define_motifs
+  @motif_simple 	= Motif::new("c e g")
+	@motif_octave_2 = Motif::new(:notes => "c e g", :octave => 2)
+	# Motif avec une octave différente à la fin qu'au début
+	@mo_octave_diff = Motif::new(:notes => "a c e a")
+	# Motif simple avec accord
+	@mo_accord			= Motif::new(:notes => "<a c e>")
+	# Motif avec accord et silence
+	@mo_chord_et_rest = Motif::new(:notes => "r <b d fis> r g")
+	# Motif avec liaison de jeu
+	@mo_slur = Motif::new(:notes => "a( b c d) e( f g) r", :octave => -1)
+	# Motif avec liaison de jeu en propriété (@todo)
+	@mo_slured = Motif::new(:notes => "a b c d e", :slured => true)
+	# Motif complexe
+	@mo_complex = Motif::new(
+		# :notes 	=> "r\\( <ais c e> geses8( b[ e4])\\) r2",
+		:notes => "r\\( <ais c e> geses8( b[ e4])\\) r2",
+		:octave => 2, :duration => "4"
+		)
+end
 describe "Addition et Motif" do
-	
+	before(:all) do
+	end
   describe "Motif + String" do
-	  pending "à implémenter"
+		define_motifs if @mo_slured.nil?
+	  [
+			# Motif simple
+			[@motif_simple, "c", "\\relative c''' { c e g c, }"],
+			[@motif_octave_2, "c", "\\relative c'' { c e g c }"],
+			[@mo_octave_diff, "c", "\\relative c''' { a c e a c,,}"],
+			[@mo_accord, "a''", "\\relative c''' { <a c e> a' }"],
+			[@mo_chord_et_rest, "r r c,", "\\relative c''' { r <b d fis> r g r r c,, }"],
+			[@mo_slur, "a'( b c)", "\\relative c, { a( b c d) e( f g) r a( b c) }"],
+			[@mo_slured, "<a c e>", "\\relative c''' { a( b c d e) <a, c e> }"],
+			[@mo_complex, "cisis( ges ges4)", "\\relative c'' { r4\\( <ais c e> geses8( b[ e4])\\) r2 cisis,( ges ges4) }"]
+		].each do |d|
+			motif, str, res = d
+			it "Motif «#{motif.notes}» + String «#{str}" do
+			 	new_mo = motif + str
+				new_mo.class.should == Motif
+				new_mo.object_id.should_not == motif.object_id
+				new_mo.to_s.should == res
+			end
+		end
   end
 	describe "Motif + Note" do
 	  pending "à implémenter"
