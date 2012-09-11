@@ -5,14 +5,12 @@
 # 
 
 require 'noteclass'
-require 'module/operations.rb' # normalement, toujours chargé
 
 class Note < NoteClass
 
   # -------------------------------------------------------------------
   #   Opérations sur les notes
   # -------------------------------------------------------------------
-  include OperationsSurNotes
   
   unless defined?(Note::ANGLO_TO_ITAL)
     ANGLO_TO_ITAL = {'a' => 'la', 'b' => 'si', 'c' => 'do', 'd' => 'ré', 'e' => 'mi', 'f' => 'fa', 'g' => 'sol'}
@@ -95,11 +93,9 @@ class Note < NoteClass
   attr_reader :it, :octave, :duration
   
   @it         = nil       # La note, en notation anglosaxonne
+  @alter      = nil       # L'alteration de la note (au format llp)
   @itit       = nil       # La note, en notation italienne
   @alter      = nil       # L'altération de la note
-  # @TODO: UN GROS PROBLÈME DANS CETTE CLASSE, CAR LES ALTÉRATIONS NE
-  # SONT PAS DU TOUT PRISES EN COMPTE. IL FAUT SOIT Y REMÉDIER, SOIT
-  # SUPPRIMER LA CLASSE POUR LA REMPLACER PAR LINote, BIEN PLUS COMPLÈTE
   @octave     = nil       # L'octave de la note (3 par défaut)
   @duration   = nil       # La durée, telle qu'exprimée pour Lilipond, i.e.
                           # 1 pour la ronde, 2 pour la noire, "4." pour
@@ -121,23 +117,23 @@ class Note < NoteClass
   end
   
   def set valeur
-    linote = LINote::explode( LINote::to_llp( valeur ) ).first
+    linote  = LINote::llp_to_linote( LINote::to_llp( valeur ) )
     @it     = linote.note
     unless linote.octave_llp.nil?
       @octave = 3 + LINote::octaves_from_llp( linote.octave_llp )
     end
-    if @it == "r"
+    @rest = linote.rest?
+    if @rest
       @it = @itit = nil
-      @rest = true
     else
-      @rest   = false
       @itit   = ANGLO_TO_ITAL[@it]
       @alter  = linote.alter
     end
   end
     
   def get
-    @it
+    return nil if @it.nil?
+    "#{@it}#{@alter}"
   end
   
   # => Return la note sous la forme d'un motif
@@ -178,21 +174,19 @@ class Note < NoteClass
   def mark_duration
     @duration.to_s
   end
-  # => Définit la marque de l'octave pour l'affichage
-  def mark_octave
-    return "" if @octave.nil?
-    LINote::octave_as_llp @octave
-  end
 
   # => Renvoie la note telle qu'elle doit être affichée en lilipond
   # 
-  # @note: pour n'obtenir que la note (sans octave), utiliser la
+  # @note: pour n'obtenir que la note sans octave, utiliser la
   # méthode :get
   def to_s # => to_lilipond
-    note = rest? ? 'r' : "#{@it}#{mark_octave}"
-    "#{note}#{mark_duration}"
-    # @todo: il faudra ajouter ici tout ce qu'on peut faire pour
-    # spécifier la note
+    note = self.get
+    note << @duration unless @duration.nil?
+    unless rest? || @octave.nil? || @octave == 3
+      mk_relative = LINote::mark_relative(@octave)
+      note = "#{mk_relative} { #{note} }"
+    end
+    note
   end
   alias :to_lilipond :to_s
   alias :to_llp :to_s
@@ -230,7 +224,7 @@ class Note < NoteClass
       duree = ((duree / 2) + 1).to_s
       duree = "#{duree}."
     end
-    @duration = duree
+    @duration = duree.to_s
   end
   # -------------------------------------------------------------------
   #   Méthodes de durée renvoyant l'instance

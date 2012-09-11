@@ -94,13 +94,13 @@ describe Note do
 				["bes", -3, -25],
 				["f",   -3, -30]
 			].each do |note, octave, valeur|
-				it "L a note #{note} à l'octave #{octave} vaut #{valeur}" do
+				it "La note #{note} à l'octave #{octave} vaut #{valeur}" do
 					Note::valeur_absolue(note, octave).should == valeur
 				end
 			end
 			
 			# :dieses_et_bemols_in
-			it ":dieses_et_bemols_in d oit exister" do
+			it ":dieses_et_bemols_in doit exister" do
 			  Note.should respond_to :dieses_et_bemols_in
 			end
 			it ":dieses_et_bemols_in d oit retourner la bonne valeur" do
@@ -171,6 +171,23 @@ describe Note do
 					iv_get(@n, :itit).should be_nil
 				end
 
+				# :to_s
+				it ":to_s" do
+				  @n.should respond_to :to_s
+				end
+				[
+					["c", nil, nil, "c"],
+					["c", 2, nil, "\\relative c'' { c }"],
+					["ceses", 4, "4", "\\relative c'''' { ceses4 }"],
+					["fisis", 3, "4.", "fisis4."]
+				].each do |d|
+					note, octave, duree, expected = d
+					it "Note « #{note}#{duree} »-oct:#{octave}:to_s should: #{expected}" do
+					  no = Note::new note, :octave => octave, :duration => duree
+						no.to_s.should == expected
+					end
+				end
+				
 				# :get
 				it ":get" do
 				  @n.should respond_to :get
@@ -197,7 +214,7 @@ describe Note do
 					@n.should respond_to :to_rest
 				end
 				it ":to_silence doit définir un silence" do
-				  iv_set(@n, :silence => nil)
+				  iv_set(@n, :rest => false)
 					@n.should_not be_silence
 					@n.to_silence
 					@n.should be_rest
@@ -260,13 +277,13 @@ describe Note do
 				end
 				it ":duree doit définir la durée" do
 				  @n.duree 4
-					iv_get(@n, :duration).should == 4
+					iv_get(@n, :duration).should == "4"
 					@n.duree 3
 					iv_get(@n, :duration).should == "2."
 				end
 				it ":duree doit retourner la durée" do
 				  @n.duree 1
-					@n.duree.should == 1
+					@n.duree.should == "1"
 				end
 				{
 					'ronde' 		=> 1, 	'whole' 					=> 1, 
@@ -286,30 +303,31 @@ describe Note do
 					end
 					it ":#{len} doit mettre la durée à #{duree}" do
 						iv_set(@n, :duration => nil)
-						iv_get(@n, :duration).should_not eq duree
+						iv_get(@n, :duration).should_not eq duree.to_s
 					  @n.send(len)
-						iv_get(@n, :duration).should eq duree
+						iv_get(@n, :duration).should eq duree.to_s
 					end
 				  it ":to_#{len}" do
 			    	@n.should respond_to "to_#{len}"
 				  end
 					it ":to_#{len} doit mettre la durée à #{duree}" do
 						iv_set(@n, :duration => nil)
-						iv_get(@n, :duration).should_not eq duree
+						iv_get(@n, :duration).should_not eq duree.to_s
 					  @n.send("to_#{len}")
-						iv_get(@n, :duration).should eq duree
+						iv_get(@n, :duration).should eq duree.to_s
 					end
 					it ":as_#{len}" do
 						@n.should respond_to "as_#{len}"
 					end
 					it ":as_#{len} doit renvoyer la bonne valeur" do
-					  @n.send("as_#{len}").should == "g'''#{duree}"
+					  res = @n.send("as_#{len}")
+						res.should == "g#{duree}"
 					end
 					it ":as_#{len} doit mettre la durée à #{duree}" do
 						iv_set(@n, :duration => nil)
-						iv_get(@n, :duration).should_not eq duree
+						iv_get(@n, :duration).should_not eq duree.to_s
 					  @n.send("as_#{len}")
-						iv_get(@n, :duration).should eq duree
+						iv_get(@n, :duration).should eq duree.to_s
 					end
 				end # / boucle sur toutes les durées
 				it "doit répondre à :dotted et :pointee" do
