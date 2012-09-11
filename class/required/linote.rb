@@ -14,6 +14,26 @@ class LINote < NoteClass
 
   unless defined? NOTE_STR_TO_INT
     
+    SUITE_DIESES = ['f', 'c', 'g', 'd', 'a', 'e', 'b']
+    SUITE_BEMOLS = SUITE_DIESES.reverse
+    
+    ALTERS_PER_TUNE = {
+      'C'   => { :nombre => 0, :suite => nil, :add => nil},
+      'G'   => { :nombre => 1, :suite => SUITE_DIESES,  :add => 'is' },
+      'D'   => { :nombre => 2, :suite => SUITE_DIESES,  :add => 'is' },
+      'A'   => { :nombre => 3, :suite => SUITE_DIESES,  :add => 'is' },
+      'E'   => { :nombre => 4, :suite => SUITE_DIESES,  :add => 'is' },
+      'B'   => { :nombre => 5, :suite => SUITE_DIESES,  :add => 'is' },
+      'F#'  => { :nombre => 6, :suite => SUITE_DIESES,  :add => 'is' },
+      'C#'  => { :nombre => 7, :suite => SUITE_DIESES,  :add => 'is' },
+      'F'   => { :nombre => 1, :suite => SUITE_BEMOLS,  :add => 'es' },
+      'Bb'  => { :nombre => 2, :suite => SUITE_BEMOLS,  :add => 'es' },
+      'Eb'  => { :nombre => 3, :suite => SUITE_BEMOLS,  :add => 'es' },
+      'Ab'  => { :nombre => 4, :suite => SUITE_BEMOLS,  :add => 'es' },
+      'Db'  => { :nombre => 5, :suite => SUITE_BEMOLS,  :add => 'es' },
+      'Gb'  => { :nombre => 6, :suite => SUITE_BEMOLS,  :add => 'es' },
+      'Cb'  => { :nombre => 7, :suite => SUITE_BEMOLS,  :add => 'es' }
+    }
     # Liste transformant les notes bémols ou complexe en leur valeur
     # simple dièse.
     # Cette liste permettra de trouver l'index absolu de la note dans la
@@ -149,6 +169,28 @@ class LINote < NoteClass
   # -------------------------------------------------------------------
   #   Classe
   # -------------------------------------------------------------------
+  
+  # =>  Définit et retourne les altérations des notes dans la tonalité
+  #     +key+ fournie
+  def self.alterations_notes_in_key key
+    # @todo: il faut vérifier que la tonalité existe
+    @@alteration_notes_per_key ||= {}
+    @@alteration_notes_per_key[key] ||= lambda {
+      data_key = ALTERS_PER_TUNE[key]
+      nombre_alters = data_key[:nombre]
+      suite_alters  = data_key[:suite]
+      alter_to_add  = data_key[:add]
+      hash_alters =
+      {'c'=>'c', 'd'=>'d', 'e'=>'e', 'f'=>'f', 'g'=>'g', 'a'=>'a', 'b'=>'b'}
+      if nombre_alters > 0
+        nombre_alters.times do |i|
+          note = suite_alters[i]
+          hash_alters[note] << alter_to_add
+        end
+      end
+      hash_alters
+    }.call
+  end
   
   # => Return une LINote d'après le string LilyPond +note_llp+
   # 

@@ -4,6 +4,8 @@
 require 'spec_helper'
 require 'chord'
 
+SCORE = Score::new unless defined? SCORE
+
 describe Chord do
   describe "Instanciation" do
     it "sans argument doit laisser un accord vide" do
@@ -24,6 +26,10 @@ describe Chord do
 			@c.notes.should == ["a", "cis", "e"]
 			@c.octave.should == 2
 		end
+		it "argument :duree doit être remplacé par :duration" do
+		  acc = Chord::new :notes => "a b c", :duree => "4."
+			iv_get(acc, :duration).should == "4."
+		end
   end
 	describe "L'instance" do
 	  before(:each) do
@@ -33,6 +39,17 @@ describe Chord do
 		# :[]
 		# Testé dans spec/operations/crochets_spec.rb
 		
+		# :clone
+		it "doit répondre à :clone" do
+		  @chord.should respond_to :clone
+		end
+		it ":clone doit renvoyer un vrai clone" do
+		  acc1 = Chord::new :notes => "a c e", :duree => "8.", :octave => 4
+			acc2 = acc1.clone
+			iv_set(acc1, :notes => %w(c e g), :duration => "4")
+			acc1.to_acc.should == "<c e g>4"
+			acc2.to_acc.should == "<a c e>8."
+		end
 		# :to_s
 		it "doit répondre à :to_s" do
 			@chord.should respond_to :to_s
@@ -79,8 +96,10 @@ describe Chord do
 		  mo = chord.as_motif
 			mo.class.should == Motif
 			mo.to_s.should == "\\relative c, { <a c e> }"
-			chord.instance_variable_set("@duration", 8)
+			iv_set(chord, :duration => 8)
 			mo = chord.as_motif
+			mo.notes.should_not == "<a c e>8"
+			mo.notes.should == "<a c e>"
 			# puts "mo: #{mo.inspect}"
 			mo.to_s.should == "\\relative c, { <a c e>8 }"
 		end
@@ -92,6 +111,42 @@ describe Chord do
 		it ":with_duree doit renvoyer la bonne valeur" do
 			@c = Chord::new "c e g"
 			@c.with_duree(4).should == "\\relative c''' { <c e g>4 }"
+		end
+		
+		# :renversement / renverse
+		it "doit répondre à :renversement et :renverse" do
+		  @chord.should respond_to :renversement
+			@chord.should respond_to :renverse
+		end
+		it ":renverse doit produire un renversement de l'accord" do
+		  acc = Chord::new "c e g"
+			renv1 = acc.renverse
+			acc.object_id.should_not == renv1.object_id
+			renv1.to_acc.should == "<e g c>"
+			acc.to_acc.should 	== "<c e g>"
+			acc.renverse(2).to_acc.should == "<g c e>"
+			acc.to_acc.should == "<c e g>"
+		end
+		it ":renversement doit définir le bon octave" do
+		  acc = Chord::new "c d fis"
+			acc.renverse.to_acc.should == "<d fis c'>"
+		end
+		
+		# :move / :degre
+		it "doit répondre à :move / :to_degre" do
+		  @chord.should respond_to :move
+			@chord.should respond_to :to_degre
+		end
+		it ":to_degre (:move) doit renvoyer le bon accord" do
+			acc = Chord::new "c e g"
+		  iv_set(SCORE, :key => "C")
+			acc.to_degre(2).to_acc.should == "<d f a>"
+		  iv_set(SCORE, :key => "G")
+			acc.to_degre(2).to_acc.should == "<d fis a>"
+		  iv_set(SCORE, :key => "E")
+			acc.to_degre(2).to_acc.should == "<dis fis a>"
+		  iv_set(SCORE, :key => "Ab")
+			acc.to_degre(2).to_acc.should == "<des f aes>"
 		end
 	end
 end

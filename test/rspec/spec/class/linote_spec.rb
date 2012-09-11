@@ -10,6 +10,26 @@ describe LINote do
 	# 	Classe
 	# -------------------------------------------------------------------
   describe "La classe" do
+		it "doit définir la constante ALTERS_PER_TUNE" do
+		  defined?(LINote::ALTERS_PER_TUNE).should be_true
+		end
+		it "ALTERS_PER_TUNE doit contenir les bonnes valeurs" do
+		  LINote::ALTERS_PER_TUNE['B'].should == {
+				:nombre => 5, :suite => LINote::SUITE_DIESES, :add => 'is'
+			}
+		end
+		it "doit définir la constante SUITE_DIESES" do
+		  defined?(LINote::SUITE_DIESES).should be_true
+		end
+		it "SUITE_DIESES doit être valide" do
+		  LINote::SUITE_DIESES.should == ['f', 'c', 'g', 'd', 'a', 'e', 'b']
+		end
+		it "doit définir la constante SUITE_BEMOLS" do
+		  defined?(LINote::SUITE_BEMOLS).should be_true
+		end
+		it "SUITE_BEMOLS doit être valide" do
+		  LINote::SUITE_BEMOLS.should == ['b', 'e', 'a', 'd', 'g', 'c', 'f']
+		end
 		it "doit définir la constante LISTE_ALT_TO_ALT_SIMPLE" do
 		  defined?(LINote::LISTE_ALT_TO_ALT_SIMPLE).should be_true
 		end
@@ -98,6 +118,27 @@ describe LINote do
 		  "<! c e a c e>".scan(/#{LINote::REG_CHORD}/).should be_empty
 		end
 		
+		# :alterations_notes_in_key
+		it "doit répondre à :alterations_notes_in_key" do
+		  LINote.should respond_to :alterations_notes_in_key
+		end
+		it ":alterations_notes_in_key doit retourner le bon résultat" do
+		  LINote::alterations_notes_in_key('C').should == {
+				'c'=>'c', 'd'=>'d', 'e'=>'e', 'f'=>'f', 'g'=>'g', 'a'=>'a', 'b'=>'b'
+			}
+			LINote::alterations_notes_in_key('B').should == {
+				'c'=>'cis', 'd'=>'dis', 'e'=>'e', 'f'=>'fis', 'g'=>'gis', 
+				'a'=>'ais', 'b'=>'b'
+			}
+			LINote::alterations_notes_in_key('Db').should == {
+				'c'=>'c', 'd'=>'des', 'e'=>'ees', 'f'=>'f', 'g'=>'ges', 'a'=>'aes',
+				'b'=>'bes'
+			}
+			LINote::alterations_notes_in_key('Bb').should == {
+				'c'=>'c', 'd'=>'d', 'e'=>'ees', 'f'=>'f', 'g'=>'g', 'a'=>'a', 
+				'b'=>'bes'
+			}
+		end
 		# :data_notes
 		it "doit répondre à :explode" do
 		  LINote.should respond_to :explode
