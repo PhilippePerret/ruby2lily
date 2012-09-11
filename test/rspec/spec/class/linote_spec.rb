@@ -185,6 +185,32 @@ describe LINote do
 			end
 		end
 
+		# :llp_to_linote
+		it "doit répondre à :llp_to_linote" do
+		  LINote.should respond_to :llp_to_linote
+		end
+		it ":llp_to_linote doit retourner une Linote d'après un string llp" do
+		  res = LINote::llp_to_linote("a")
+			res.class.should == LINote
+			
+		end
+		it ":llp_to_linote doit lever une erreur si mauvais argument" do
+			err = detemp(Liby::ERRORS[:bad_type_for_args], :good => "String",
+						:bad => "Hash")
+		  expect{LINote::llp_to_linote({})}.to raise_error(SystemExit, err)
+			motif = Motif::new "a c d"
+			err = detemp(Liby::ERRORS[:bad_type_for_args], :good => "String",
+						:bad => "Motif")
+		  expect{LINote::llp_to_linote(motif)}.to raise_error(SystemExit, err)
+			
+		end
+		["str", "t-^" "aa("].each do |bad_llp|
+			it ":llp_to_linote doit lever une erreur avec « #{bad_llp} »" do
+				err = detemp(Liby::ERRORS[:not_note_llp], :note => bad_llp)
+		  	expect{LINote::llp_to_linote(bad_llp)}.to raise_error(SystemExit, err)
+			end
+		end
+		
 		# :to_llp
 		it "doit répondre à :to_llp" do
 		  LINote::should respond_to :to_llp

@@ -154,6 +154,45 @@ class LINote
   #   Classe
   # -------------------------------------------------------------------
   
+  # => Return une LINote d'après le string LilyPond +note_llp+
+  # 
+  # @param  note_llp    Un string de note LilyPond, qui peut être
+  #                     complexe (p.e. "cisis,,8.-^(" )
+  # 
+  # @return Une Linote contenant toutes les données
+  def self.llp_to_linote note_llp
+    # String requis
+    fatal_error(:bad_type_for_args, 
+      :good => "String", 
+      :bad => note_llp.class.to_s) unless note_llp.class == String
+      
+    note_llp = note_llp.strip
+    note_llp.scan(/^#{REG_NOTE_COMPLEXE}$/){
+      tout, pre, note, alter, octave, duree, jeu, post, duree_post,
+      mark_dyna = 
+        [$&, $1, $2, $3, $4, $5, $6, $7, $8, $9]
+        
+      # Étude du jeu
+      # ------------
+      unless jeu.to_s.blank?
+        jeu = jeu[1..-1] # Pour retirer le '-' du départ
+      end
+      
+      # Composition de la linote
+      # ------------------------
+      return LINote::new(
+        :note => note, :duration => duree, :duree_post => duree_post, 
+        :octave_llp => octave,
+        :pre  => pre,  :alter => alter, :jeu => jeu, :post => post,
+        :dynamique => mark_dyna,
+        :finger => nil  # @todo: implémenter la relève du doigté
+                        # (il est à prendre dans "jeu")
+        )
+    }
+    # Si on passe ici, c'est que le motif n'a pas été trouvé, que
+    # +note_llp+ n'était donc pas au bon format
+    fatal_error(:not_note_llp, :note => note_llp)
+  end
   # => Return les données notes du motif +str+ (motif LilyPond)
   # ------------------------------------------------------------
   # @param  str   Un string contenant les notes à analyser
@@ -171,28 +210,7 @@ class LINote
                       :good => "String ou Motif", :bad => str.class.to_s)
     end
     ary_str.each do |membre|
-      membre.scan(/^#{REG_NOTE_COMPLEXE}$/){
-        tout, pre, note, alter, octave, duree, jeu, post, duree_post,
-        mark_dyna = 
-          [$&, $1, $2, $3, $4, $5, $6, $7, $8, $9]
-          
-        # Étude du jeu
-        # ------------
-        unless jeu.to_s.blank?
-          jeu = jeu[1..-1] # Pour retirer le '-' du départ
-        end
-        
-        # Composition de la donnée
-        # ------------------------
-        data << LINote::new(
-          :note => note, :duration => duree, :duree_post => duree_post, 
-          :octave_llp => octave,
-          :pre  => pre,  :alter => alter, :jeu => jeu, :post => post,
-          :dynamique => mark_dyna,
-          :finger => nil  # @todo: implémenter la relève du doigté
-                          # (il est à prendre dans "jeu")
-          )
-      }
+      data << llp_to_linote( membre )
     end
     data
   end
@@ -508,7 +526,7 @@ class LINote
     when "String"
       @note_str = valeur
       params ||= {}
-      params  = LINote::explode(@note_str)[0].to_hash.merge( params )
+      params  = LINote::llp_to_linote(@note_str).to_hash.merge( params )
     when "Fixnum"
       @note_int = valeur
       @note_str = str_in_context params
