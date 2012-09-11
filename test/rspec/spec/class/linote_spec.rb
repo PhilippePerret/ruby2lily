@@ -464,6 +464,18 @@ describe LINote do
 	    @ln = LINote::new "c"
 	  end
 
+		# :to_s
+		# ATTENTION : ça n'est plus un alias de :to_llp
+		it "doit répondre à :to_s" do
+		  @ln.should respond_to :to_s
+		end
+		it ":to_s doit retourner la bonne valeur" do
+		  ln = LINote::new "c"
+			ln.to_s.should == "\\relative c''' { c }"
+			ln = LINote::new :note => "c#", :octave => 1, :duree => "8", :jeu => "^"
+			ln.to_s.should == "\\relative c' { cis8-^ }"
+		end
+
 		# :with_alter
 		it "doit répondre à :with_alter" do
 		  @ln.should respond_to :with_alter
@@ -479,8 +491,8 @@ describe LINote do
 			ln.with_alter.should == "c"
 		end
 		
-		# :with_all
-		it "doit répondre à :to_s (alias de :to_llp)" do
+		# :to_llp
+		it "doit répondre à :to_llp)" do
 		  @ln.should respond_to :to_s
 		end
 		dur = "duration"
@@ -505,7 +517,7 @@ describe LINote do
 			end
 			it ":to_s avec {#{data_displayed.inspect}} doit rendre : '#{res}'" do
 				linote = LINote::new dlinote
-				linote.to_s.should == res
+				linote.to_llp.should == res
 			end
 		end
 		

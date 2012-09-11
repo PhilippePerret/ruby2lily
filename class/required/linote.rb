@@ -6,11 +6,7 @@
 require 'String'
 require 'note'
 
-class LINote
-  
-  require 'module/operations.rb' # normalement, toujours chargé
-  include OperationsSurNotes
-    # Définit +, * et []
+class LINote < NoteClass
   
   # -------------------------------------------------------------------
   #   Constantes
@@ -227,7 +223,7 @@ class LINote
   #     'es' et les notes italiennes remplacées par leur valeur
   #     anglosaxonne.
   # @param  notes   Un string de note
-  # @todo: on devrait traiter ici les octaves peut-être ajouter au
+  # @todo: on devrait traiter ici les octaves peut-être ajoutés au
   # string envoyé (p.e. "c'"). Mais comment s'en sortir sachant que 
   # apostrope et virgule ne sont que des delta d'octaves ? et que
   # cette méthodes statique ne renvoie que la note ?
@@ -471,6 +467,7 @@ class LINote
   @note_int = nil   # La note, exprimé par un entier
   
   @note       = nil   # La note simple (SEULEMENT a-g / r)
+  @alter      = nil   # Altération de la note (p.e. "eses" ou "is")
   @pre        = nil   # Ce qui précède la note (p.e. '<')
   @post       = nil   # Ce qui suit la note (p.e. '>' ou ')')
   @duration   = nil   # La durée de la note (p.e. "4.")
@@ -479,7 +476,6 @@ class LINote
                       # duree_post (@note: ça sert pour :explode et
                       # :implode)
   @octave_llp = nil   # Le delta d'octave, au format LLP (p.e. « '' »)
-  @alter      = nil   # Altération de la note (p.e. "eses" ou "is")
   @jeu        = nil   # Jeu string de la note (le texte après le tiret)
   @finger     = nil   # Le doigté éventuel
   @dynamique  = nil   # Éventuellement la marque de dynamique (quelque
@@ -545,7 +541,16 @@ class LINote
   # 
   def set hash
     return if hash.nil?
+    hash[:duration] = hash.delete(:duree) unless hash[:duree].nil?
     hash.each { |prop, val| instance_variable_set("@#{prop}", val) }
+    if @note.length != 1
+      note = LINote::to_llp @note
+      puts "\n\nnote: #{note}"
+      hash = LINote::llp_to_linote( note ).to_hash
+      @note     = hash[:note]
+      @alter    = hash[:alter]
+      @duration = hash[:duration] unless hash[:duration].nil?
+    end
   end
   
   # => Recompose le string à partir des données de la linote
@@ -558,6 +563,13 @@ class LINote
   #                 l'octave_llp
   #                 Dans ce cas, on indique dans params :
   #                   :except => {:octave_llp => true}
+  # 
+  # @note : contrairement à la méthode :to_s, :to_llp renvoie l'octave
+  # en delta d'octave, pas en marque relative.
+  #   Soit la linote "c" à l'octave -1
+  #     linote.to_llp   =>    "c,"
+  #     linote.to_s     =>    "\\relative c, { c }"
+  # 
   def to_llp params = nil
     params ||= {}
     except = params[:except] || {}
@@ -572,7 +584,14 @@ class LINote
     note_llp << "#{@finger}#{@post}#{@duree_post}#{@dynamique}"
     return note_llp
   end
-  alias :to_s :to_llp
+  # alias :to_s :to_llp
+  
+  # =>  Return la linote comme texte final lilypond
+  #     P.e. "\relative c' { dis }"
+  def to_s
+    note = to_llp( :except => { :octave => true } )
+    "#{self.class::mark_relative(@octave)} { #{note} }"
+  end
   
   # => Return la linote sous forme de hash
   # 

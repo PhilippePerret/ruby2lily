@@ -70,7 +70,7 @@ class String
       unless first_note_or_rest_traited
         data[:duration] = linote.duration
         
-        data[:notes]    << linote.to_s(:except => {:octave_llp => true, :duration => true})
+        data[:notes]    << linote.to_llp(:except => {:octave_llp => true, :duration => true})
             # @note : il ne faut pas mettre la marque d'octave lilypond
             # éventuellement enregistrée dans la LINote, car elle sera
             # considérée ci-dessous. Au début d'un motif, on évite de
@@ -84,7 +84,7 @@ class String
         # peut comporter une marque de delta d'octave. Il faut donc
         # retirer la marque d'octave tant que data[:octave] est nil
         except = { :octave_llp => data[:octave].nil? }
-        data[:notes] << linote.to_s(:except => except)
+        data[:notes] << linote.to_llp(:except => except)
       end
       # On définit l'octave s'il est défini
       # @note : pas mis sur la première note car ça peut être un silence
