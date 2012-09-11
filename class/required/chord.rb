@@ -9,10 +9,6 @@
 require 'noteclass'
 class Chord < NoteClass
   
-  require 'module/operations.rb' # normalement, toujours chargé
-  include OperationsSurNotes
-    # Définit +, * et []
-  
   # -------------------------------------------------------------------
   #   Instance
   # -------------------------------------------------------------------
