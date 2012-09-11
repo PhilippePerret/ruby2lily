@@ -24,7 +24,7 @@ describe "Méthode :[]" do
   end
 	
 	# -------------------------------------------------------------------
-	# 	Sur Motif
+	# 	Sur les Motifs
 	# -------------------------------------------------------------------
   describe "sur les Motifs" do
     it "doit exister" do
@@ -44,7 +44,7 @@ describe "Méthode :[]" do
 		end
   end
 	# -------------------------------------------------------------------
-	# 	Sur les Chord
+	# 	Sur les Chords
 	# -------------------------------------------------------------------
   describe "sur les Chords" do
 		before(:each) do
@@ -100,7 +100,9 @@ describe "Méthode :[]" do
 			ln.should respond_to :[]
     end
 		it "doit retourner une bonne linote" do
-		  pending "à implémenter"
+		  ln = LINote::new "cis", :octave => 3, :duration => "4."
+			ln.to_s.should == "\\relative c''' { cis4. }"
+			ln[1].to_s.should == "\\relative c' { cis4. }"
 		end
   end
 
