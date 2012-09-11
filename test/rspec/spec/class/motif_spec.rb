@@ -533,7 +533,7 @@ describe Motif do
 			  @m.legato.class.should == Motif
 			end
 			it ":legato doit renvoyer une valeur modifiée" do
-			  @mo = Motif::new "a b cis r4 a-^ |"
+			  @mo = Motif::new "a b cis r4 a-^"
 				res = @mo.legato
 				res.to_s.should == "\\relative c''' { a\\( b cis r4 a-^\\) }"
 			end
