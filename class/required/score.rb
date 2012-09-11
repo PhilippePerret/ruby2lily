@@ -33,7 +33,8 @@ class Score
   #   Instance
   # -------------------------------------------------------------------
   attr_reader :title, :opus, :subtitle, :composer, :parolier, :key, 
-              :time, :tempo, :base_tempo, :meter, :arranger, :description
+              :time, :tempo, :base_tempo, :meter, :arranger, :description,
+              :code
               
   @title      = nil   # Titre du morceau courant
   @opus       = nil   # Opus (sans "Op. ")
@@ -48,6 +49,7 @@ class Score
                       # être aussi défini par "@instrument")
   @arranger   = nil   # Arrangeur ou provenance
   @description= nil   # Description sous le titre
+  @code       = nil   # Code sous l'header, ayant produit la partition
   
   def initialize params = nil
     

@@ -3,6 +3,7 @@
 # 
 # Pseudo-Singleton qui s'occupe de la partie affichage (feuille) du
 # score courant
+# 
 require 'score'
 
 class Score::Sheet
@@ -15,6 +16,7 @@ class Score::Sheet
       score::write entete   << "\n\n"
       score::write version  << "\n\n"
       score::write header   << "\n\n"
+      score::write code     << "\n\n"  # code exemple (wiki)
       score::write self.score
       score::close
     end
@@ -51,6 +53,30 @@ class Score::Sheet
         h = h << rt << val unless val.nil?
       end
       h = h << r << "}"
+    end
+    
+    # =>  Retourne le code à écrire pour l'exemple de code qui 
+    #     produit la partition courante (pour le wiki github)
+    def code
+      return "" if SCORE.code.nil? || SCORE.code.blank?
+      code = SCORE.code.gsub(/\r/, '')
+      lines = code.split("\n").collect{ |line|
+        "\t\t\\line { \\typewriter { #{line} } }"
+      }.join("\n")
+      lines = lines.gsub(/"([^"]*)"/){ '“' << $1 << '”' }
+      
+      # Texte finalisé
+      '\markup {' << \
+      "\n\t\\column {" << \
+      "\n\t\\null" << \
+      "\n\t\\null" << \
+      "\n\t\\line { \\typewriter { Extrait du code : } }" << \
+      "\n\t\\line { \\typewriter { ----------------- } }" << \
+      lines << \
+      "\\null" << \
+      "\\null" << \
+      "\t}" << \
+      "}"
     end
     
     # => Return le code complet de la partition

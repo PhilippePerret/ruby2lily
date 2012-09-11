@@ -69,7 +69,8 @@ else
     :base_tempo   => @base_tempo,
     :meter        => @meter       || @instrument,
     :arranger     => @arranger    || @arrangeur,
-    :description  => @description
+    :description  => @description,
+    :code         => @code  # development only
   )
 
   # Transformation du score ruby en score lilypond
