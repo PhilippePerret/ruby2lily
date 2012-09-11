@@ -14,6 +14,7 @@ class Liby
     USAGE   = "@usage:\n\t$ ./ruby2lily.rb <path/to/score/ruby> <options>"
     ERRORS  = {
       :hash_required              => "un hash est requis",
+      :string_required            => "un string est requis",
       :command_line_empty         => "`ruby2site` doit s'appeler avec des arguments." \
                                      << "Utilisez `ruby2site -h` pour obtenir de l'aide.",
       :unknown_option             => "L'option `\#{option}` est inconnue…",
@@ -53,6 +54,8 @@ class Liby
       :motif_cant_be_surslured      => "Aucune liaison ne peut être ajoutée à \#{motif} (déjà lié) !",
       :motif_legato_cant_be_slured  => "Un motif legato ne peut être sluré…",
       
+      # ==== LINote ==== #
+      :not_note_llp               => "« \#{note} » n'est pas une note LiLyPond correcte",
       # ==== Note ==== #
       :bad_args_for_join_linote   => "Les arguments pour la méthode LINote::join sont invalides",
       
