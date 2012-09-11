@@ -107,6 +107,7 @@ describe Liby do
 		  @derrs = Liby::ERRORS
 		end
 		[
+			:string_required,
 			:command_line_empty,
 			:unknown_option,
 			:arg_path_file_ruby_needed,
