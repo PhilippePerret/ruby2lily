@@ -6,18 +6,6 @@ require 'spec_helper'
 
 describe "Méthode :[]" do
 	# -------------------------------------------------------------------
-	# 	Sur Motif
-	# -------------------------------------------------------------------
-  describe "sur les Motifs" do
-    it "doit exister" do
-      mo = Motif::new
-			mo.should respond_to :[]
-    end
-		it "doit retourner un bon motif" do
-		  pending "à implémenter"
-		end
-  end
-	# -------------------------------------------------------------------
 	# 	Sur les Notes
 	# -------------------------------------------------------------------
   describe "sur les Notes" do
@@ -26,7 +14,33 @@ describe "Méthode :[]" do
 			no.should respond_to :[]
     end
 		it "doit retourner une bonne Note" do
-		  pending "à implémenter"
+		  no = Note::new "c"
+			no.class.should == Note
+			res = no["8"]
+			res.class.should == Note
+			res.to_s.should == "c8"
+			no[2,"4"].to_s.should == "\\relative c'' { c4 }"
+		end
+  end
+	
+	# -------------------------------------------------------------------
+	# 	Sur Motif
+	# -------------------------------------------------------------------
+  describe "sur les Motifs" do
+    it "doit exister" do
+      mo = Motif::new
+			mo.should respond_to :[]
+    end
+		it "doit retourner un bon motif" do
+		  mo = Motif::new "c(\\< d e)\\!"
+			mo_duree_8 = mo["8"]
+			mo_duree_8.to_s.should == "\\relative c''' { c8(\\< d e)\\! }"
+			mo_octave_2 = mo[2]
+			mo_octave_2.to_s.should == "\\relative c'' { c(\\< d e)\\! }"
+			mo_oct1_dur4 = mo["4", -1]
+			mo_oct1_dur4.to_s.should == "\\relative c, { c4(\\< d e)\\! }"
+			mo_autre = mo[:duration => "2.", :octave => 6]
+			mo_autre.to_s.should == "\\relative c'''''' { c2.(\\< d e)\\! }"
 		end
   end
 	# -------------------------------------------------------------------
@@ -39,14 +53,11 @@ describe "Méthode :[]" do
     it "doit exister" do
 			@acc.should respond_to :[]
     end
-	  it "doit exister" do
-	    @acc.should respond_to :[]
-	  end
 		it "doit retourner un accord" do
 		  @acc[4,1].class.should == Chord
 		end
 		it "doit pouvoir recevoir octave, durée" do
-			res = @acc[4, 8]
+			res = @acc[4, "8"]
 			res.to_s.should == "\\relative c'''' { <a c e>8 }"
 		end
 		it "doit pouvoir recevoir durée, octave si durée string" do
