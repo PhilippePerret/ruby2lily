@@ -94,7 +94,6 @@ module OperationsSurNotes
   # 
   # @note: pour pouvoir fonctionner
   def []( *params)
-
     param1 = params[0]  # peut être nil
     param2 = params[1]  # peut être nil
     
@@ -108,15 +107,19 @@ module OperationsSurNotes
       new_inst = self.clone
     end
     
+    # puts "new_inst: #{new_inst.inspect}"
+    
     # Analyse paramètres entre crochets
     # ----------------------------------
     # @note: gère toutes les erreurs possibles
     params = self.class::params_crochet_to_hash params
+    # puts "params: #{params.inspect}"
     
     # Affectation des valeurs
     params.each do |property, value|
       new_inst.instance_variable_set("@#{property}", value)
     end
+    # puts "new_inst réglé: #{new_inst.inspect}"
     
     # On retourne la nouvelle instance (ou self if any)
     new_inst
