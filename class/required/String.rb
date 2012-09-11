@@ -122,6 +122,11 @@ class String
     end
   end
   
+  # => Retourne la +note+ avec son altération dans la tonalité +key+
+  def with_alter_in_key key
+    hash = LINote::alterations_notes_in_key( key )
+    hash[self]
+  end
   # =>  Retourne la distance de la note à ut
   def dut
     @dut ||= lambda {

@@ -53,6 +53,26 @@ describe String do
 				note.dut.should == res
 		  end
 		end
+		
+		# :with_alter_in_key
+		it "doit répondre à :with_alter_in_key" do
+		  "str".should respond_to :with_alter_in_key
+		end
+		[
+			["c", "C", "c"],
+			["f", "C", "f"],
+			["f", "D", "fis"],
+			["e", "C", "e"],
+			["e", "Bb", "ees"],
+			["a", "C", "a"],
+			["a", "B", "ais"],
+			["a", "Eb", "aes"]
+		].each do |d|
+			note, key, expected = d
+			it "#{note}.with_alter_in_key('#{key}') doit valoir #{expected}" do
+				note.with_alter_in_key(key).should == expected
+		  end
+		end
 		# :note_with_alter
 		it "doit répondre à :note_with_alter" do
 		  "str".should respond_to :note_with_alter
