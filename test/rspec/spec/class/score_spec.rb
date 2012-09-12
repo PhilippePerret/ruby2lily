@@ -39,6 +39,7 @@ describe Score do
 			it "PREFERENCES[:no_title] doit exister" do
 			  @prefs.should have_key :no_title
 			end
+			
 		end
 	end
 	

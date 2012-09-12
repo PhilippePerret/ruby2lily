@@ -28,6 +28,7 @@ class Score
       :title  => "Partition sans titre",
       :time   => '4/4'
     }
+    
   end
   # -------------------------------------------------------------------
   #   Instance

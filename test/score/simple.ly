@@ -14,12 +14,14 @@
 	composer = "J.S. Bach"
 }
 
+
+
 % Score
 {\new Staff {
 	\relative c'' {
 		\clef "treble"
 		\time 6/8
-		\tempo 4 = 120	bes4.-^\< f c fis fis\fff c gis' d<a c e>8 c8( b c d c b) a( g f e f g)
+		\tempo 4 = 120	a a2 a( g f e f g)
 	}
 }
 }
