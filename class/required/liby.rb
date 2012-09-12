@@ -33,6 +33,9 @@ class Liby
  
       :cant_add_this              => "Un objet de type \#{classe} ne peut être ajouté…",
       
+      # === Portée === #
+      :bad_clef                   => "La clé '\#{clef}' est inconnue",
+      
       # === Erreurs durée === #
       :bad_value_duree            => "La durée \#{bad} est invalide !",
       

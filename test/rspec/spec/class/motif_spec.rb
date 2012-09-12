@@ -136,6 +136,11 @@ describe Motif do
 				"\\relative c' { c8 c c a''' a a }"
 		end
 		
+		it ":to_s avec une clé définie doit renvoyer la bonne valeur" do
+		  mot = Motif::new :notes => "a b c d", :clef => "g"
+			mot.to_s.should == "\\relative c''' { \\clef \"treble\" a b c d }"
+		end
+		
 		# :to_llp
 		it "doit répondre à :to_llp" do
 		  @m.should respond_to :to_llp
@@ -149,6 +154,43 @@ describe Motif do
 			mo.to_llp.should == "cis8 bes aisis"
 		end
 		
+		# :clef
+		it "doit répondre à :clef" do
+		  @m.should respond_to :clef
+		end
+		it ":clef doit définir la clef à utiliser" do
+		  iv_get(@m, :clef).should be_nil
+			@m.clef "g"
+			iv_get(@m, :clef).should == "treble"
+			@m.clef "f"
+			iv_get(@m, :clef).should == "bass"
+			@m.clef "ut3"
+			iv_get(@m, :clef).should == "alto"
+			@m.clef "ut4"
+			iv_get(@m, :clef).should == "tenor"
+			@m.clef nil
+			iv_get(@m, :clef).should be_nil
+		end
+		it ":clef doit lever une erreur en cas de mauvaise valeur" do
+			err = detemp(Liby::ERRORS[:bad_clef], :clef => "bad")
+		  expect{@m.clef("bad")}.to raise_error(SystemExit, err)
+		end
+		# :mark_clef
+		it "doit répondre à :mark_clef" do
+		  @m.should respond_to :mark_clef
+		end
+		it ":mark_clef doit renvoyer la bonne valeur" do
+			@m.clef nil
+			@m.mark_clef.should == ""
+			@m.clef 'f'
+			@m.mark_clef.should == "\\clef \"bass\" "
+			@m.clef 'ut4'
+			@m.mark_clef.should == "\\clef \"tenor\" "
+			@m.clef 'g'
+			@m.mark_clef.should == "\\clef \"treble\" "
+			@m.clef nil
+		end
+		
 		# :first_note
 		it "doit répondre à :first_note" do
 		  @m.should respond_to :first_note
@@ -157,7 +199,7 @@ describe Motif do
 			mo = Motif::new "c e g"
 			mo.first_note.class.should == LINote
 		end
-		it ":first_note d oit renvoyer la première note" do
+		it ":first_note doit renvoyer la première note" do
 			[
 				["a ees c", 3, "a", 3],
 				["a b c", 3, "a", 3],

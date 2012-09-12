@@ -5,14 +5,20 @@ class Staff
 
   unless defined?(Staff::CLE_FR_TO_EN)
     CLE_FR_TO_EN = {
-      'sol' => 'treble',
-      'G'   => 'treble',
-      'ut3' => 'alto',
-      'U3'  => 'alto',
-      'ut4' => 'tenor',
-      'U4'  => "tenor",
-      'fa'  => 'bass',
-      'F'   => 'bass'
+      'sol'     => 'treble',
+      'G'       => 'treble',
+      'g'       => 'treble',
+      'ut3'     => 'alto',
+      'U3'      => 'alto',
+      'ut4'     => 'tenor',
+      'U4'      => "tenor",
+      'fa'      => 'bass',
+      'f'       => 'bass',
+      'F'       => 'bass',
+      'treble'  => 'treble',
+      'bass'    => 'bass',
+      'alto'    => 'alto',
+      'tenor'   => 'tenor'
     }
     CLE_EN_TO_FR = CLE_FR_TO_EN.invert
   

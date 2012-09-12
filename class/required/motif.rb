@@ -36,6 +36,10 @@ class Motif < NoteClass
                       # simple sur le motif : <first>( <autres notes>)
   @legato   = false   # Mis à true quand on doit poser une sur-liaison
                       # sur le motif : <first>\( <autres notes>\)
+  
+  # --- Propriétés d'affichage ---
+  @clef     = nil     # La clé à utiliser à l'affichage du motif
+  
   # => Instanciation
   # 
   # @param  notes   SOIT Les notes String du motif
@@ -76,7 +80,7 @@ class Motif < NoteClass
       raise Motif::ERRORS[:notes_non_lilypond]  unless hash[:notes].is_lilypond?
       # Durée invalide
       duree = hash[:duration] || hash[:duree]
-      if duree != nil && ! NoteClass::DUREES.has_key?(duree.to_s)
+      if duree != nil && !NoteClass::duree_valide?(duree.to_s)
         raise detemp(Liby::ERRORS[:bad_value_duree], :bad => duree.to_s) 
       end
     rescue Exception => e
@@ -85,15 +89,16 @@ class Motif < NoteClass
         :raison => e.message)
     end
     @notes    = hash[:notes]
-    @octave   = hash[:octave].to_i unless hash[:octave].nil?
     @duration = hash[:duration] || hash[:duree]
-    @duration = @duration.to_s unless @duration.nil?
+    @duration = @duration.to_s      unless  @duration.nil?
+    @octave   = hash[:octave].to_i  unless  hash[:octave].nil?
     # Les méthodes suivantes, permettant de préciser le motif de façon
     # générale, permettent aussi de vérifier si la valeur est possible.
     # Par exemple, si on demande à « slurer » un motif qui contient déjà
     # des « ( ) » et des « \( \) », une erreur fatale sera produite.
     slure   if hash[:slured] === true
     legato  if hash[:legato] === true
+    clef( hash[:clef] ) if hash.has_key?( :clef )
   end
   
   # => Définit le Motif (notes et durée) à partir d'un string
@@ -177,8 +182,24 @@ class Motif < NoteClass
     notes_str = notes_with_liaison notes_str
     
     # Finalisation
-    return "#{mk_relative} { #{notes_str} }"
+    return "#{mk_relative} { #{mark_clef}#{notes_str} }"
 
+  end
+  
+  # => Définit la clé à utiliser pour le motif
+  def clef valeur
+    if valeur.nil?
+      @clef = nil
+    else
+      @clef = Staff::CLE_FR_TO_EN[valeur.to_s]
+      fatal_error(:bad_clef, :clef => valeur) if @clef.nil?
+    end
+  end
+  
+  # => Return la marque de clef à écrire dans le motif (avant les notes)
+  def mark_clef
+    return "" if @clef.nil?
+    return "\\clef \"#{@clef}\" "
   end
   
   # => Return le motif au format lilypond (MAIS sans la marque d'octave)
