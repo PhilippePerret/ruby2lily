@@ -42,6 +42,12 @@ describe "Méthode :[]" do
 			mo_autre = mo[:duration => "2.", :octave => 6]
 			mo_autre.to_s.should == "\\relative c'''''' { c2.(\\< d e)\\! }"
 		end
+		it "doit passer par la méthode :clef pour la définir" do
+		  mo = Motif::new "c e f"
+			mo.set_clef nil
+			new_mo = mo[:octave => 3, :clef => 'g']
+			iv_get(new_mo, :clef).should == "treble"
+		end
   end
 	# -------------------------------------------------------------------
 	# 	Sur les Chords

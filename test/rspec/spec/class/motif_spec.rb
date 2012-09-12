@@ -154,41 +154,41 @@ describe Motif do
 			mo.to_llp.should == "cis8 bes aisis"
 		end
 		
-		# :clef
-		it "doit répondre à :clef" do
-		  @m.should respond_to :clef
+		# :set_clef
+		it "doit répondre à :set_clef" do
+		  @m.should respond_to :set_clef
 		end
-		it ":clef doit définir la clef à utiliser" do
+		it ":set_clef doit définir la clef à utiliser" do
 		  iv_get(@m, :clef).should be_nil
-			@m.clef "g"
+			@m.set_clef "g"
 			iv_get(@m, :clef).should == "treble"
-			@m.clef "f"
+			@m.set_clef "f"
 			iv_get(@m, :clef).should == "bass"
-			@m.clef "ut3"
+			@m.set_clef "ut3"
 			iv_get(@m, :clef).should == "alto"
-			@m.clef "ut4"
+			@m.set_clef "ut4"
 			iv_get(@m, :clef).should == "tenor"
-			@m.clef nil
+			@m.set_clef nil
 			iv_get(@m, :clef).should be_nil
 		end
-		it ":clef doit lever une erreur en cas de mauvaise valeur" do
+		it ":set_clef doit lever une erreur en cas de mauvaise valeur" do
 			err = detemp(Liby::ERRORS[:bad_clef], :clef => "bad")
-		  expect{@m.clef("bad")}.to raise_error(SystemExit, err)
+		  expect{@m.set_clef("bad")}.to raise_error(SystemExit, err)
 		end
 		# :mark_clef
 		it "doit répondre à :mark_clef" do
 		  @m.should respond_to :mark_clef
 		end
 		it ":mark_clef doit renvoyer la bonne valeur" do
-			@m.clef nil
+			@m.set_clef nil
 			@m.mark_clef.should == ""
-			@m.clef 'f'
+			@m.set_clef 'f'
 			@m.mark_clef.should == "\\clef \"bass\" "
-			@m.clef 'ut4'
+			@m.set_clef 'ut4'
 			@m.mark_clef.should == "\\clef \"tenor\" "
-			@m.clef 'g'
+			@m.set_clef 'g'
 			@m.mark_clef.should == "\\clef \"treble\" "
-			@m.clef nil
+			@m.set_clef nil
 		end
 		
 		# :first_note

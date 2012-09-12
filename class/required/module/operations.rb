@@ -116,8 +116,19 @@ module OperationsSurNotes
     # puts "params: #{params.inspect}"
     
     # Affectation des valeurs
+    # -----------------------
+    # Principe : si une méthode existe, portant le nom de la propriété,
+    # c'est elle qu'on appelle avec la valeur (c'est le cas pour la
+    # clef par exemple). Dans le cas contraire, on définit simplement
+    # la valeur de la variable d'instance.
+    # @todo: il faudrait généraliser ce principe et coder une unique
+    # méthode pour faire ce travail partout.
     params.each do |property, value|
-      new_inst.instance_variable_set("@#{property}", value)
+      if new_inst.respond_to?("set_#{property}")
+        new_inst.send("set_#{property}", value)
+      else
+        new_inst.instance_variable_set("@#{property}", value)
+      end
     end
     # puts "new_inst réglé: #{new_inst.inspect}"
     

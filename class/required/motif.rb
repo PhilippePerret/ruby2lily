@@ -98,7 +98,7 @@ class Motif < NoteClass
     # des « ( ) » et des « \( \) », une erreur fatale sera produite.
     slure   if hash[:slured] === true
     legato  if hash[:legato] === true
-    clef( hash[:clef] ) if hash.has_key?( :clef )
+    set_clef( hash[:clef] ) if hash.has_key?( :clef )
   end
   
   # => Définit le Motif (notes et durée) à partir d'un string
@@ -187,7 +187,7 @@ class Motif < NoteClass
   end
   
   # => Définit la clé à utiliser pour le motif
-  def clef valeur
+  def set_clef valeur
     if valeur.nil?
       @clef = nil
     else
