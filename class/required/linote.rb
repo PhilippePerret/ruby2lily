@@ -184,6 +184,7 @@ class LINote < NoteClass
   #     +key+ fournie
   def self.alterations_notes_in_key key
     # @todo: il faut vérifier que la tonalité existe
+    key ||= "C"
     @@alteration_notes_per_key ||= {}
     @@alteration_notes_per_key[key] ||= lambda {
       data_key = ALTERS_PER_TUNE[key]
