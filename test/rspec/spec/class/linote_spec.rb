@@ -547,11 +547,12 @@ describe LINote do
 			["c", "fis", false, false],
 			["c", "a", true, false],
 			["c", "g", true, false],
+			["g", "c", false, true],
 			["a", "c", false, true],
 			["g", "c", false, true],
 			["c", "ges", false, false],
 			["c", "fis", false, false],
-			["c'", "fis", true, true],
+			["c'", "fis", false, true],
 			["fis", "c", true, true],
 			["fis", "c'", false, false]
 		].each do |d|

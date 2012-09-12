@@ -56,6 +56,36 @@ class Chord < NoteClass
     # On met les notes en Array (est-ce vraiment intéressant ?)
     @notes = @notes.split(' ') if @notes.class == String
     
+    notes_ascendantes? # erreur fatale si ça n'est pas le cas
+    
+  end
+  
+  # Vérifie que les notes fournies soient bien ascendantes
+  # Sinon, lève une erreur fatale
+  def notes_ascendantes?
+    return true if @notes.nil? || @notes.empty?
+    erreur    = "les notes doivent être ascendantes"
+    previous  = nil
+    notes_ln  = LINote::explode @notes.join(' ')
+    begin
+      notes_ln.each do |linote|
+        case linote.delta
+        when 1..10    then 
+          # Rien à faire, mais laisser filer pour prendre previous
+        when -10..-1  then raise
+        else # = 0 => s'assurer que la note est après
+          unless previous.nil?
+            res = linote.note.au_dessus_de? previous.note
+            raise unless linote.note.au_dessus_de? previous.note
+          end
+        end
+        previous = linote
+      end
+    rescue Exception => e
+      fatal_error(:bad_args_for_chord, 
+                  :chord => @notes.join(' '),
+                  :error => "les notes doivent être ascendantes")
+    end
   end
   
   # =>  Retourne un vrai clone de l'accord
@@ -118,15 +148,23 @@ class Chord < NoteClass
   # @todo: il faut vérifier le changement d'octave
   # Car là, ci-dessous, c'est la version archi simple, qui ne regarde pas
   # si l'occord contient des delta d'octave ou autre.
+  # @todo: la (nouvelle) première note, si elle contient un delta, ce 
+  # delta doit être supprimé
   def renverse renversement = 1
     chord = self.clone
     notes = chord.notes
+    # Procéder au renversement, en vérifiant l'octave
     renversement.times do |i|
       first_note  = notes.delete_at(0)
-      last_note   = notes.last
-      
+      ln_last     = notes.last.to_linote
+      first_note << "'" unless first_note.au_dessus_de? ln_last.with_alter
       notes << first_note
     end
+    # Supprimer l'éventuelle marque de delta de la nouvelle première
+    # note
+    ln_first = notes.first.to_linote
+    notes[0] = ln_first.with_alter
+    # Affecter les notes à l'accord
     chord.instance_variable_set("@notes", notes)
     chord
   end

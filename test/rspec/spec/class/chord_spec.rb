@@ -30,6 +30,34 @@ describe Chord do
 		  acc = Chord::new :notes => "a b c", :duree => "4."
 			iv_get(acc, :duration).should == "4."
 		end
+		
+		it "doit répondre à :notes_ascendantes?" do
+		  acc = Chord::new "a c e"
+			acc.should respond_to :notes_ascendantes?
+		end
+		it ":notes_ascendantes? doit renvoyer la bonne valeur" do
+		  # testé avec la méthodes ci-dessous
+		end
+		[
+			["a c e", true],
+			["a c, e", false],
+			["c g e", false],
+			["c g' e'", true],
+			["c g'' e'''", true]
+		].each do |d|
+			suite, valide = d
+			it "L'instanciation avec «#{suite}» doit être #{valide ? 'valide' : 'invalide'}" do
+			  # Par exemple "a c," n'est pas valide
+				if valide
+					expect{Chord::new :notes => suite}.not_to raise_error
+				else
+					err = detemp(Liby::ERRORS[:bad_args_for_chord], 
+						:chord => suite,
+						:error => "les notes doivent être ascendantes")
+					expect{Chord::new :notes => suite}.to raise_error(SystemExit, err)
+				end
+			end
+		end
   end
 	describe "L'instance" do
 	  before(:each) do
@@ -131,7 +159,23 @@ describe Chord do
 		  acc = Chord::new "c d fis"
 			acc.renverse.to_acc.should == "<d fis c'>"
 		end
-		
+		it ":renversement doit supprimer le delta de la nouvelle première note" do
+		  acc = Chord::new "c e' g"
+			acc.renverse.to_acc.should_not == "<e' g c>"
+			acc.renverse.to_acc.should == "<e g c>"
+			acc = Chord::new "c e'' g'"
+			newacc = acc.renverse
+			newacc.to_acc.should == "<e g' c>"
+			newacc = newacc.renverse
+			newacc.to_acc.should == "<g c e>"
+		end
+		it ":renversement doit remettre un delta supprimé" do
+		  acc = Chord::new "c g' b"
+			newacc = acc.renverse
+			newacc.to_acc.should == "<g b c>"
+			newacc2 = newacc.renverse
+			newacc2.to_acc.should == "<b c g'>"
+		end
 		# :move / :degre
 		it "doit répondre à :move / :to_degre" do
 		  @chord.should respond_to :move

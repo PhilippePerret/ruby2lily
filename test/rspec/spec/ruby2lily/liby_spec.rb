@@ -127,7 +127,8 @@ describe Liby do
 			:bad_value_duree,
 			:bad_type_for_args,
 			:bad_args_for_join_linote,
-			:motif_cant_be_surslured
+			:motif_cant_be_surslured,
+			:bad_args_for_chord
 		].each do |cle_erreur|
 			it "l'erreur :#{cle_erreur} doit exister" do
 				Liby::ERRORS.should have_key cle_erreur

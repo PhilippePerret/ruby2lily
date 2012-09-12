@@ -610,7 +610,7 @@ class LINote < NoteClass
   #             A0 = 21
   #             C4 = 60
   def abs
-    valeur = self.index + (octave + 1) * 12
+    valeur = self.index + (self.octave + 1) * 12
     # Traitement spécial pour le franchissement d'obstacle
     if self.note == "c" && self.bemol?
       valeur -= 12 
@@ -719,10 +719,11 @@ class LINote < NoteClass
   # 
   def au_dessus_de? linote
     linote = linote.to_linote if linote.class == String
-    case linote.delta - self.delta
+
+    case linote.delta
     when 1..10    : false
     when -10..-1  : true
-    else # pas de delta => Il faut calculer
+    else # pas de différence de delta => Il faut calculer
       
       # Cas très spécial ou l'altération inverse l'ordre des notes,
       # par exemple pour "ceses-bis" ou "e-feses"
@@ -732,7 +733,7 @@ class LINote < NoteClass
       when ["e", "f"], ["f", "e"] then
         return self.note == "f"
       end
-      
+
       # Si les deux notes s'enchaînent, l'octave de la seconde sera
       # modifiée. Par exemple, si linote1 = c-4 et linote2 = a-4, la
       # comparaison doit se faire avec "\\relative c'''' { c a }", où

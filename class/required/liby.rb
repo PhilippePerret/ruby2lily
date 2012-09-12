@@ -56,6 +56,9 @@ class Liby
       
       # ==== LINote ==== #
       :not_note_llp               => "« \#{note} » n'est pas une note LiLyPond correcte",
+      
+      # === Chord === #
+      :bad_args_for_chord         => "Les arguments de l'accord «\#{chord}» sont invalides : \#{error}",
       # ==== Note ==== #
       :bad_args_for_join_linote   => "Les arguments pour la méthode LINote::join sont invalides",
       

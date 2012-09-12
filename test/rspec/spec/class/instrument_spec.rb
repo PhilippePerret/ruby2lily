@@ -5,7 +5,10 @@ require 'spec_helper'
 require 'instrument'
 
 describe Instrument do
-	
+	before(:all) do
+	  SCORE = Score::new unless defined? SCORE
+		iv_set(SCORE, :key => nil)
+	end
 	# -------------------------------------------------------------------
 	# Tests de la classe
 	# -------------------------------------------------------------------

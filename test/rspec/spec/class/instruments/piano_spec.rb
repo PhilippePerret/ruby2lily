@@ -11,6 +11,7 @@ describe Piano do
 	
 	before(:all) do
 	  SCORE = Score::new unless defined? SCORE
+		iv_set(SCORE, :key => nil)
 		ORCHESTRE = Orchestre::new unless defined? ORCHESTRE
 	end
 	
