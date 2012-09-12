@@ -27,6 +27,21 @@ describe NoteClass do
 				end
 			end
 		end
+		describe "Méthodes durées" do
+		  it "doit répondre à :duree_valide?" do
+		    NoteClass.should respond_to :duree_valide?
+		  end
+		  [
+				["1", true], ["1..", true], [".1", false], ["1..~", true],
+				["~", true], ["256", true], ["256..", true],
+				["3", false], ["a", false]
+			].each do |d|
+				duree, valide = d
+				it "La durée '#{duree}' doit être considérée #{valide ? 'valide' : 'invalide'}" do
+				  NoteClass::duree_valide?(duree).should === valide
+				end
+			end
+		end
     describe "::params_crochet_to_hash" do
 			def methode params = nil
 				NoteClass.params_crochet_to_hash(params)

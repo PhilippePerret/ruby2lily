@@ -227,14 +227,54 @@ describe LINote do
 		end
 
 		# :llp_to_linote
+		# ---------------
+		# @note : c'est la méthode principale de détection d'une note
+		# lilypond, on s'en sert donc pour valider toutes les formes
+		# acceptables par ruby2lily (cf. plus bas)
 		it "doit répondre à :llp_to_linote" do
 		  LINote.should respond_to :llp_to_linote
 		end
 		it ":llp_to_linote doit retourner une Linote d'après un string llp" do
 		  res = LINote::llp_to_linote("a")
 			res.class.should == LINote
-			
 		end
+		olp = "octave_llp"
+		d   = "delta/N"
+		fi	= "finger"
+		ary_bonnes_valeurs = <<-DEFH
+				suite		note alter duree #{d} #{olp} jeu #{fi}
+			-------------------------------------------------------------------
+				a				a			-			-			0			-			-		-
+				aes			a			es		-			0			-			-		-
+				aeses		a			eses	-			0			-			-		-
+				a'			a			-			-			1			'			-		-
+				a,			a			-			-			-1		,			-		-
+				aes''		a			es		-			2			''		-		-
+				aisis,,	a			isis	-			-2		,,		-		-
+				a8			a			-			8			0			-			-		-
+				a8.			a			-			8.		0			-			-		-
+				aes,8..	a			es		8..		-1		,			-		-				
+				a~			a			-			~			0			-			-		-
+				a-^			a			-			-			-			-			^		-
+				a4-^-4	a			-			-			-			-			^		4
+				a4.-.-4	a			-			4.		-			-			.		4
+				c-.^		c			-			-			-			-			.^	-
+				# La totale
+				aes'4.~-^-5	a	es		4.~		1			'			^		5
+			-------------------------------------------------------------------
+		DEFH
+		ary_bonnes_valeurs.to_array.each do |data_llp|
+			suite = data_llp.delete(:suite)
+			it "LINote::llp_to_linote('#{suite}') doit retourner : #{data_llp.inspect}" do
+				linote = LINote::llp_to_linote(suite)
+				linote.class.should == LINote
+				[:note, :alter, :octave_llp, :jeu, :finger].each do |prop|
+					iv_get(linote, prop).should == data_llp[prop]
+				end
+				linote.delta.should == data_llp[:delta]
+			end
+		end
+
 		it ":llp_to_linote doit lever une erreur si mauvais argument" do
 			err = detemp(Liby::ERRORS[:bad_type_for_args], :good => "String",
 						:bad => "Hash")
@@ -251,6 +291,8 @@ describe LINote do
 		  	expect{LINote::llp_to_linote(bad_llp)}.to raise_error(SystemExit, err)
 			end
 		end
+		
+		
 		
 		# :to_llp
 		it "doit répondre à :to_llp" do

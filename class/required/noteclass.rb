@@ -52,6 +52,14 @@ class NoteClass
     }
   end
   
+  # =>  Return true si +duree+ est une durée valide
+  #     False dans le cas contraire
+  def self.duree_valide? duree
+    duree = duree[0..-2] if duree.end_with? "~"
+    return true if duree.blank?
+    return DUREES.has_key? duree
+  end
+  
   # =>  Return un hash à partir de +params+ envoyé dans [...] d'une
   #     classe de note (Note, Motif, Chord...)
   # 
@@ -133,7 +141,7 @@ class NoteClass
     # Dernière vérification sur la validité de la durée
     if hash.has_key?(:duration)
       hash[:duration] = hash[:duration].to_s
-      if !NoteClass::DUREES.has_key?(hash[:duration])
+      unless NoteClass::duree_valide? hash[:duration]
         fatal_error(:bad_value_duree, :bad => hash[:duration])
       end
     end

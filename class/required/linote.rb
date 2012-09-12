@@ -154,10 +154,15 @@ class LINote < NoteClass
       ([a-gr])                # La note ou le silence
       (isis|eses|is|es)?      # Altération éventuelle
       ([',]+)?                # Octaves éventuels
-      ([0-9]{1,4}\.?)?        # Durée éventuelle
-      (                       # Notes de jeu ou de doigté
-        -                     # Délimité par un moins
-        [.^_-]                # Les signes de jeu qu’on peut trouver ---
+      ([0-9.~]{1,6})?         # Durée éventuelle
+      (                       # Notes de jeu
+        -                     # ------------
+        -?
+        [.^_]*                # Les signes de jeu qu’on peut trouver ---
+      )?
+      (                       # Doigté à appliquer
+        -                     # -------------------
+        [0-9]                 # Optionnel
       )?
       (
         >?                    # post - ce qui peut se trouver après la note
@@ -211,16 +216,18 @@ class LINote < NoteClass
       
     note_llp = note_llp.strip
     note_llp.scan(/^#{REG_NOTE_COMPLEXE}$/){
-      tout, pre, note, alter, octave, duree, jeu, post, duree_post,
+      tout, pre, note, alter, octave, duree, jeu, finger, post, duree_post,
       mark_dyna = 
-        [$&, $1, $2, $3, $4, $5, $6, $7, $8, $9]
+        [$&, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10]
         
       # Étude du jeu
       # ------------
       unless jeu.to_s.blank?
         jeu = jeu[1..-1] # Pour retirer le '-' du départ
       end
-      
+      unless finger.to_s.blank?
+        finger = finger[1..-1] # Pour retirer le '-' du départ
+      end
       # Composition de la linote
       # ------------------------
       return LINote::new(
@@ -228,8 +235,7 @@ class LINote < NoteClass
         :octave_llp => octave, :delta => octaves_from_llp(octave),
         :pre  => pre,  :alter => alter, :jeu => jeu, :post => post,
         :dynamique => mark_dyna,
-        :finger => nil  # @todo: implémenter la relève du doigté
-                        # (il est à prendre dans "jeu")
+        :finger => finger
         )
     }
     # Si on passe ici, c'est que le motif n'a pas été trouvé, que
