@@ -216,7 +216,8 @@ class Motif < NoteClass
       LINote::new :note => note, :octave => @octave
     }.call
   end
-  # => Return la dernière note (donc pas un silence) du motif
+  # =>  Return la dernière note (donc pas un silence) du motif en objet
+  #     LINote
   # 
   # @note: la difficulté par rapport à first_note est qu'il faut calculer
   # ici, suivant la suite de notes, la hauteur réelle de la dernière :

@@ -69,7 +69,7 @@ describe String do
 			["a", "Eb", "aes"]
 		].each do |d|
 			note, key, expected = d
-			it "#{note}.with_alter_in_key('#{key}') doit valoir #{expected}" do
+			it "#{note}.with_alter_in_key('#{key}') doit valoir #{expected}@" do
 				note.with_alter_in_key(key).should == expected
 		  end
 		end
@@ -215,7 +215,89 @@ describe String do
 			mo.duration.should == "8"
 		end
 	end
-	
+
+	# -------------------------------------------------------------------
+	# 	Méthodes pratiques
+	# -------------------------------------------------------------------
+	describe "Méthodes pratiques - <string>" do
+		
+		# :explode / :to_linote
+		it "doit répondre à :explode" do
+		  "str".should respond_to :explode
+			"str".should respond_to :to_linote
+		end
+		[
+			["c", "c", nil, 0],
+			["ces", "c", "es", 0],
+			["bis'", "b", "is", 1],
+			["deses,", "d", "eses", -1],
+			["e'''", "e", nil, 3]
+		].each do |d|
+			note_llp, note, alter, delta = d
+			it ":explode doit retourner la bonne valeur" do
+				data = {:note => note, :alter => alter, :delta => delta }
+			 	note_llp.explode(false).should == data
+				ln = note_llp.to_linote
+				ln.note.should 	== note
+				ln.alter.should	== alter
+				ln.delta.should == delta
+			end
+		end
+		
+		
+		# :au_dessus_de? / above?
+		it "doit répondre à :au_dessus_de?/:above" do
+		  "str".should respond_to :au_dessus_de?
+			"str".should respond_to :above?
+		end
+		# @note: testé avec ":en_dessous_de" ci-dessous
+		
+		# :plus_haute_que? /:higher_than?
+		it "doit répondre à :plus_haute_que? et :higher_than?" do
+		  "str".should respond_to :plus_haute_que?
+			"str".should respond_to :higher_than?
+		end
+		# @note: testé ci-dessous
+
+		[
+			["a", "b", false, false],
+			["a", "c", false, true],
+			["c", "d", false, false],
+			["fis", "c", true, true],
+			["c", "fis", false, false],
+			["c", "bes", true, false],
+			["ces", "b", true, false],
+			["ceses", "b", true, false],
+			["ceses", "b", true, false]
+		].each do |d|
+			n1, n2, expected, expect_higher = d
+			message = "'#{n1}':au_dessus_de?('#{n2}') doit retourner #{expected}"
+			it message do
+				res = n1.au_dessus_de?(n2)
+				if res != expected
+					puts "\nERREUR avec #{message}"
+					ln1 = LINote::new n1
+					ln2 = LINote::new n2
+					puts "Linote 1 obtenue : #{ln1.inspect}"
+					puts "Linote 2 obtenue : #{ln2.inspect}"
+					res.should === expected
+				end
+			end
+			it "'#{n1}':higher_than?('#{n2}') doit retourner #{expect_higher}" do
+				n1.higher_than?(n2).should	=== expect_higher
+			end
+		end
+		
+		# :after?
+	  it "doit répondre à :after?" do
+	    'str'.should respond_to :after?
+	  end
+		it ":after? doit renvoyer la bonne valeur" do
+		  'a'.after?('g').should === true
+			'c'.after?('d').should be_false
+		end
+		
+	end
 	# -------------------------------------------------------------------
 	# 	Traitement de l'addition
 	# -------------------------------------------------------------------

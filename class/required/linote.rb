@@ -66,7 +66,12 @@ class LINote < NoteClass
     # Table de correspondance entre la note en string ("g") et la valeur
     # entière
     NOTE_STR_TO_INT = {
-      "deses" => 0,   "bis"   => 0,   "c"   => 0,
+      "bis"   => 0,   "bisis" => 1, "ces" => 11, "ceses" => 10,
+      # Pour tenir compte du changement d'octave :
+      # Mais ça fait échouer les jointures. Plutôt, on traite le cas
+      # du changement d'octave dans LINote#abs
+      # "bis"   => 12,  "bisis" => 13, "ces" => -1, "ceses" => -2,
+      "deses" => 0,   "c"   => 0,
       "cis"   => 1,   "bisis" => 1,   "des" => 1, 
       "eeses" => 2,   "cisis" => 2,   "d"   => 2,
       "dis"   => 3,   "feses" => 3,   "ees" => 3,
@@ -76,8 +81,8 @@ class LINote < NoteClass
       "fisis" => 7,   "aeses" => 7,   "g"   => 7, 
       "gis"   => 8,                   "aes" => 8,
       "gisis" => 9,   "beses" => 9,   "a"   => 9,
-      "ais"   => 10,  "ceses" => 10,  "bes" => 10,
-      "aisis" => 11,  "ces"   => 11,  "b"  => 11
+      "ais"   => 10,                  "bes" => 10,
+      "aisis" => 11,                  "b"   => 11
     }
     NOTE_INT_TO_STR = {
       0   => {:natural => "c",    :tonal => {'is' => 'bis', 'es' => 'deses'} },
@@ -220,7 +225,7 @@ class LINote < NoteClass
       # ------------------------
       return LINote::new(
         :note => note, :duration => duree, :duree_post => duree_post, 
-        :octave_llp => octave,
+        :octave_llp => octave, :delta => octaves_from_llp(octave),
         :pre  => pre,  :alter => alter, :jeu => jeu, :post => post,
         :dynamique => mark_dyna,
         :finger => nil  # @todo: implémenter la relève du doigté
@@ -503,7 +508,7 @@ class LINote < NoteClass
   # -------------------------------------------------------------------
   #   Instance
   # -------------------------------------------------------------------
-  attr_reader :note, :duration, :octave_llp, :alter
+  attr_reader :note, :duration, :octave_llp, :alter, :delta
   
   @note_str = nil   # La note string (p.e. "g" ou "fis" ou "eb" ou "g#")
   @note_int = nil   # La note, exprimé par un entier
@@ -527,7 +532,9 @@ class LINote < NoteClass
                       # dans les paramètres. Si on l'appelle par la
                       # méthode `octave', l'octave est compté à partir
                       # de l'octave 3, en ajoutant le delta
-  
+  @delta      = nil   # Delta d'octave (calculé en général d'après 
+                      # la valeur de @octave_llp)
+                      
   # Instanciation
   # --------------
   # @param  valeur  SOIT : (String)
@@ -587,7 +594,6 @@ class LINote < NoteClass
     hash.each { |prop, val| instance_variable_set("@#{prop}", val) }
     if @note.length != 1
       note = LINote::to_llp @note
-      puts "\n\nnote: #{note}"
       hash = LINote::llp_to_linote( note ).to_hash
       @note     = hash[:note]
       @alter    = hash[:alter]
@@ -595,6 +601,26 @@ class LINote < NoteClass
     end
   end
   
+  # =>  Retourne la valeur absolue de la note, en fonction de ses
+  #     altération, de son octave et de son delta d'octave (qui peuvent
+  #     être différents)
+  # 
+  # @note:      C3 a la valeur 0 (mais susceptible de changer pour
+  #             correspondre aux notes midi)
+  #             A0 = 21
+  #             C4 = 60
+  def abs
+    valeur = self.index + (octave + 1) * 12
+    # Traitement spécial pour le franchissement d'obstacle
+    if self.note == "c" && self.bemol?
+      valeur -= 12 
+    elsif self.note == "b" && self.diese?
+      valeur += 12
+    end
+    valeur
+  end
+  alias :to_midi :abs
+
   # => Recompose le string à partir des données de la linote
   # 
   # @return le string des notes reconstituées
@@ -663,12 +689,80 @@ class LINote < NoteClass
   # @return entier représentant l'octave de la note
   def octave
     # puts "\n@octave_llp: #{@octave_llp}\n=> octave from llp: #{LINote::octaves_from_llp(@octave_llp)}"
-    @octave ||= 3 + LINote::octaves_from_llp(@octave_llp)
+    @octave ||= 3 + delta
+  end
+  def delta
+    @delta ||= LINote::octaves_from_llp( @octave_llp )
   end
   # => Return true si la LINote est un silence
   def rest?
     @note == "r"
   end
+  # Return true si la linote contient des dièses
+  def diese?
+    @alter != nil && @alter[0..1] == "is"
+  end
+  # Return true si la linote contient des bémols
+  def bemol?
+    @alter != nil && @alter[0..1] == "es"
+  end
+  # Return true si la linote courante, *sur la portée*, est au-dessus
+  # de +note+ (si les deux notes, avec leurs altérations et leur delta,
+  # s'enchaînaient, par exemple "a c")
+  # 
+  # @param  self    Une Linote simple
+  # @param  linote  Soit une note string, soit une LINote
+  # 
+  # @return true/false
+  # 
+  # @note: jusqu'à présent, c'est la méthode la plus fiable
+  # 
+  def au_dessus_de? linote
+    linote = linote.to_linote if linote.class == String
+    case linote.delta - self.delta
+    when 1..10    : false
+    when -10..-1  : true
+    else # pas de delta => Il faut calculer
+      
+      # Cas très spécial ou l'altération inverse l'ordre des notes,
+      # par exemple pour "ceses-bis" ou "e-feses"
+      case [self.note, linote.note]
+      when ["b", "c"], ["c", "b"] then
+        return self.note == "c"
+      when ["e", "f"], ["f", "e"] then
+        return self.note == "f"
+      end
+      
+      # Si les deux notes s'enchaînent, l'octave de la seconde sera
+      # modifiée. Par exemple, si linote1 = c-4 et linote2 = a-4, la
+      # comparaison doit se faire avec "\\relative c'''' { c a }", où
+      # le la passerait à l'octave 3
+      motif = Motif::new :notes => "#{self.with_alter} #{linote.with_alter}"
+          # note : inutile de tenir compte des deltas puisqu'ils sont
+          # traités ci-dessus
+      first = motif.first_note
+      last  = motif.last_note
+      return first.plus_haute_que? last
+    end
+  end
+  alias :above? :au_dessus_de?
+
+  # Return true si la linote courante, *en valeur absolue*, est au-dessus
+  # de +note+
+  # 
+  # @param  self    Une Linote
+  # @param  linote  Soit une note string, soit une LINote
+  # 
+  # @note : sauf avis contraire (:octave spécifiée), on suppose que les
+  #         deux notes sont à l'octave 3
+  # 
+  # @return true/false
+  # 
+  def plus_haute_que? linote
+    linote = linote.to_linote if linote.class == String
+    self.abs > linote.abs
+  end
+  alias :higher_than? :plus_haute_que?
   
   # Return true si la note courante est après la li-note +ninote+
   # ATTENTION : il ne s'agit pas du *son* mais seulement du *nom* de
@@ -676,6 +770,9 @@ class LINote < NoteClass
   # false alors que Mi# est pourtant après Fab pour la même octave donné
   # 
   # @return true/false ou nil si l'une des @note n'est pas définie
+  # 
+  # @note:  utiliser la méthode plus_haute_que? pour savoir si, en valeur
+  #         de note, elle est au-dessus.
   def after? linote
     return nil if @note.nil? || linote.note.nil?
     return     GAMME_DIATONIQUE.index(self.note)   \

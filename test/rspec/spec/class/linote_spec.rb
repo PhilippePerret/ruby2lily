@@ -505,6 +505,77 @@ describe LINote do
 	    @ln = LINote::new "c"
 	  end
 
+		# :abs / :to_midi
+		it "doit répondre à :abs" do
+		  ln = LINote::new "ces'"
+			ln.should respond_to :abs
+			ln.should respond_to :to_midi
+		end
+		[
+			["c", 4, 60],
+			["a", 4, 69],
+			["a", 0, 21],
+			["c", 8, 108],
+			["ces", 4, 59],
+			["bisis", 4, 73]
+		].each do |d|
+			notes, octave, expected = d
+			it ":abs doit renvoyer #{expected} pour #{notes}:#{octave}" do
+				ln = LINote::new notes, :octave => octave
+				ln.abs.should == expected
+		  end
+		end
+		# :au_dessus_de? / above?
+		it "doit répondre à :au_dessus_de? / :above?" do
+		  ln = LINote::new "ces'"
+			ln.should respond_to :au_dessus_de?
+			ln.should respond_to :above?
+		end
+		# :plus_haute_que? / :higher_than
+		it "doit répondre à :plus_haute_que? / :higher_than" do
+		  ln = LINote::new "ceses,"
+			ln.should respond_to :plus_haute_que?
+			ln.should respond_to :higher_than?
+		end
+		[
+			["c", "c", false, false],
+			["c", "d", false, false],
+			["ces", "bis", true, false],
+			["c", "bisis", true, false],
+			["eis", "fes", false, true],
+			["e", "feses", false, true],
+			["c", "fis", false, false],
+			["c", "a", true, false],
+			["c", "g", true, false],
+			["a", "c", false, true],
+			["g", "c", false, true],
+			["c", "ges", false, false],
+			["c", "fis", false, false],
+			["c'", "fis", true, true],
+			["fis", "c", true, true],
+			["fis", "c'", false, false]
+		].each do |d|
+			notes_ln1, notes_ln2, au_dessus, plus_haut = d
+			texte = "#{notes_ln1}:au_dessus_de?(#{notes_ln2}) doit => #{au_dessus} et "
+			texte << "#{notes_ln1}:higher_than?(#{notes_ln2}) doit => #{plus_haut}"
+			it texte do
+				ln1 = LINote::new notes_ln1
+				ln2 = LINote::new notes_ln2
+				ln1.au_dessus_de?(ln2).should === au_dessus
+				res = ln1.higher_than?(ln2)
+				if res != plus_haut
+					puts "\nERREUR avec #{notes_ln1}:higher_than?(#{notes_ln2})"
+					puts "Réponse attendue : #{plus_haut}"
+					puts "Réponse reçue    : #{res}"
+					puts "Valeur absolue de #{notes_ln1} : #{ln1.abs}"
+					puts "Valeur absolue de #{notes_ln2} : #{ln2.abs}"
+					puts "Détail linote 1 : #{ln1.inspect}"
+					puts "Détail linote 2 : #{ln2.inspect}"
+					res.should 	=== plus_haut
+				end
+			end
+		end
+
 		# :to_s
 		# ATTENTION : ça n'est plus un alias de :to_llp
 		it "doit répondre à :to_s" do
@@ -640,6 +711,35 @@ describe LINote do
 			@ln.should_not be_rest
 			iv_set(@ln, :note => 'r')
 			@ln.should be_rest
+		end
+		
+		# :diese?
+		it "doit répondre à :diese?" do
+		  @ln.should respond_to :diese?
+		end
+		it ":diese doit retourner la bonne valeur" do
+		  iv_set(@ln, :alter => nil)
+			@ln.diese?.should be_false
+		  iv_set(@ln, :alter => "es")
+			@ln.diese?.should be_false
+		  iv_set(@ln, :alter => "isis")
+			@ln.diese?.should be_true
+		  iv_set(@ln, :alter => "is")
+			@ln.diese?.should be_true
+		end
+		# :bemol?
+		it "doit répondre à :bemol?" do
+		  @ln.should respond_to :bemol?
+		end
+		it ":bemol? doit retourner la bonne valeur" do
+		  iv_set(@ln, :alter => nil)
+			@ln.bemol?.should be_false
+		  iv_set(@ln, :alter => "es")
+			@ln.bemol?.should be_true
+		  iv_set(@ln, :alter => "isis")
+			@ln.bemol?.should be_false
+		  iv_set(@ln, :alter => "eses")
+			@ln.bemol?.should be_true
 		end
 		
 		# :after?

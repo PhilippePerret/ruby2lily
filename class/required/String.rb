@@ -122,6 +122,31 @@ class String
     end
   end
   
+  # =>  Return un hash contenant :note, :alter et :delta de la note OU
+  #     PAR DÉFAUT le LINote de la note
+  # 
+  # @param  self        Une note Lilipond valide et unique avec
+  #                     son delta d'octave, p.e. "ees''"
+  # @param  as_linote   Si true (par défaut), renvoie un objet LINote,
+  #                     sinon renvoie un hash contenant seulement :note
+  #                     :alter et :delta
+  # 
+  # @return   La LINote de la note ou un hash contenant :note (simple),
+  #           :alter et :delta
+  def explode as_linote = true
+    linote = LINote::llp_to_linote self
+    return linote if as_linote
+    { 
+      :note => linote.note, 
+      :alter => linote.alter, 
+      :delta => linote.delta
+    }
+  end
+  # Cf. :explode ci-dessus
+  def to_linote
+    explode true
+  end
+  
   # => Retourne la +note+ avec son altération dans la tonalité +key+
   def with_alter_in_key key
     hash = LINote::alterations_notes_in_key( key )
@@ -294,6 +319,38 @@ class String
     # On retourne le hash de la note
     hash_note
   end
+  
+  
+  # =>  Retourne true si la note +self+ se trouve au-dessus de la note
+  #     +note+ dans un motif LilyPond
+  # 
+  # @warning :  la réponse se fait par rapport à la *position de la note
+  #             sur la portée*, pas sa hauteur absolue. Ainsi, elle 
+  #             renvoie true pour "ces".au_dessus_de?("bis") alors que 
+  #             "bis" est en réalité plus haut. Pour tester la hauteur,
+  #             utiliser :plus_haute_que?/:higher_than
+  # 
+  # @param  self    Une note LLP, avec ou sans delta d'octave
+  # @param  note    Idem
+  # 
+  # @return true/false
+  def au_dessus_de? note
+    self.to_linote.au_dessus_de? note.to_linote
+  end
+  alias :above? :au_dessus_de?
+  
+  # =>  Return true si +self+ est au-dessus, en tant que son, de +note+
+  # 
+  # @warning :  La réponse se fait en fonction de la hauteur absolu du
+  #             *son*, pas de la note sur la portée.
+  # 
+  # @param  self  Une note string, avec altération et delta d'octave
+  # @param  note  Une note, avec altération et delta d'octave
+  # 
+  def plus_haute_que? note
+    self.to_linote.plus_haute_que? note.to_linote
+  end
+  alias :higher_than? :plus_haute_que?
   
   # Renvoie true si le self (qui doit être une note de "a" à "g") se
   # trouve après +note+ (qui doit être seulement une note de "a" à

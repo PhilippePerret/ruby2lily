@@ -116,10 +116,17 @@ class Chord < NoteClass
   # @note: par défaut, c'est le premier renversement qu'on retourne
   # 
   # @todo: il faut vérifier le changement d'octave
+  # Car là, ci-dessous, c'est la version archi simple, qui ne regarde pas
+  # si l'occord contient des delta d'octave ou autre.
   def renverse renversement = 1
     chord = self.clone
     notes = chord.notes
-    renversement.times { |i| notes << notes.delete_at(0) }
+    renversement.times do |i|
+      first_note  = notes.delete_at(0)
+      last_note   = notes.last
+      
+      notes << first_note
+    end
     chord.instance_variable_set("@notes", notes)
     chord
   end
