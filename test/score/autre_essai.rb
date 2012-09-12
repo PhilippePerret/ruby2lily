@@ -15,6 +15,16 @@ def orchestre
   EOO
 end
 
+
+def score
+  # Refrain / Intro
+  SALOME.droite << Salome::riff_ref
+  SALOME.gauche << Salome::riff_ref_main_gauche
+  # Couplet
+  SALOME.gauche << Salome::riff_couplet
+end
+
+
 class Salome
   class << self
     def riff_ref
@@ -38,12 +48,4 @@ class Salome
       Motif::new suite
     end
   end
-end
-
-def score
-  # Refrain / Intro
-  SALOME.droite << Salome::riff_ref
-  SALOME.gauche << Salome::riff_ref_main_gauche
-  # Couplet
-  SALOME.gauche << Salome::riff_couplet
 end
