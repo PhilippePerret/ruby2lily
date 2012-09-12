@@ -117,8 +117,9 @@ class Instrument
     when 'Motif'  then  add_as_motif  some, params
     when 'Chord'  then  add_as_chord  some, params
     when 'Hash'   then raise "Les hash ne sont pas encore traités"
+    when 'Proc'   then fatal_error(:type_procedure_unexpected)
     else
-      raise fatal_error(Instrument::ERRORS[:type_ajout_unknown])
+      fatal_error(:type_ajout_unknown, :type => some.class.to_s)
     end
   end
   alias :<< :add

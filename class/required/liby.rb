@@ -33,6 +33,10 @@ class Liby
  
       :cant_add_this              => "Un objet de type \#{classe} ne peut être ajouté…",
       
+      # === Définitions de l'instrument === #
+      :type_ajout_unknown         => "Impossible d'ajouter à l'instrument. Je ne sais pas comment appréhender la class « \#{type} »…",
+      :type_procedure_unexpected  => "Impossible d'ajouter à l'instrument. C'est une procédure qui a été envoyée. Peut-être manque-t-il un « .call » ?…",
+
       # === Portée === #
       :bad_clef                   => "La clé '\#{clef}' est inconnue",
       
