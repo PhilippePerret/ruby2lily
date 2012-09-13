@@ -19,6 +19,6 @@ def orchestre
 end
 
 def score
-  GIT1.add "<c e g>"
+  GIT1.add "ges c"
   GIT1.add "<c f a>"
 end

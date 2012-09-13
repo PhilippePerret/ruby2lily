@@ -240,6 +240,12 @@ class Motif < NoteClass
   #   "c c"   La 1ère et la dernière sont à la même octave
   # tandis que dans :
   #   "c e g c" La dernière ("c") est une octave au-dessus de la 1ère
+  # et pire encore :
+  #   "c e g <c e g> c" : on pourrait croire que le dernier do est
+  # deux octaves plus haut que le premier, mais comme il y a un accord,
+  # c'est le do de l'accord qui est pris en référence pour connaitre la
+  # position du dernier.
+  # 
   def last_note
     return nil if @notes.nil?
     @last_note ||= lambda {
