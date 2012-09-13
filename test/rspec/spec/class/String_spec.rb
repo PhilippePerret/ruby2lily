@@ -109,7 +109,7 @@ describe String do
 		end
 		[																# Motif				octave			direction
 																		# ----------------------------------
-			["c", 	3,	"c", 		3, true],				# "c c" 				id.					"up"
+			["c", 	3,	"c", 		3, false],				# "c c" 				id.					"up"
 			["c", 	3, 	"c,", 	2, false],				# "c c" 				id.					"up"
 			["c", 	3, 	"d", 		3, true],				# "c d" 				id.					up
 			["c", 	3, 	"fis",	3, true],			# "c fis"				id.					up
@@ -127,13 +127,13 @@ describe String do
 			["ces", 	1,	"c",			1, true],
 			["c",			1,	"ces",		1, false],
 			# pièges suprêmes
-			["bis", 	0,	"c",			1, true],
+			["bis", 	0,	"c",			1, false],
 			["bis", 	0,	"c,",			0, false],
 			["bis", 	1,	"ces", 		2, false],
 			["bisis", 1, 	"ces", 		2, false],
 			["bis", 	1, 	"ceses",	2, false],
 			["bisis",	1, 	"ceses", 	2, false],
-			["eis",		1, 	"f",			1, true],
+			["eis",		1, 	"f",			1, false],
 			["eis", 	1, 	"fes", 		1, false],
 			["eisis", 1, 	"fes", 		1, false],
 			["eis", 	2, 	"feses",	2, false],
@@ -141,8 +141,12 @@ describe String do
 		].each do |d|
 			note_self, octave_self, note, res, res_sup = d
 			it "Test de :closest - \"#{note_self}(octave #{octave_self})\".closest(#{note}) doit renvoyer #{res}" do
-				note_self.closest( note, octave_self ).should == 
-					{:note => note.gsub(/[',]/,''), :octave => res, :sup => res_sup}
+				ln_closest = note_self.closest( note, octave_self )
+				ln_self = LINote::new(:note => note_self, :octave => octave_self)
+				ln_closest.with_alter.should	== note.gsub(/[',]/,'')
+				ln_closest.octave.should 			== res
+				# ln_closest.au_dessus_de?( ln_self ).should === res_sup
+				ln_closest.higher_than?( ln_self ).should == res_sup
 		  end
 		end
 		# :as_motif

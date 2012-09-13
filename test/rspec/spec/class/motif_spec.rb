@@ -236,35 +236,47 @@ describe Motif do
 				first_note.duration.should be_nil
 			end
 		end
-		# :last_note
+		# :last_note et :real_last_note
 		it "doit répondre à :last_note" do
 		  @m.should respond_to :last_note
+		end
+		it "doit répondre à :real_last_note" do
+		  @m.should respond_to :real_last_note
 		end
 		it ":last_note doit retourner un objet de type Note" do
 			mo = Motif::new "c e g"
 		  mo.last_note.class.should == LINote
 		end
-		[
-			["c d e", 3, "e", 3],			# Même octave
-			["a b c", 2, "c", 3],			# Suite mais octave suivante
-			["a c e", 3, "e", 4],			# Changement d'octave arpège
-			["<b d fis>", 1, "fis", 2],
-			["d <d fis a>8 r", 2, "a", 2],
-			["d <g bb d>4 r", 2, "d", 3],
-			["d d, d,", 1, "d", -1],
-			["e e' e'", 2, "e", 4],
-			["d( <d, fis' aeses,,>8 gis')r", 2, "gis", 1],
-			#  d-2, d-1, fis-2, aeses-0, gis-1
-			['gis aeses', 3, 'aeses', 3]
-			# @note: des tests plus complets en testant first_et_last_note
-		].each do |d|
-			suite, octave_motif, last, octave_last = d
+		ary_str = <<-DEFA
+			suite						oct/N		last	real_last		oct_last/N
+		-------------------------------------------------------------------
+			c-d-e						3				e			e						3
+			a-b-c						2				c			c						3
+			a-c-e						3				e			e						4
+			<b-d-fis>				1				b			fis					1
+			d-<d-fis-a>8-r	2				d			a						2
+			d-<g-bb-d>4-r 	2				g			d						2
+			d-d,-d,					1				d			d						-1
+			e-e'-f'					2				f			f						4
+			d(-<d,-fis'-aeses,,>8-gis')-r 	2		gis		gis		1
+			gis-aeses				3				aeses	aeses				3
+		-------------------------------------------------------------------
+		DEFA
+		ary_str.to_array.each do |data|
+			suite 				= data.delete(:suite).gsub(/-/, ' ')
+			octave_motif 	= data.delete(:oct)
+			last					= data.delete(:last)
+			real_last			= data.delete(:real_last)
+			octave_last		= data.delete(:oct_last)
 			it ":last_note de « #{suite}»-oct:#{octave_motif} doit retourner #{last}-#{octave_last}" do
 				$DEBUG = false
 				begin
 					mot = Motif::new(:notes => suite, :octave => octave_motif)
-					last_note = mot.last_note
-					raise if last_note.octave != octave_last
+					last_note 			= mot.last_note
+					real_last_note 	= mot.real_last_note
+					raise if 			last_note.octave 					!= octave_last \
+										|| 	last_note.with_alter 			!= last \
+										||	real_last_note.with_alter	!= real_last
 				rescue
 					if $DEBUG 
 						$DEBUG = false
@@ -273,8 +285,9 @@ describe Motif do
 						retry
 					end
 				end
-				last_note.with_alter.should 	== last
-				last_note.octave.should == octave_last
+				last_note.with_alter.should 			== last
+				real_last_note.with_alter.should	== real_last
+				last_note.octave.should 					== octave_last
 			end
 		end
 		# :first_et_last_note

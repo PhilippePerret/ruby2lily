@@ -231,27 +231,14 @@ class Motif < NoteClass
       LINote::new :note => note, :octave => @octave
     }.call
   end
-  # =>  Return la dernière note (donc pas un silence) du motif en objet
-  #     LINote
+  
+  # =>  Return la toute dernière note du motif, sans tenir compte des
+  #     accord (contrairement à last_note)
   # 
-  # @note: la difficulté par rapport à first_note est qu'il faut calculer
-  # ici, suivant la suite de notes, la hauteur réelle de la dernière :
-  # Car dans :
-  #   "c c"   La 1ère et la dernière sont à la même octave
-  # tandis que dans :
-  #   "c e g c" La dernière ("c") est une octave au-dessus de la 1ère
-  # et pire encore :
-  #   "c e g <c e g> c" : on pourrait croire que le dernier do est
-  # deux octaves plus haut que le premier, mais comme il y a un accord,
-  # c'est le do de l'accord qui est pris en référence pour connaitre la
-  # position du dernier.
-  # 
-  def last_note
+  # @return : la LINote de la toute dernière note du motif
+  def real_last_note
     return nil if @notes.nil?
-    @last_note ||= lambda {
-      
-    
-    # NOUVELLE MÉTHODE
+    @real_last_note ||= lambda {
     # On ne conserve que les notes, les altérations et les marques d'octaves
     liste_notes = []
     " #{@notes}".gsub(/ <?(([a-g])(eses|isis|es|is)?([',]*))/){
@@ -268,11 +255,87 @@ class Motif < NoteClass
       note_seule = dnote[:note]
       unless previous_note.nil?
         
+        # On cherche la note la plus proche de la précédente, pour savoir
+        # si, par rapport à la précédente, on doit monter ou descendre
+        the_closest = previous_note[:whole].closest( 
+                        dnote[:whole], octave_courant 
+                        )
+        octave_courant = the_closest.octave
+        
+      else
+        # La première note étudiée
+      end
+      dnote = dnote.merge(:octave => octave_courant)
+      previous_note = dnote
+    end
+    
+    # On produit une linote
+    LINote::new(
+      :note         => previous_note[:notealt],
+      :octave_llp   => previous_note[:delta],
+      :octave       => previous_note[:octave]
+    )
+    }.call
+  end
+  # =>  Return la dernière note (donc pas un silence) du motif en objet
+  #     LINote
+  #     ATTENTION : il ne s'agit pas de la toute dernière note du motif,
+  #     mais de la dernière note qui servira de référence pour le delta
+  #     d'octave en cas de liaison (dans un accord, seule la première
+  #     note importe). Pour la "vraie" toute dernière note du motif,
+  #     utiliser la méthode 'real_last_note' ci-dessus
+  # 
+  # @note: la difficulté par rapport à first_note est qu'il faut calculer
+  # ici, suivant la suite de notes, la hauteur réelle de la dernière :
+  # Car dans :
+  #   "c c"   La 1ère et la dernière sont à la même octave
+  # tandis que dans :
+  #   "c e g c" La dernière ("c") est une octave au-dessus de la 1ère
+  # et pire encore :
+  #   "c e g <c e g> c" : on pourrait croire que le dernier do est
+  # deux octaves plus haut que le premier, mais comme il y a un accord,
+  # c'est le do de l'accord qui est pris en référence pour connaitre la
+  # position du dernier.
+  # 
+  def last_note
+    return nil if @notes.nil?
+    @last_note ||= lambda {
+    # On ne conserve que les notes, les altérations et les marques d'octaves
+    liste_notes = []
+    # On détruit tout ce qui n'est pas une note, une altération, un 
+    # delta, une espace ou une marque d'accord
+    in_accord = false
+    @notes.split(' ').each do |whole_note|
+      puts "\nÉtude de whole_note: #{whole_note}"
+      whole_note.scan(/^(<)?([a-g])(eses|isis|es|is)?([',]*)?([^>]*)?(>)?(.*)?$/){
+        tout, acc_start, note, alter, delta, rien, acc_end, fin = 
+          [$&, $1, $2, $3, $4, $5, $6, $7]
+        if in_accord
+          in_accord = ( acc_end != ">" )
+          next # dans un accord, on ne prend rien
+        else
+          liste_notes << {
+            :whole => tout,
+            :note => note, :alter => alter, :delta => delta, :notealt => "#{note}#{alter}"}
+          # Est-ce qu'on rentre dans un accord ?
+          in_accord = ( acc_start == "<" )
+        end
+      }
+    end
+    puts "* liste_notes obtenue : #{liste_notes.inspect}"
+    
+    octave_courant  = @octave || 3
+        
+    previous_note   = nil
+    liste_notes.each do |dnote|
+      note_seule = dnote[:note]
+      unless previous_note.nil?
+        
         # On cherche la note la plus proche de la précédente
         the_closest = previous_note[:whole].closest( 
                         dnote[:whole], octave_courant 
                         )
-        octave_courant = the_closest[:octave]
+        octave_courant = the_closest.octave
         
       else
         # La première note étudiée

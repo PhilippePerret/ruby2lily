@@ -202,7 +202,7 @@ class String
   # => Retourne la note la plus proche de self, soit la +note+ supérieure
   #    soit la note inférieure, pour l'octave donné 
   # 
-  # @param    note      La note qu'il faut trouver
+  # @param    note      La note qu'il faut trouver (String)
   # @param    octave    Octave de self. Si nil, on renvoie la note
   #                     par rapport à 3
   # 
@@ -214,6 +214,38 @@ class String
   # 
   def closest note, octave = nil                                          # "fis d"   "a d"     "c3 fis"    "fis c"     "gis d"
     
+    # ========== Nouvelle méthode ==================
+    octave ||= 3
+    octave += LINote::octaves_from_llp self
+
+    ln_self   = LINote::new self, :octave => octave
+    ln_note_1 = LINote::new note, :octave => (octave - 1)
+    ln_note_2 = LINote::new note, :octave => octave
+    ln_note_3 = LINote::new note, :octave => (octave + 1)
+    
+    # Les hauteurs absolues de chaque note
+    hauteur_self  = ln_self.abs
+    hauteur_1     = ln_note_1.abs
+    hauteur_2     = ln_note_2.abs
+    hauteur_3     = ln_note_3.abs
+    
+    # La différence avec la note de référence (self)
+    diff_with_1   = (hauteur_1 - hauteur_self).abs
+    diff_with_2   = (hauteur_2 - hauteur_self).abs
+    diff_with_3   = (hauteur_3 - hauteur_self).abs
+
+    # Le plus petit écart sera le bon
+    plus_petit = [diff_with_1, diff_with_2, diff_with_3].min
+    
+    # @todo: pour le moment, il manque une information qui était donnée
+    # avant : savoir si on montait ou si on descendait. Mais la méthode
+    # appelante peut le savoir aisément grâce à au_dessus_de?
+    return ln_note_1 if plus_petit == diff_with_1
+    return ln_note_2 if plus_petit == diff_with_2
+    return ln_note_3
+    
+    # ========== fin nouvelle méthode ==============
+    
     # Le delta d'octave de la +note+
     # -------------------------------
     delta_note = LINote::octaves_from_llp note
@@ -223,7 +255,7 @@ class String
     note = note.gsub(/[',]/, '')
     self_sans_delta = self.gsub(/[',]/, '')
     
-    # L'octave réel, en tenant du delta d'octave du self
+    # L'octave réel, en tenant compte du delta d'octave du self
     octave ||= 3
     octave += delta_self
     

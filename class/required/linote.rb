@@ -301,7 +301,7 @@ class LINote < NoteClass
   end
   
   # =>  Join la suite de note +motif1+ à la suite +motif2+
-  #     en retournant un string prenant en compte les octaves
+  #     en retournant un string prenant en compte les octaves (delta)
   # 
   # @param  motif1      Instance de Motif.
   # @param  motif2      Deuxième instance de Motif, à joindre à la 
@@ -336,7 +336,7 @@ class LINote < NoteClass
       mark            = intervalle > 0 ? "'" : ","
       distance        = intervalle - 6
       nombre_octaves  = (distance / 12) + 1
-      mark_octaves    = mark.x(nombre_octaves.abs)
+      mark_octaves    = Score::octave_as_llp nombre_octaves
       motif2_exploded = explode motif2
       # @note : on ne doit pas poser le delta d'octave sur un
       # silence, donc on cherche la première note
@@ -373,18 +373,8 @@ class LINote < NoteClass
   # +motif1+, négative dans le cas contraire
   # 
   def self.intervalle_between motif1, motif2
-    
-    # Doivent être des motifs
     Liby::raise_unless_motif "LINote::intervalle_between", motif1, motif2
-    
-    # Première et dernière note (class LINote)
-    last_note  = motif1.last_note
-    first_note = motif2.first_note
-    
-    # Retourner l'intervalle
-      Note::valeur_absolue( first_note.with_alter, first_note.octave) \
-    - Note::valeur_absolue( last_note.with_alter,  last_note.octave)
-    
+    return motif2.first_note.abs - motif1.last_note.abs
   end
 
   # =>  Pose une marque de début (donc après la première note) et de fin

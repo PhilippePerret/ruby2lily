@@ -393,17 +393,29 @@ describe LINote do
 			["a c", 3, "a c", 2, -15],
 			["a c", 3, "a c", 1, -27],
 			["ces", 3, "bis", 2, 1],
-			["eis", 2, "fes", 2, -1]
+			["eis", 2, "fes", 2, -1],
+			["a c g", 3, "c e g", nil, -7],  # octave nil => octave 3
+			# Piège de l'accord : seule la première note doit compter
+			["<a c g>", 3, "<c e g>", 3, 3]
 			# @todo: d'autres tests plus complets ici
 		].each do |d|
 			notes1, oct1, notes2, oct2, res = d
 			texte = ":intervalle_between "
 			texte << "Motif(\"#{notes1}\", oct:#{oct1}) et "
-			texte << "Motif(\"#{notes2}\", oct:#{oct2}) doit : #{res}"
+			texte << "Motif(\"#{notes2}\", oct:#{oct2}) doit être : #{res}"
 			it texte do
 	  		mot1 = Motif::new :notes => notes1, :octave => oct1
 				mot2 = Motif::new :notes => notes2, :octave => oct2
-				LINote::intervalle_between(mot1, mot2).should == res
+				intervalle = LINote::intervalle_between(mot1, mot2)
+				if intervalle != res
+					puts "\nERREUR LINote::intervalle_between"
+					puts "= Motif 1 : #{mot1.inspect}"
+					puts "= Motif 2 : #{mot2.inspect}"
+					puts "= Valeur attendue : #{res}"
+					puts "= Valeur calculée : #{intervalle}"
+					puts "------------------------------------"
+					intervalle.should == res
+				end
 			end
 		end
 			
