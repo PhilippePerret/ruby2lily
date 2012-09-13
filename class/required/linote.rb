@@ -696,6 +696,7 @@ class LINote < NoteClass
   def bemol?
     @alter != nil && @alter[0..1] == "es"
   end
+  
   # Return true si la linote courante, *sur la portée*, est au-dessus
   # de +note+ (si les deux notes, avec leurs altérations et leur delta,
   # s'enchaînaient, par exemple "a c")
@@ -713,27 +714,12 @@ class LINote < NoteClass
     case linote.delta
     when 1..10    : false
     when -10..-1  : true
-    else # pas de différence de delta => Il faut calculer
-      
-      # Cas très spécial ou l'altération inverse l'ordre des notes,
-      # par exemple pour "ceses-bis" ou "e-feses"
-      case [self.note, linote.note]
-      when ["b", "c"], ["c", "b"] then
-        return self.note == "c"
-      when ["e", "f"], ["f", "e"] then
-        return self.note == "f"
-      end
-
-      # Si les deux notes s'enchaînent, l'octave de la seconde sera
-      # modifiée. Par exemple, si linote1 = c-4 et linote2 = a-4, la
-      # comparaison doit se faire avec "\\relative c'''' { c a }", où
-      # le la passerait à l'octave 3
-      motif = Motif::new :notes => "#{self.with_alter} #{linote.with_alter}"
-          # note : inutile de tenir compte des deltas puisqu'ils sont
-          # traités ci-dessus
-      first = motif.first_note
-      last  = motif.last_note
-      return first.plus_haute_que? last
+    else # pas de delta => Il faut calculer
+      return  case linote.index_diat - self.index_diat
+              when 0    then false
+              when 1..3, -6..-4 then false
+              when 4..6, -3..-1 then true
+              end
     end
   end
   alias :above? :au_dessus_de?
@@ -763,11 +749,11 @@ class LINote < NoteClass
   # @return true/false ou nil si l'une des @note n'est pas définie
   # 
   # @note:  utiliser la méthode plus_haute_que? pour savoir si, en valeur
-  #         de note, elle est au-dessus.
+  #         absolue de note, elle est au-dessus.
+  # 
   def after? linote
     return nil if @note.nil? || linote.note.nil?
-    return     GAMME_DIATONIQUE.index(self.note)   \
-            >= GAMME_DIATONIQUE.index(linote.note)
+    return self.index_diat >= linote.index_diat
   end
   
   # =>  Return l'index (Fixnum) absolu de la note dans la gamme 
@@ -775,6 +761,13 @@ class LINote < NoteClass
   # @return un nombre de 0 ("c") à 11 ("b")
   def index
     @note_int
+  end
+  
+  # =>  Return l'index diatonique de la linote (c'est-à-dire son index
+  #     dans la gamme diatonique, c'est-à-dire sans tenir compte de ses
+  #     altérations)
+  def index_diat
+    @index_diat ||= GAMME_DIATONIQUE.index(self.note)
   end
   
   # =>  Return la note baissée de +demitons+ demi-tons dans le contexte

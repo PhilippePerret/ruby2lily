@@ -553,7 +553,7 @@ describe LINote do
 			["g", "c", false, true],
 			["a", "c", false, true],
 			["g", "c", false, true],
-			["c", "ges", false, false],
+			["c", "ges", true, false],
 			["c", "fis", false, false],
 			["c'", "fis", false, true],
 			["fis", "c", true, true],
@@ -778,6 +778,25 @@ describe LINote do
 			ln = LINote::new 'r'
 			ln.index.should === nil
 		end
+		
+		# :index_diat
+		it "doit répondre à :index_diat" do
+		  @ln.should respond_to :index_diat
+		end
+		[
+			["c", 0], ["d", 1], ["e", 2], ["f", 3], ["g", 4], ["a", 5], ["b", 6]
+		].each do |d|
+			basenote, expected = d
+			["", "es", "eses", "is", "isis"].each do |alter|
+				note = "#{basenote}#{alter}"
+				it ":index_diat pour #{note} doit renvoyer #{expected}" do
+					ln = LINote::new note
+					ln.index_diat.should == expected
+				end
+		  end
+		end
+		
+		# :str_in_context
 		it "doit répondre à :str_in_context" do
 		  @ln.should respond_to :str_in_context
 		end
