@@ -19,7 +19,10 @@ def orchestre
 end
 
 def score
-  motif = Motif::new "a b c d"
-  motif_final = motif[1, "8."].slure
-  JANE << motif_final
+  # motif = Motif::new "a b c d"
+  # motif_final = motif[1, "8."].slure
+  # JANE << motif_final
+  motif = Motif::new "c", :octave => 4
+  puts "MOTIF: #{motif.inspect.gsub(/</, '&lt;')}"
+  JANE << motif
 end

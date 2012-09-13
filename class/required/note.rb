@@ -183,7 +183,7 @@ class Note < NoteClass
     note = self.get
     note << @duration unless @duration.nil?
     unless rest? || @octave.nil? || @octave == 3
-      mk_relative = LINote::mark_relative(@octave)
+      mk_relative = Score::mark_relative(@octave)
       note = "#{mk_relative} { #{note} }"
     end
     note

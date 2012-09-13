@@ -29,7 +29,47 @@ class Score
       :time   => '4/4'
     }
     
+  end # / si tests
+
+  # -------------------------------------------------------------------
+  #   Classe
+  # -------------------------------------------------------------------
+
+  # => Retourne la marque « \relative c... » pour spécifier l'octave
+  # 
+  # @note: on compte sur la base de c' = do4
+  # 
+  def self.mark_relative octave
+    case octave.class.to_s
+    when "String"
+      fatal_error(:bad_type_for_args, 
+                  :method => "Score::mark_relative", :good => "Fixnum",
+                  :bad    => octave.class.to_s)
+    end
+    octave ||= 4
+    "\\relative #{mark_octave(octave)}"
   end
+  
+  # =>  Retourne la marque « c... » à ajouter à la marque relative
+  #     d'octave
+  # 
+  # @note:  on compte sur la base de c' = do4 — base définie par
+  #         LilyPond — donc il faut retirer 3 à l'octave spécifiée.
+  # 
+  def self.mark_octave octave
+    octave ||= 4
+    octave -= 3
+    "c#{octave_as_llp(octave)}"
+  end
+  
+  # => Retourne l'octave exprimée en virgules ou apostrophe
+  # 
+  def self.octave_as_llp oct
+    return "" if oct == 0
+    mk = oct > 0 ? "'" : ","
+    mk.fois(oct.abs)
+  end
+  
   # -------------------------------------------------------------------
   #   Instance
   # -------------------------------------------------------------------

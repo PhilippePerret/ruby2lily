@@ -345,7 +345,7 @@ class Motif < NoteClass
   # 
   # @return le texte '\relative c..'
   def mark_relative ajout = 0
-    "\\relative #{LINote::mark_octave( octave + ajout )}"
+    Score::mark_relative( octave + ajout )
   end
     
   # -------------------------------------------------------------------

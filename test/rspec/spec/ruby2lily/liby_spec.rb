@@ -359,24 +359,24 @@ describe Liby do
 	  end
 		it ":raise_unless_motif doit passer si c'est un motif" do
 			mot = Motif::new "a c e"
-		  expect{Liby::raise_unless_motif(mot)}.not_to raise_error
+		  expect{Liby::raise_unless_motif("méthode", mot)}.not_to raise_error
 		end
 		it ":raise_unless_motif doit passer si plusieurs motifs" do
 		  mot1 = Motif::new "a c e"
 			mot2 = Motif::new "b d fis"
-			expect{Liby::raise_unless_motif(mot1, mot2)}.not_to raise_error
+			expect{Liby::raise_unless_motif("méthode", mot1, mot2)}.not_to raise_error
 		end
 		it ":raise_unless_motif doit lever une erreur si pas motif" do
 			err = detemp(Liby::ERRORS[:bad_type_for_args], 
-							:good => "Motif", :bad => "String")
-		  expect{Liby::raise_unless_motif("str")}.to \
+				:good => "Motif", :bad => "String", :method => "méthode")
+		  expect{Liby::raise_unless_motif("méthode", "str")}.to \
 				raise_error(SystemExit, err)
 		end
 		it ":raise_unless_motif doit lever une erreur même si 1er est motif" do
 			mot = Motif::new "a c e"
 			err = detemp(Liby::ERRORS[:bad_type_for_args], 
-							:good => "Motif", :bad => "String")
-		  expect{Liby::raise_unless_motif(mot, "str")}.to \
+				:good => "Motif", :bad => "String", :method => "méthode")
+		  expect{Liby::raise_unless_motif("méthode", mot, "str")}.to \
 				raise_error(SystemExit, err)
 		end
 		it ":doit répondre à :raise_unless_linote" do
@@ -385,16 +385,16 @@ describe Liby do
 		it ":raise_unless_linote doit lever une erreur si pas LINote" do
 			ln1 = LINote::new "a"
 			ln2 = LINote::new "b"
-		  expect{Liby::raise_unless_linote(ln1, ln2)}.not_to raise_error
+		  expect{Liby::raise_unless_linote("méthode", ln1, ln2)}.not_to raise_error
 			err = detemp(Liby::ERRORS[:bad_type_for_args], 
-							:good => "LINote", :bad => "String")
-			expect{Liby::raise_unless_linote("a", "b")}.to \
+				:good => "LINote", :bad => "String", :method => "méthode")
+			expect{Liby::raise_unless_linote("méthode", "a", "b")}.to \
 				raise_error(SystemExit, err)
 			mot1 = Motif::new "a b c"
 			mot2 = Motif::new "c d e"
 			err = detemp(Liby::ERRORS[:bad_type_for_args], 
-							:good => "LINote", :bad => "Motif")
-			expect{Liby::raise_unless_linote(mot1, mot2)}.to \
+					:good => "LINote", :bad => "Motif", :method => "méthode")
+			expect{Liby::raise_unless_linote("méthode", mot1, mot2)}.to \
 				raise_error(SystemExit, err)
 		end
 	end

@@ -177,8 +177,8 @@ describe Note do
 				end
 				[
 					["c", nil, nil, "c"],
-					["c", 2, nil, "\\relative c'' { c }"],
-					["ceses", 4, "4", "\\relative c'''' { ceses4 }"],
+					["c", 2, nil, "\\relative c, { c }"],
+					["ceses", 4, "4", "\\relative c' { ceses4 }"],
 					["fisis", 3, "4.", "fisis4."]
 				].each do |d|
 					note, octave, duree, expected = d

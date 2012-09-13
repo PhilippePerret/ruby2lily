@@ -27,7 +27,7 @@
 	\relative c'' {
 		\clef "treble"
 		\time 4/4
-		\relative c' { a8.( b c d) }
+		\relative c' { c }
 	}
 }
 }

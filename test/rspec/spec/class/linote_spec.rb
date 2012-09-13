@@ -277,11 +277,11 @@ describe LINote do
 
 		it ":llp_to_linote doit lever une erreur si mauvais argument" do
 			err = detemp(Liby::ERRORS[:bad_type_for_args], :good => "String",
-						:bad => "Hash")
+						:bad => "Hash", :method => "LINote::llp_to_linote")
 		  expect{LINote::llp_to_linote({})}.to raise_error(SystemExit, err)
 			motif = Motif::new "a c d"
 			err = detemp(Liby::ERRORS[:bad_type_for_args], :good => "String",
-						:bad => "Motif")
+						:bad => "Motif", :method => "LINote::llp_to_linote")
 		  expect{LINote::llp_to_linote(motif)}.to raise_error(SystemExit, err)
 			
 		end
@@ -321,19 +321,17 @@ describe LINote do
 		it "doit répondre à :join" do
 		  LINote.should respond_to :join
 		end
-		it ":join peut r ecevoir seulement des Motifs" do
+		it ":join peut recevoir seulement des Motifs" do
 			mo1 = Motif::new( :notes => "c e g", :octave => 2)
 			mo2 = Motif::new( :notes => "g e c", :octave => 2)
 			expect{LINote::join( h1, h2 )}.not_to raise_error(SystemExit)
-
 			err = detemp(Liby::ERRORS[:bad_type_for_args], {
-										:good => "Motif", :bad => "String"
+				:good => "Motif", :bad => "String", :method => "LINote::intervalle_between"
 			})
-			expect{LINote::join("bad", "mauvais")}.to \
-				raise_error(SystemExit, err)
+			expect{LINote::join("bad","mauvais")}.to raise_error(SystemExit,err)
 
 			err = detemp(Liby::ERRORS[:bad_type_for_args], {
-										:good => "Motif", :bad => "Hash" })
+				:good => "Motif", :bad => "Hash", :method => "LINote::intervalle_between" })
 			h1 = {:notes => "c e g", :octave => 3 }
 			h2 = {:notes => "c e g", :octave => 3 }
 		  expect{LINote::join( h1, h2 )}.to raise_error(SystemExit, err)
@@ -384,7 +382,7 @@ describe LINote do
 		end
 		it ":intervalle_between doit lever une erreur si pas motif" do
 			err = detemp(Liby::ERRORS[:bad_type_for_args], 
-							:good => "Motif", :bad => "String")
+				:good => "Motif", :bad => "String", :method => "LINote::intervalle_between")
 		  expect{LINote::intervalle_between("a3", "b4")}.to \
 				raise_error(SystemExit, err)
 		end
@@ -408,30 +406,7 @@ describe LINote do
 				LINote::intervalle_between(mot1, mot2).should == res
 			end
 		end
-		
-		# :mark_relative
-		it "doit répondre à :mark_relative" do
-		  LINote::should respond_to :mark_relative
-		end
-		it ":mark_relative doit retourner la bonne valeur" do
-		  LINote::mark_relative(3).should == "\\relative c'''"
-			LINote::mark_relative(-2).should == "\\relative c,,"
-		end
-		
-		# :octave_as_llp
-		it "doit répondre à :octave_as_llp" do
-		  LINote.should respond_to :octave_as_llp
-		end
-		it ":octave_as_llp doit renvoyer une bonne valeur pour octave < 0" do
-		  LINote.octave_as_llp( -6 ).should eq ",,,,,,"
-		end
-		it ":octave_as_llp doit renvoyer une bonne valeur pour octave > 0" do
-		  LINote.octave_as_llp(4).should eq "''''"
-		end
-		it ":octave_as_llp doit renvoyer un string vide pour octave 0" do
-		  LINote::octave_as_llp(0).should eq ""
-		end
-		
+			
 		# :octaves_from_llp
 		it "doit répondre à :octaves_from_llp" do
 		  LINote.should respond_to :octaves_from_llp
@@ -445,20 +420,6 @@ describe LINote do
 			LINote::octaves_from_llp(",,").should == -2
 			LINote::octaves_from_llp("''''''''").should == 8
 			LINote::octaves_from_llp(",,,,,,,,").should == -8
-		end
-		# :mark_octave
-		it "doit répondre à :mark_octave" do
-		  LINote.should respond_to :mark_octave
-		end
-		it ":mark_octave doit renvoyer 'c' quand octave nulle" do
-		  LINote::mark_octave(0).should == "c"
-		end
-		it ":mark_octave doit renvoyer bonne valeur quand octave négative" do
-		  LINote::mark_octave(-9).should == "c,,,,,,,,,"
-		end
-		it ":mark_octave doit renvoyer un apostrophe quand octave > 0" do
-		  LINote::mark_octave(1).should == "c'"
-			LINote::mark_octave(3).should == "c'''"
 		end
 		
 		# :REG_NOTE
@@ -626,9 +587,9 @@ describe LINote do
 		end
 		it ":to_s doit retourner la bonne valeur" do
 		  ln = LINote::new "c"
-			ln.to_s.should == "\\relative c''' { c }"
+			ln.to_s.should == "\\relative c { c }"
 			ln = LINote::new :note => "c#", :octave => 1, :duree => "8", :jeu => "^"
-			ln.to_s.should == "\\relative c' { cis8-^ }"
+			ln.to_s.should == "\\relative c,, { cis8-^ }"
 		end
 
 		# :with_alter

@@ -212,8 +212,9 @@ class LINote < NoteClass
   def self.llp_to_linote note_llp
     # String requis
     fatal_error(:bad_type_for_args, 
-      :good => "String", 
-      :bad => note_llp.class.to_s) unless note_llp.class == String
+      :method => "LINote::llp_to_linote",
+      :good   => "String", 
+      :bad    => note_llp.class.to_s) unless note_llp.class == String
       
     note_llp = note_llp.strip
     note_llp.scan(/^#{REG_NOTE_COMPLEXE}$/){
@@ -257,7 +258,9 @@ class LINote < NoteClass
     when "String" then ary_str = str.split(' ')
     when "Motif"  then ary_str = str.to_llp.split(' ')
     else fatal_error( :bad_type_for_args, 
-                      :good => "String ou Motif", :bad => str.class.to_s)
+                      :method => "LINote::explode",
+                      :good => "String ou Motif", 
+                      :bad => str.class.to_s)
     end
     ary_str.each do |membre|
       data << llp_to_linote( membre )
@@ -372,7 +375,7 @@ class LINote < NoteClass
   def self.intervalle_between motif1, motif2
     
     # Doivent être des motifs
-    Liby::raise_unless_motif motif1, motif2
+    Liby::raise_unless_motif "LINote::intervalle_between", motif1, motif2
     
     # Première et dernière note (class LINote)
     last_note  = motif1.last_note
@@ -425,25 +428,6 @@ class LINote < NoteClass
     # la note naturelle, dans ce contexte
     note = data_note[:natural] if note.length > 3
     return note
-  end
-  
-  # => Return le texte "\relative c..." correspondant à l'+octave+
-  def self.mark_relative octave
-    "\\relative #{mark_octave(octave)}"
-  end
-  
-  # => Retourne la marque d'octave (à ajouter à \\relative)
-  # @param  octaves   Le nombre d'octaves
-  # @return "c" + le nombre de virgules ou d'apostrophes nécessaires
-  def self.mark_octave octaves = 0
-    "c#{octave_as_llp(octaves)}"
-  end
-  
-  # => Retourne l'octave exprimée en virgules ou apostrophe
-  def self.octave_as_llp oct
-    return "" if oct == 0
-    mk = oct > 0 ? "'" : ","
-    mk.fois(oct.abs)
   end
   
   # =>  Return le DELTA d'octave exprimé en nombre d'après une marque 
@@ -665,7 +649,7 @@ class LINote < NoteClass
   #     P.e. "\relative c' { dis }"
   def to_s
     note = to_llp( :except => { :octave => true } )
-    "#{self.class::mark_relative(@octave)} { #{note} }"
+    "#{Score::mark_relative(@octave)} { #{note} }"
   end
   
   # => Return la linote sous forme de hash

@@ -88,7 +88,7 @@ describe Chord do
 		end
 		it ":to_s doit renvoyer la bonne valeur avec une durée spécifiée" do
 			@c = Chord::new "c e g"
-			@c.to_s(4).should == "\\relative c''' { <c e g>4 }"
+			@c.to_s(4).should == "\\relative c { <c e g>4 }"
 		end
 		
 		# :to_acc
@@ -123,13 +123,13 @@ describe Chord do
 			chord = Chord::new(:notes => ['a', 'c', 'e'], :octave => -1)
 		  mo = chord.as_motif
 			mo.class.should == Motif
-			mo.to_s.should == "\\relative c, { <a c e> }"
+			mo.to_s.should == "\\relative c,,,, { <a c e> }"
 			iv_set(chord, :duration => 8)
 			mo = chord.as_motif
 			mo.notes.should_not == "<a c e>8"
 			mo.notes.should == "<a c e>"
 			# puts "mo: #{mo.inspect}"
-			mo.to_s.should == "\\relative c, { <a c e>8 }"
+			mo.to_s.should == "\\relative c,,,, { <a c e>8 }"
 		end
 		
 		# :with_duree
@@ -138,7 +138,7 @@ describe Chord do
 		end
 		it ":with_duree doit renvoyer la bonne valeur" do
 			@c = Chord::new "c e g"
-			@c.with_duree(4).should == "\\relative c''' { <c e g>4 }"
+			@c.with_duree(4).should == "\\relative c { <c e g>4 }"
 		end
 		
 		# :renversement / renverse
@@ -175,6 +175,10 @@ describe Chord do
 			newacc.to_acc.should == "<g b c>"
 			newacc2 = newacc.renverse
 			newacc2.to_acc.should == "<b c g'>"
+		end
+		it "L'octave du renversement doit être le plus proche possible" do
+		  acc = Chord::new 'c e g', :octave => 4
+			puts "\nACC: #{acc.inspect}"
 		end
 		# :move / :degre
 		it "doit répondre à :move / :to_degre" do

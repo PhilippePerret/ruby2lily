@@ -27,7 +27,7 @@ class Liby
       
       # === Méthodes générales === #
       :bad_params_in_crochet      => "Mauvais argument envoyés dans `[...]'",
-      :bad_type_for_args          => "Mauvais types pour les arguments (attendus : \#{good}, reçus : \#{bad})",
+      :bad_type_for_args          => "Mauvais types pour les arguments dans `\#{method}` (attendus : \#{good}, reçus : \#{bad})",
       :too_much_parameters_to_crochets  => "Trop de paramètres envoyés dans `[]' (2 max)",
       :bad_class_in_parameters_crochets => "Mauvais argument dans `[...]' (seulement nombre, string de durée ou Hash)",
  
@@ -244,20 +244,22 @@ class Liby
     
     # =>  Lève une erreur fatale si un des éléments passés en argument
     #     n'est pas un Motif
-    def raise_unless_motif *elements
-      raise_unless_args_of_class elements, Motif
+    def raise_unless_motif method, *elements
+      raise_unless_args_of_class method, elements, Motif
     end
     # =>  Lève une erreur fatale si un des éléments passés en argument
     #     n'est pas une LINote
-    def raise_unless_linote *elements
-      raise_unless_args_of_class elements, LINote
+    def raise_unless_linote method, *elements
+      raise_unless_args_of_class method, elements, LINote
     end
     # =>  Méthode générale pour les méthodes précédentes
-    def raise_unless_args_of_class elements, classe
+    def raise_unless_args_of_class method, elements, classe
       elements.each do |element|
         next if element.class == classe
         fatal_error(:bad_type_for_args, 
-                    :good => classe.to_s, :bad => element.class)
+                    :method => method,
+                    :good   => classe.to_s, 
+                    :bad    => element.class)
       end
     end
     # -------------------------------------------------------------------

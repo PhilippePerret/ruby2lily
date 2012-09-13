@@ -42,13 +42,13 @@ describe "Multiplication" do
 	  	res = "a" * 2
 			res.class.should == Motif
 			res.notes.should == "a a"
-			res.to_s.should == "\\relative c''' { a a }"
+			res.to_s.should == "\\relative c { a a }"
 	  end
 		it "doit retourner une bonne valeur quand x 3" do
 		  res = "b d fis" * 3
 			res.class.should == Motif
 			res.notes.should == "b d fis b, d fis b, d fis"
-			res.to_s.should  == "\\relative c''' { b d fis b, d fis b, d fis }"
+			res.to_s.should  == "\\relative c { b d fis b, d fis b, d fis }"
 		end
 		it "doit faire une multiplication simple si ce n'est pas un motif lilypond" do
 			("str" * 2).should == "strstr"
@@ -59,12 +59,16 @@ describe "Multiplication" do
 	#  Mutliplication de Note
 	# -------------------------------------------------------------------
 	describe "de Note" do
-	  	
+	  	it "doit fonctionner" do
+	  	  pending "à implémenter"
+	  	end
 	end
 	# -------------------------------------------------------------------
 	#  Mutliplication de Chord
 	# -------------------------------------------------------------------
 	describe "de Chord" do
-	  	
+	  	it "doit fonctionner" do
+	  	  pending "à implémenter"
+	  	end
 	end
 end

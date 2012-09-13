@@ -19,7 +19,7 @@ describe "Méthode :[]" do
 			res = no["8"]
 			res.class.should == Note
 			res.to_s.should == "c8"
-			no[2,"4"].to_s.should == "\\relative c'' { c4 }"
+			no[2,"4"].to_s.should == "\\relative c, { c4 }"
 		end
   end
 	
@@ -34,13 +34,13 @@ describe "Méthode :[]" do
 		it "doit retourner un bon motif" do
 		  mo = Motif::new "c(\\< d e)\\!"
 			mo_duree_8 = mo["8"]
-			mo_duree_8.to_s.should == "\\relative c''' { c8(\\< d e)\\! }"
+			mo_duree_8.to_s.should == "\\relative c { c8(\\< d e)\\! }"
 			mo_octave_2 = mo[2]
-			mo_octave_2.to_s.should == "\\relative c'' { c(\\< d e)\\! }"
+			mo_octave_2.to_s.should == "\\relative c, { c(\\< d e)\\! }"
 			mo_oct1_dur4 = mo["4", -1]
-			mo_oct1_dur4.to_s.should == "\\relative c, { c4(\\< d e)\\! }"
+			mo_oct1_dur4.to_s.should == "\\relative c,,,, { c4(\\< d e)\\! }"
 			mo_autre = mo[:duration => "2.", :octave => 6]
-			mo_autre.to_s.should == "\\relative c'''''' { c2.(\\< d e)\\! }"
+			mo_autre.to_s.should == "\\relative c''' { c2.(\\< d e)\\! }"
 		end
 		it "doit passer par la méthode :clef pour la définir" do
 		  mo = Motif::new "c e f"
@@ -64,33 +64,33 @@ describe "Méthode :[]" do
 		end
 		it "doit pouvoir recevoir octave, durée" do
 			res = @acc[4, "8"]
-			res.to_s.should == "\\relative c'''' { <a c e>8 }"
+			res.to_s.should == "\\relative c' { <a c e>8 }"
 		end
 		it "doit pouvoir recevoir durée, octave si durée string" do
 		  res = @acc["2", 1]
-			res.to_s.should == "\\relative c' { <a c e>2 }"
+			res.to_s.should == "\\relative c,, { <a c e>2 }"
 		end
 		it "doit pouvoir recevoir une unique valeur string (=> durée)" do
 		  res = @acc["16"]
-			res.to_s.should == "\\relative c''' { <a c e>16 }"
+			res.to_s.should == "\\relative c { <a c e>16 }"
 		end
 		it "doit pouvoir recevoir une unique valeur octave (=> octave)" do
 		  res = @acc[2]
-			res.to_s.should == "\\relative c'' { <a c e> }"
+			res.to_s.should == "\\relative c, { <a c e> }"
 		end
 		it "doit pouvoir recevoir une valeur de durée-mot" do
 		  res = @acc[blanche]
-			res.to_s.should == "\\relative c''' { <a c e>2 }"
+			res.to_s.should == "\\relative c { <a c e>2 }"
 		end
 		it "ne doit pas changer l'octave si nil" do
 		  res = @acc[nil, 16]
-			res.to_s.should == "\\relative c''' { <a c e>16 }"
+			res.to_s.should == "\\relative c { <a c e>16 }"
 		end
 		it "doit pouvoir recevoir un hash" do
 		  res = @acc[:duree => 8, :octave => -1]
-			res.to_s.should == "\\relative c, { <a c e>8 }"
+			res.to_s.should == "\\relative c,,,, { <a c e>8 }"
 			res = @acc[:duration => 32, :octave => -2]
-			res.to_s.should == "\\relative c,, { <a c e>32 }"
+			res.to_s.should == "\\relative c,,,,, { <a c e>32 }"
 		end
 		it "doit lever une erreur fatale si mauvaise valeur" do
 			err = Liby::ERRORS[:bad_class_in_parameters_crochets]
@@ -107,8 +107,8 @@ describe "Méthode :[]" do
     end
 		it "doit retourner une bonne linote" do
 		  ln = LINote::new "cis", :octave => 3, :duration => "4."
-			ln.to_s.should == "\\relative c''' { cis4. }"
-			ln[1].to_s.should == "\\relative c' { cis4. }"
+			ln.to_s.should == "\\relative c { cis4. }"
+			ln[1].to_s.should == "\\relative c,, { cis4. }"
 		end
   end
 

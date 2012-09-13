@@ -339,7 +339,7 @@ describe String do
 			res.notes.should == "c c c"
 		end
 		it ":* doit multiplier correctement un groupe de notes" do
-		  ("a b" * 2).to_s.should == "\\relative c''' { a b a b }"
+		  ("a b" * 2).to_s.should == "\\relative c { a b a b }"
 		end
 	end
 
@@ -354,7 +354,7 @@ describe String do
 		 	m = m * 2
 			puts "non motif après multiplication : #{m.inspect}" if m.class != Motif
 			m.class.should == Motif
-			m.to_s.should == "\\relative c''' { c4 c4 c4 e g c c, c " \
+			m.to_s.should == "\\relative c { c4 c4 c4 e g c c, c " \
 												<< "c4 c4 c4 e g c c, c }"
 		end
 	end

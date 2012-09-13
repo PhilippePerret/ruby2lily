@@ -41,7 +41,55 @@ describe Score do
 			end
 			
 		end
-	end
+
+		describe "Méthodes" do
+		
+			# :mark_relative
+	  	it "doit répondre à :mark_relative" do
+	  	  Score.should respond_to :mark_relative
+	  	end
+			it ":mark_relative doit retourner le bon résultat" do
+			  Score::mark_relative(nil).should == "\\relative c'"
+				Score::mark_relative(4).should == "\\relative c'"
+				Score::mark_relative(3).should == "\\relative c"
+				Score::mark_relative(2).should == "\\relative c,"
+				Score::mark_relative(1).should == "\\relative c,,"
+				Score::mark_relative(0).should == "\\relative c,,,"
+				Score::mark_relative(5).should == "\\relative c''"
+				Score::mark_relative(6).should == "\\relative c'''"
+				Score::mark_relative(7).should == "\\relative c''''"
+			end
+			it ":mark_relative doit lever une erreur en cas de mauvais argument" do
+	      err = detemp(Liby::ERRORS[:bad_type_for_args], 
+					:good => "Fixnum", :bad => "String", :method => "Score::mark_relative")
+			  expect{Score::mark_relative("str")}.to raise_error(SystemExit,err)
+			end
+			
+			# :octave_as_llp
+			it "doit répondre à :octave_as_llp" do
+			  Score.should respond_to :octave_as_llp
+			end
+			it ":octave_as_llp doit retourner la bonne valeur" do
+			  Score.octave_as_llp(3).should == "'''"
+				Score.octave_as_llp(-2).should == ",,"
+			end
+			# :mark_octave
+			it "doit répondre à :mark_octave" do
+			  Score.should respond_to :mark_octave
+			end
+			it ":mark_octave doit retourner les bonnes valeurs" do
+			  Score.mark_octave(nil).should == "c'"
+			  Score.mark_octave(4).should == "c'"
+			  Score.mark_octave(3).should == "c"
+			  Score.mark_octave(2).should == "c,"
+			  Score.mark_octave(1).should == "c,,"
+			  Score.mark_octave(5).should == "c''"
+			  Score.mark_octave(6).should == "c'''"
+			end
+				
+		end # / Classe-méthodes
+		
+	end # / Classe
 	
 	# -------------------------------------------------------------------
 	# L'instance

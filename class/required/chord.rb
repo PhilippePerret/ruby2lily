@@ -99,7 +99,7 @@ class Chord < NoteClass
   def to_s duree = nil
     return nil if @notes.empty?
     duree ||= @duration
-    "#{LINote::mark_relative(@octave)} { #{self.to_acc(duree)} }"
+    "#{Score::mark_relative(@octave)} { #{self.to_acc(duree)} }"
   end
   alias :with_duree :to_s
   
