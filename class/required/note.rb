@@ -112,8 +112,7 @@ class Note < NoteClass
     @octave   = 3
     @duration = nil
     set note unless note.nil?
-    params.each { |k,v| instance_variable_set("@#{k}", v)} unless params.nil?
-    @duration = @duration.to_s unless @duration.nil?
+    set_params params
   end
   
   def set valeur

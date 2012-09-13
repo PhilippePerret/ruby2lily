@@ -109,4 +109,80 @@ describe NoteClass do
 			end
     end
   end
+	describe "Instance" do
+		before(:each) do
+		  @nc = NoteClass::new
+		end
+	  it "doit répondre à :set_params" do
+	    @nc.should respond_to :set_params
+	  end
+		[
+			"string", [1,2,3], Motif::new("a( b c)"), 5
+		].each do |bad_param|
+			it ":set_params doit lever une erreur en cas d'argument #{bad_param.class}" do
+				err = detemp(Liby::ERRORS[:bad_type_for_args], 
+					:method => "NoteClass#set_params", :good => "Hash", 
+					:bad => bad_param.class.to_s)
+			  expect{@nc.set_params(bad_param)}.to raise_error(SystemExit, err)
+			end
+		end
+		it ":set_params doit toujours transformer 'duree' en 'duration' et en string" do
+		  mot = Motif::new "a b c"
+			iv_get(mot, :duration).should be_nil
+			mot.set_params :duree => 8
+			iv_get(mot, :duration).should == "8"
+			mot = Motif::new "a b c", :duree => 4
+			iv_get(mot, :duration).should == "4"
+			mot = Motif::new :notes => "a b c", :duree => 16
+			iv_get(mot, :duration).should == "16"
+		end
+		[
+			1, 2, 4, 8, "1.", "1..", "1..~", "4~", "~", 256
+		].each do |duree|
+			it ":set_params ne doit pas lever d'erreur pour une durée de #{duree}" do
+				mot = Motif::new "a b c" 
+			  expect{mot.set_params(:duree => duree)}.not_to raise_error
+		  end
+		end
+		[
+			3, "4^", ".8", 1254
+		].each do |duree|
+			it ":set_params doit lever une erreur si la durée est mauvaise" do
+				err = detemp(Liby::ERRORS[:bad_value_duree], :bad => duree.to_s)
+				mot = Motif::new "a b c" 
+				expect{mot.set_params(:duree => duree)}.to \
+					raise_error(SystemExit, err)
+			end
+		end
+		it ":set_params doit transformer l'octave en nombre" do
+		  mot = Motif::new "a b c"
+			mot.set_params :octave => "5"
+			iv_get(mot, :octave).should === 5
+		end
+		it ":set_params doit lever une erreur si l'octave est trop petit ou trop grand" do
+		  expect{Motif.new("a", :octave => -2)}.not_to raise_error
+			oct = -3
+			err = detemp(Liby::ERRORS[:bad_value_octave], 
+				:bad => oct, :class => "Motif")
+			expect{Motif.new("a", :octave => oct)}.to \
+				raise_error(SystemExit, err)
+			oct = "11"
+			err = detemp(Liby::ERRORS[:bad_value_octave], 
+				:bad => oct, :class => "Motif")
+			expect{Motif.new("a", :octave => oct)}.to \
+				raise_error(SystemExit, err)
+		end
+		it ":set_params doit faire son travail correctement" do
+			# :set_params fonctionne ainsi : si une méthode `set_<property>`
+			# existe pour l'objet, elle est utilisée pour définir la valeur de
+			# la propriété. Dans le cas contraire, on utilise tout simplement
+			# instance_variable_set
+		  # Pour le tester, il faut utiliser une classe de note qui utilise
+			# ce principe (par exemple la classe Motif, qui traduit la clef
+			# définie en la transformant en clé LilyPond)
+			mot = Motif::new "a b c"
+			mot.set_params :clef => "g"
+			iv_get(mot, :clef).should == "treble"
+		end
+	end
 end

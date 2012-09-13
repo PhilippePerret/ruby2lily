@@ -642,7 +642,7 @@ describe LINote do
 		  @ln.should respond_to :to_hash
 		end
 		it ":to_hash doit renvoyer la bonne valeur" do
-			hash = {:note => "c", :duration => 5, :octave_llp => "''",
+			hash = {:note => "c", :duration => 4, :octave_llp => "''",
 							:alter => "es" }
 		  ln = LINote::new hash
 		 	ln_to_hash = ln.to_hash
@@ -680,7 +680,7 @@ describe LINote do
 		it ":set doit permettre de définir les valeurs" do
 			iv_get(@ln, :duration).should be_nil
 		  @ln.set(:duration => 16)
-			iv_get(@ln, :duration).should == 16
+			iv_get(@ln, :duration).should == "16"
 			iv_get(@ln, :finger).should be_nil
 			@ln.set(:finger => "5")
 			iv_get(@ln, :finger).should == "5"

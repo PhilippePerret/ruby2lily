@@ -62,11 +62,7 @@ class Motif < NoteClass
     when "String" then set_with_string notes
     end
     
-    params.each do |prop, value| 
-      instance_variable_set("@#{prop}", value)
-    end unless params.nil?
-    
-    @duration = @duration.to_s unless @duration.nil?
+    set_properties params
     
   end
   
@@ -78,29 +74,27 @@ class Motif < NoteClass
       raise Liby::ERRORS[:hash_required]        if hash.class != Hash
       raise Motif::ERRORS[:notes_undefined]     unless hash.has_key?( :notes )
       raise Motif::ERRORS[:notes_non_lilypond]  unless hash[:notes].is_lilypond?
-      # Durée invalide
-      duree = hash[:duration] || hash[:duree]
-      if duree != nil && !NoteClass::duree_valide?(duree.to_s)
-        raise detemp(Liby::ERRORS[:bad_value_duree], :bad => duree.to_s) 
-      end
     rescue Exception => e
       fatal_error(:invalid_arguments_pour_motif, 
         :args   => hash.inspect, 
         :raison => e.message)
     end
-    @notes    = hash[:notes]
-    @duration = hash[:duration] || hash[:duree]
-    @duration = @duration.to_s      unless  @duration.nil?
-    @octave   = hash[:octave].to_i  unless  hash[:octave].nil?
-    # Les méthodes suivantes, permettant de préciser le motif de façon
-    # générale, permettent aussi de vérifier si la valeur est possible.
-    # Par exemple, si on demande à « slurer » un motif qui contient déjà
-    # des « ( ) » et des « \( \) », une erreur fatale sera produite.
-    slure   if hash[:slured] === true
-    legato  if hash[:legato] === true
-    set_clef( hash[:clef] ) if hash.has_key?( :clef )
+    set_properties hash
   end
   
+  # => Définir les propriétés du motif
+  def set_properties hash
+    return if hash.nil?
+    # Valeurs qui ne doivent pas être traitées par params
+    slured  = hash.delete(:slured)
+    legated = hash.delete(:legato)
+    set_params hash
+    # Note: il faut slurer et legater après set_params, pour que les
+    # notes soient définies
+    self.slure  if true === slured
+    self.legato if true === legated
+  end
+
   # => Définit le Motif (notes et durée) à partir d'un string
   #
   # @param  str   Un string définissant les notes du motif.
@@ -426,6 +420,7 @@ class Motif < NoteClass
       self.clone.slure
     end
   end
+  alias :lie :slured
   
   # =>  Retourne le motif en legato (...\( ...\))
   # 

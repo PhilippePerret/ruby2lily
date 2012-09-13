@@ -26,8 +26,8 @@ class Liby
       :lilyfile_does_not_exists   => "Le fichier Lilypond du score n'existe pas…",
       
       # === Méthodes générales === #
-      :bad_params_in_crochet      => "Mauvais argument envoyés dans `[...]'",
       :bad_type_for_args          => "Mauvais types pour les arguments dans `\#{method}` (attendus : \#{good}, reçus : \#{bad})",
+      :bad_params_in_crochet      => "Mauvais argument envoyés dans `[...]'",
       :too_much_parameters_to_crochets  => "Trop de paramètres envoyés dans `[]' (2 max)",
       :bad_class_in_parameters_crochets => "Mauvais argument dans `[...]' (seulement nombre, string de durée ou Hash)",
  
@@ -39,6 +39,9 @@ class Liby
 
       # === Portée === #
       :bad_clef                   => "La clé '\#{clef}' est inconnue",
+      
+      # === Erreurs propriétés générales === #
+      :bad_value_octave           => "L'octave `\#{bad}` est invalide dans un \#{class}",
       
       # === Erreurs durée === #
       :bad_value_duree            => "La durée \#{bad} est invalide !",

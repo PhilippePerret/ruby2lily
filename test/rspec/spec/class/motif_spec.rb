@@ -37,6 +37,25 @@ describe Motif do
 			iv_get(@m, :notes).should 	== "d b a"
 			iv_get(@m, :octave).should 	== 4
 		end
+		it "doit définir la méthode :set_properties pour l'instanciation" do
+			mot = Motif::new "a b c"
+		  mot.should respond_to :set_properties
+		end
+		it ":set_properties doit faire son travail" do
+		  # note: cette méthode utilise NoteClass#set_params, qui est testée
+			# en profondeur dans class/noteclass_spec.rb
+			mot = Motif::new "a b c"
+			iv_get(mot, :octave).should == 3
+			mot.set_properties :octave => "5"
+			iv_get(mot, :octave).should === 5
+			iv_get(mot, :slured).should be_false
+			mot.set_properties :slured => true
+			iv_get(mot, :slured).should === true
+			mot.set_properties :slured => false
+			iv_get(mot, :legato).should be_false
+			mot.set_properties :legato => true
+			iv_get(mot, :legato).should === true
+		end
   end
 	describe "<motif>" do
 		before(:each) do
@@ -75,10 +94,10 @@ describe Motif do
 		  @m.should respond_to :set_with_hash
 		end
 		it ":set_with_hash doit définir correctement le motif" do
-		  @m.set_with_hash(:notes => "g e c", :duration => 8, :octave => -6)
+		  @m.set_with_hash(:notes => "g e c", :duration => 8, :octave => -1)
 			@m.notes.should == "g e c"
 			@m.duration.should == "8"
-			@m.octave.should == -6
+			@m.octave.should == -1
 		end
 		it ":set_with_hash doit lever une erreur en cas de mauvais arguments" do
 			def expected_error_with args, raison
@@ -94,9 +113,10 @@ describe Motif do
 			expected_error_with( {}, Motif::ERRORS[:notes_undefined] )
 			# Note invalide
 			expected_error_with( {:notes => "h-^"}, Motif::ERRORS[:notes_non_lilypond] )
-			# Mauvaise erreur
+			# Mauvaise durée
 			err = detemp(Liby::ERRORS[:bad_value_duree], :bad => 15 )
-			expected_error_with( {:notes => "c d e", :duration => 15}, err)
+			expect{@m.set_with_hash(:notes => "c d e", :duration => 15)}.to \
+				raise_error(SystemExit, err)
 		end
 		
 		# :to_s

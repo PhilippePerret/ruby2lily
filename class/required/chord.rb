@@ -44,15 +44,8 @@ class Chord < NoteClass
       params = notes.to_hash
     end
     
-    unless params.nil?
-      params[:duration] = params.delete(:duree) unless params[:duree].nil?
-      params.each do |prop, value|
-        instance_variable_set("@#{prop}", value)
-      end
-    end
-    
-    @duration = @duration.to_s unless @duration.nil?
-    
+    set_params params
+
     # On met les notes en Array (est-ce vraiment intéressant ?)
     @notes = @notes.split(' ') if @notes.class == String
     
@@ -132,12 +125,12 @@ class Chord < NoteClass
   # @note: permet de faire un vrai clone, puisque toutes les références
   # sont court-circuitées
   def to_hash
-    duree = @duration.nil? ? nil : @duration.to_s
-    oct   = @octave.nil?   ? nil : @octave.to_i
+    duree = @duration.nil? ? nil : @duration
+    oct   = @octave.nil?   ? nil : @octave
     {
       :notes    => @notes.join(' ').split(' '), 
       :duration => duree, 
-      :octave   => octave.to_i
+      :octave   => octave
     }
   end
   

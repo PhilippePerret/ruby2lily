@@ -156,5 +156,63 @@ class NoteClass
   require 'module/operations.rb' # normalement, toujours chargé
   include OperationsSurNotes
 
+  # Méthode définissant les propriétés d'un objet de type NoteClass
+  # (donc Motif, Chord, etc.)
+  # 
+  # @principe:  Si la classe d'objet possède une méthode d'instance
+  #             portant le nom `set_<property>`, alors cette méthode est
+  #             invoquée, avec la valeur, pour définir la valeur de la
+  #             propriété considérée. Dans le cas contraire, on donne
+  #             simplement la valeur à la propriété.
+  # 
+  # @param  params      Un hash de paires property-value à affecter à
+  #                     l'objet. Ou nil (rien à faire)
+  # 
+  # @return void
+  # 
+  # @note:  Lève une erreur fatale si +params+ n'est pas nil ou un hash.
+  # @note:  Transforme toujours la propriété :duree en :duration et met
+  #         toujours la valeur en string.
+  # 
+  def set_params params
+    # puts "\n--> set_params(#{params.inspect})"
+    return if params.nil?
+    # +params+ doit être de type Hash exclusivement
+    fatal_error(:bad_type_for_args, :method => "NoteClass#set_params",
+      :good => "Hash", :bad => params.class.to_s) \
+      unless params.class == Hash
+    
+    # Vérification et définition de la durée
+    # --------------------------------------
+    if params.has_key? :duree
+      params = params.merge :duration => params.delete(:duree)
+    end
+    unless params[:duration].nil?
+      params[:duration] = params[:duration].to_s
+      unless NoteClass::duree_valide?(params[:duration])
+        fatal_error(:bad_value_duree, :bad => params[:duration])
+      end
+    end
+    
+    # Vérification et définition de l'octave
+    # ---------------------------------------
+    if params.has_key?( :octave ) && params[:octave] != nil
+      params[:octave] = params[:octave].to_i
+      if params[:octave] < -2 || params[:octave] > 8
+        fatal_error(:bad_value_octave, 
+          :class => self.class.to_s, :bad => params[:octave].to_s)
+      end
+    end
+    
+    # Affectation des valeurs (directe ou par méthode propre)
+    # ------------------------
+    params.each do |prop, value|
+      if self.respond_to?("set_#{prop}")
+        self.send("set_#{prop}", value)
+      else
+        self.instance_variable_set("@#{prop}", value)
+      end
+    end
+  end
   
 end

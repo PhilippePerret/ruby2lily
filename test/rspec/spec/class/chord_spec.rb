@@ -67,6 +67,15 @@ describe Chord do
 		# :[]
 		# Testé dans spec/operations/crochets_spec.rb
 		
+		it "doit répondre à :set_params (par noteclass)" do
+		  @chord.should respond_to :set_params
+		end
+		it "doit lever une erreur fatale en cas de mauvais octave" do
+		  expect{Chord::new("a c e", :octave => 11)}.to raise_error
+		end
+		it "doit lever une erreur fatale en cas de mauvaise durée" do
+		  expect{Chord::new("a c e", :duree => 3)}.to raise_error
+		end
 		# :clone
 		it "doit répondre à :clone" do
 		  @chord.should respond_to :clone
@@ -196,5 +205,12 @@ describe Chord do
 		  iv_set(SCORE, :key => "Ab")
 			acc.to_degre(2).to_acc.should == "<des f aes>"
 		end
-	end
+		
+		it "deux accords doivent s'enchaîner correctement" do
+		  acc1 = Chord::new "c e g", :octave => 4
+			acc2 = Chord::new "c f a", :octave => 4
+			riff = acc1 + acc2
+			riff.to_s.should == "\\relative c' { <c e g> <c f a> }"
+		end
+	end # L'instance
 end

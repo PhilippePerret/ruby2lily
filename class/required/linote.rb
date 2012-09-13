@@ -573,22 +573,21 @@ class LINote < NoteClass
       @note     = nil
     end
     set params
-    @note_int = NOTE_STR_TO_INT["#{@note}#{@alter}"]
   end
   
   # => Permet de définir les valeurs
   # @usage      <linote>.set <hash_paires_prop_value>
   # 
-  def set hash
-    return if hash.nil?
-    hash[:duration] = hash.delete(:duree) unless hash[:duree].nil?
-    hash.each { |prop, val| instance_variable_set("@#{prop}", val) }
-    if @note.length != 1
-      note = LINote::to_llp @note
-      hash = LINote::llp_to_linote( note ).to_hash
-      @note     = hash[:note]
-      @alter    = hash[:alter]
-      @duration = hash[:duration] unless hash[:duration].nil?
+  def set props
+    set_params props
+    if @note != nil
+      if @note.length != 1
+        hash = LINote::llp_to_linote( LINote::to_llp(@note) ).to_hash
+        @note     = hash[:note]
+        @alter    = hash[:alter]
+        @duration = hash[:duration] unless hash[:duration].nil?
+      end
+      @note_int = NOTE_STR_TO_INT["#{@note}#{@alter}"]
     end
   end
   

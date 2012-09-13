@@ -10,10 +10,10 @@ describe Note do
 	# -------------------------------------------------------------------
 	describe "class" do
 		describe "Constantes" do
-		  it "d oit définir NOTE_TO_VAL_ABS" do
+		  it "doit définir NOTE_TO_VAL_ABS" do
 		    defined?(Note::NOTE_TO_VAL_ABS).should be_true
 		  end
-			it "NOTE_TO_VAL_ABS d oit définir les bonnes valeurs" do
+			it "NOTE_TO_VAL_ABS doit définir les bonnes valeurs" do
 			  Note::NOTE_TO_VAL_ABS['c'].should == 1
 				Note::NOTE_TO_VAL_ABS['g'].should == 8
 				Note::NOTE_TO_VAL_ABS['b'].should == 12
@@ -74,7 +74,7 @@ describe Note do
 			end
 		
 			# :valeur_absolue
-			it ":valeur_absolue d oit exister" do
+			it ":valeur_absolue doit exister" do
 			  Note.should respond_to :valeur_absolue
 			end
 		  [
@@ -103,7 +103,7 @@ describe Note do
 			it ":dieses_et_bemols_in doit exister" do
 			  Note.should respond_to :dieses_et_bemols_in
 			end
-			it ":dieses_et_bemols_in d oit retourner la bonne valeur" do
+			it ":dieses_et_bemols_in doit retourner la bonne valeur" do
 			  Note::dieses_et_bemols_in("ais").should == [1, 0]
 			  Note::dieses_et_bemols_in("aisis").should == [2, 0]
 			  Note::dieses_et_bemols_in("aes").should == [0, 1]
@@ -134,6 +134,11 @@ describe Note do
 				  @n = Note::new "c,"
 					@n.it.should == "c"
 					@n.octave.should == 2
+				end
+				
+				# :set_params (hérité de NoteClass)
+				it ":set_params (hérité de noteclass)" do
+				  @n.should respond_to :set_params
 				end
 				
 				# :set
