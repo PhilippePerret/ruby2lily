@@ -26,6 +26,7 @@ class Liby
       :lilyfile_does_not_exists   => "Le fichier Lilypond du score n'existe pas…",
       
       # === Méthodes générales === #
+      :not_a_note                 => "« \#{bad} » n'est malheureusement pas une note (dans \#{method}))…",
       :bad_type_for_args          => "Mauvais types pour les arguments dans `\#{method}` (attendus : \#{good}, reçus : \#{bad})",
       :bad_params_in_crochet      => "Mauvais argument envoyés dans `[...]'",
       :too_much_parameters_to_crochets  => "Trop de paramètres envoyés dans `[]' (2 max)",

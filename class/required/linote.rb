@@ -206,7 +206,8 @@ class LINote < NoteClass
   # => Return une LINote d'après le string LilyPond +note_llp+
   # 
   # @param  note_llp    Un string de note LilyPond, qui peut être
-  #                     complexe (p.e. "cisis,,8.-^(" )
+  #                     complexe (p.e. « cisis,,8.-^( » ), mais en tout
+  #                     cas une seule.
   # 
   # @return Une Linote contenant toutes les données
   def self.llp_to_linote note_llp
@@ -215,29 +216,26 @@ class LINote < NoteClass
       :method => "LINote::llp_to_linote",
       :good   => "String", 
       :bad    => note_llp.class.to_s) unless note_llp.class == String
-      
+    
     note_llp = note_llp.strip
     note_llp.scan(/^#{REG_NOTE_COMPLEXE}$/){
-      tout, pre, note, alter, octave, duree, jeu, finger, post, duree_post,
-      mark_dyna = 
+      tout, pre, note, alter, octave, duree, jeu, finger, post, 
+      duree_post, mark_dyna = 
         [$&, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10]
         
-      # Étude du jeu
-      # ------------
-      unless jeu.to_s.blank?
-        jeu = jeu[1..-1] # Pour retirer le '-' du départ
-      end
-      unless finger.to_s.blank?
-        finger = finger[1..-1] # Pour retirer le '-' du départ
-      end
+      # Étude du jeu et du doigté
+      # -------------------------
+      # (pour retirer le tiret qui les précède)
+      jeu     = jeu[1..-1]    unless jeu.to_s.blank?
+      finger  = finger[1..-1] unless finger.to_s.blank?
+
       # Composition de la linote
       # ------------------------
       return LINote::new(
         :note => note, :duration => duree, :duree_post => duree_post, 
         :octave_llp => octave, :delta => octaves_from_llp(octave),
         :pre  => pre,  :alter => alter, :jeu => jeu, :post => post,
-        :dynamique => mark_dyna,
-        :finger => finger
+        :dynamique => mark_dyna, :finger => finger
         )
     }
     # Si on passe ici, c'est que le motif n'a pas été trouvé, que
@@ -318,63 +316,48 @@ class LINote < NoteClass
   # 
   def self.join motif1, motif2
 
-    oui = $DEBUG === true
+    # Il faut impérativement deux motifs
+    fatal_error(:bad_type_for_args, 
+		  :good => "Motif", :bad => motif1.class.to_s, 
+		  :method => "LINote::join") if motif1.class != Motif
+    fatal_error(:bad_type_for_args, 
+		  :good => "Motif", :bad => motif2.class.to_s, 
+		  :method => "LINote::join") if motif2.class != Motif
+			
+    # On prend la première et la dernière note
+    ln_avant = motif1.last_note
+    ln_apres = motif2.first_note
     
-    puts "\n\n=== DÉBUG ON ===" if oui
-
-    # Intervalle exact (nombre de demi-ton) entre les deux motifs
-    intervalle = intervalle_between( motif1, motif2 )
-
-    if oui
-      puts "intervalle entre:\n\tMOTIF 1: #{motif1.inspect}\n\tMOTIF 2: #{motif2.inspect}"
-      puts "==> #{intervalle}"
-    end
+    # On regarde où va se retrouver la deuxième note (première du 
+    # second motif)
+    result = ln_apres.note.au_dessus_de?( ln_avant.note, true )
+    au_dessus = (result & 1) > 0
+    franchiss = (result & 2) > 0
     
-    if intervalle.between?(-6, 6)
-      suite_motif2 = motif2.notes_with_duree
-    else
-      mark            = intervalle > 0 ? "'" : ","
-      distance        = intervalle - 6
-      nombre_octaves  = (distance / 12) + 1
-      mark_octaves    = Score::octave_as_llp nombre_octaves
+    # On calcule le nouvel octave du second motif
+    # L'octave naturel de la second note serait :
+    added_octaves   = franchiss ? (au_dessus ? 1 : -1) : 0
+    natural_octave  = ln_avant.octave + added_octaves
+    octave_needed   = ln_apres.octave
+    diff_octave     = octave_needed - natural_octave
+    
+    unless diff_octave == 0
+      # =>  On doit ajouter diff_octave à la note après (diff_octave peut
+      #     être négatif)
+      #     Ce nombre d'octaves sera mis en delta dans le motif. Par ex.,
+      #     si la différence est de 2, il faudra ajouter « '' » à la 
+      #     première note du motif 2
+      delta_octaves   = octaves_to_delta( diff_octave )
       motif2_exploded = explode motif2
-      # @note : on ne doit pas poser le delta d'octave sur un
-      # silence, donc on cherche la première note
       i = -1
       while motif2_exploded[ i+=1 ].rest? do end
-      motif2_exploded[i].instance_variable_set("@octave_llp", mark_octaves)
-
-      # On recompose le motif
+      motif2_exploded[i].instance_variable_set("@octave_llp", delta_octaves)
       suite_motif2 = implode( motif2_exploded )
-      
-      # if oui
-      #   puts "-----------------------------------------"
-      #   puts "L'intervalle est < -6 ou > 6"
-      #   puts "=> On doit placer des ' ou ,"
-      #   puts "Mark = #{mark}"
-      #   puts "Distance = #{distance}"
-      #   puts "Nombre d'octaves = #{nombre_octaves}"
-      #   puts "Marque octaves   = #{mark_octaves}"
-      #   puts "suite_motif2 obtenu: #{suite_motif2}"
-      #   puts "-----------------------------------------"
-      # end
+    else
+      suite_motif2 = motif2.notes_with_duree
     end
-        
-    # Motif assemblé renvoyé
-    # "#{motif1.notes_with_duree} #{suite_motif2}"
-    "#{motif1.to_llp} #{suite_motif2}"
     
-  end
-
-  # =>  Return l'intervalle (nombre de demi-tons) entre le +motif1+ et
-  #     le +motif2+
-  # 
-  # @note: la valeur sera positive si +motif2+ est plus haut que
-  # +motif1+, négative dans le cas contraire
-  # 
-  def self.intervalle_between motif1, motif2
-    Liby::raise_unless_motif "LINote::intervalle_between", motif1, motif2
-    return motif2.first_note.abs - motif1.last_note.abs
+    return "#{motif1.to_llp} #{suite_motif2}"
   end
 
   # =>  Pose une marque de début (donc après la première note) et de fin
@@ -439,6 +422,13 @@ class LINote < NoteClass
       end
     end
     octave
+  end
+  
+  # =>  Retourne la marque LilyPond delta pour l'octave +octaves+
+  #     Par exemple, pour 3, retourne « ''' »
+  def self.octaves_to_delta octaves
+    mk = octaves > 0 ? "'" : ","
+    mk.fois(octaves.abs)
   end
 
   # =>  Retourne le motif +motif+ où toutes les notes auront leur
@@ -590,7 +580,17 @@ class LINote < NoteClass
   #             A0 = 21
   #             C4 = 60
   def abs
-    valeur = self.index + (self.octave + 1) * 12
+    return nil if self.note == "r"
+    begin
+      valeur = self.index + (self.octave + 1) * 12
+    rescue Exception => e
+      puts "\n\nIMPOSSIBLE D'OBTENIR LA VALEUR ABSOLU DE :"
+      puts "= Erreur: #{e.message}"
+      puts "= #{self.inspect}"
+      puts "= self.index: #{self.index}"
+      puts "= self.octave: #{self.octave}"
+      raise
+    end
     # Traitement spécial pour le franchissement d'obstacle
     if self.note == "c" && self.bemol?
       valeur -= 12 
@@ -668,9 +668,10 @@ class LINote < NoteClass
   #     non défini, en partant de l'octave 3)
   # @return entier représentant l'octave de la note
   def octave
-    # puts "\n@octave_llp: #{@octave_llp}\n=> octave from llp: #{LINote::octaves_from_llp(@octave_llp)}"
-    @octave ||= 3 + delta
+    @octave ||= ( 3 + delta )
   end
+  # =>  Return le nombre d'octaves ajoutées ou retirées par le delta
+  #     de la LINote
   def delta
     @delta ||= LINote::octaves_from_llp( @octave_llp )
   end

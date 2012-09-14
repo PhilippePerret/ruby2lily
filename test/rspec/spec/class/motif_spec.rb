@@ -258,7 +258,7 @@ describe Motif do
 			d-<g-bb-d>4-r 	2				g			d						2
 			d-d,-d,					1				d			d						-1
 			e-e'-f'					2				f			f						4
-			d(-<d,-fis'-aeses,,>8-gis')-r 	2		gis		gis		1
+			d(-<d,-fis'-aeses,,>8-gis')-r 	2		gis		gis		2
 			gis-aeses				3				aeses	aeses				3
 		-------------------------------------------------------------------
 		DEFA
@@ -274,7 +274,9 @@ describe Motif do
 					mot = Motif::new(:notes => suite, :octave => octave_motif)
 					last_note 			= mot.last_note
 					real_last_note 	= mot.real_last_note
-					raise if 			last_note.octave 					!= octave_last \
+					raise if 			last_note.class						!= LINote \
+										||	real_last_note.class			!= LINote \
+					 					||	last_note.octave 					!= octave_last \
 										|| 	last_note.with_alter 			!= last \
 										||	real_last_note.with_alter	!= real_last
 				rescue
@@ -301,11 +303,11 @@ describe Motif do
 			["r c d e r", "c", 3, "e", 3],
 			["r g a b r", "g", 3, "b", 3],
 			["r b c d r", "b", 3, "d", 4],
-			["c <c e g>", "c", 3, "g", 3],
-			["c <e g c>", "c", 3, "c", 4],
+			["c <c e g>", "c", 3, "c", 3],
+			["c <e g c>", "c", 3, "e", 3],
 			["r r aes b c", "aes", 3, "c", 4],
 			["r a( b ces r)", "a", 3, "ces", 4],
-			["r a( c <e g b d>) r r4", "a", 3, "d", 5]
+			["r a( c <e g b d>) r r4", "a", 3, "e", 4]
 		].each do |d|
 			suite, firstexp, firstexp_oct, lastexp, lastexp_oct = d
 			$DEBUG = false

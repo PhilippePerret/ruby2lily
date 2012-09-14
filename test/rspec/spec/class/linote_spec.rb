@@ -326,12 +326,12 @@ describe LINote do
 			mo2 = Motif::new( :notes => "g e c", :octave => 2)
 			expect{LINote::join( h1, h2 )}.not_to raise_error(SystemExit)
 			err = detemp(Liby::ERRORS[:bad_type_for_args], {
-				:good => "Motif", :bad => "String", :method => "LINote::intervalle_between"
+				:good => "Motif", :bad => "String", :method => "LINote::join"
 			})
 			expect{LINote::join("bad","mauvais")}.to raise_error(SystemExit,err)
 
 			err = detemp(Liby::ERRORS[:bad_type_for_args], {
-				:good => "Motif", :bad => "Hash", :method => "LINote::intervalle_between" })
+				:good => "Motif", :bad => "Hash", :method => "LINote::join" })
 			h1 = {:notes => "c e g", :octave => 3 }
 			h2 = {:notes => "c e g", :octave => 3 }
 		  expect{LINote::join( h1, h2 )}.to raise_error(SystemExit, err)
@@ -362,62 +362,35 @@ describe LINote do
 					# ÉCRIT EN DUR DANS LE @notes DU MOTIF
 					
 		].each do |data|
-			mo1 = Motif::new(:notes => data[0], :octave => data[1])
-			mo2 = Motif::new(:notes => data[2], :octave => data[3])
-			result = data[4]
-			it "Avec les data #{data[0..3].join(', ')}, ::join doit produire #{data[4]}" do
-				LINote::join(mo1, mo2).should == result
+			notes1, oct_1, notes2, oct_2, expected = data
+			mo1 = Motif::new(:notes => notes1, :octave => oct_1)
+			mo2 = Motif::new(:notes => notes2, :octave => oct_2)
+			result = expected
+			mess = "::join avec Motif#«notes=#{notes1} octave=#{oct_1}» et " \
+						<< "Motif#«notes=#{notes2} octave=#{oct_2}» doit produire #{expected}"
+			it mess do
+				res = LINote::join(mo1, mo2)
+				unless res == expected
+					# = débug =
+					puts "\n\n### PROBLÈME DANS LINote::join :"
+					puts "= Motif 1: #{mo1.inspect}"
+					puts "= Motif 2: #{mo2.inspect}"
+					puts "= Last note Motif 1: #{mo1.last_note.inspect}"
+					puts "= First note Motif 2: #{mo2.first_note.inspect}"
+					puts "= Notes attendues : #{expected}"
+					puts "= Résultat obtenu: #{res.inspect}"
+					# = / débug =
+				end
+				res.should == expected
 				# On en profite pour vérifier aussi la méthode <motif>.join(<autre motif>)
 				new_mo = mo1.join(mo2, :new => true)
-				new_mo.notes.should 	== result
-				mo1.notes.should_not 	== result
+				new_mo.notes.should 	== expected
+				mo1.notes.should_not 	== expected
 				mo1.join(mo2, :new => false)
-				mo1.notes.should == result
+				mo1.notes.should == expected
 			end
 		end
 		
-		# :intervalle_between
-		it "doit répondre à :intervalle_between" do
-		  LINote.should respond_to :intervalle_between
-		end
-		it ":intervalle_between doit lever une erreur si pas motif" do
-			err = detemp(Liby::ERRORS[:bad_type_for_args], 
-				:good => "Motif", :bad => "String", :method => "LINote::intervalle_between")
-		  expect{LINote::intervalle_between("a3", "b4")}.to \
-				raise_error(SystemExit, err)
-		end
-		[
-			["e", 3, "a", 3, 5],
-			["a", 3, "a", 3, 0],
-			["a", 3, "a", 4, 12],
-			["a c", 3, "a c", 2, -15],
-			["a c", 3, "a c", 1, -27],
-			["ces", 3, "bis", 2, 1],
-			["eis", 2, "fes", 2, -1],
-			["a c g", 3, "c e g", nil, -7],  # octave nil => octave 3
-			# Piège de l'accord : seule la première note doit compter
-			["<a c g>", 3, "<c e g>", 3, 3]
-			# @todo: d'autres tests plus complets ici
-		].each do |d|
-			notes1, oct1, notes2, oct2, res = d
-			texte = ":intervalle_between "
-			texte << "Motif(\"#{notes1}\", oct:#{oct1}) et "
-			texte << "Motif(\"#{notes2}\", oct:#{oct2}) doit être : #{res}"
-			it texte do
-	  		mot1 = Motif::new :notes => notes1, :octave => oct1
-				mot2 = Motif::new :notes => notes2, :octave => oct2
-				intervalle = LINote::intervalle_between(mot1, mot2)
-				if intervalle != res
-					puts "\nERREUR LINote::intervalle_between"
-					puts "= Motif 1 : #{mot1.inspect}"
-					puts "= Motif 2 : #{mot2.inspect}"
-					puts "= Valeur attendue : #{res}"
-					puts "= Valeur calculée : #{intervalle}"
-					puts "------------------------------------"
-					intervalle.should == res
-				end
-			end
-		end
 			
 		# :octaves_from_llp
 		it "doit répondre à :octaves_from_llp" do
@@ -432,6 +405,17 @@ describe LINote do
 			LINote::octaves_from_llp(",,").should == -2
 			LINote::octaves_from_llp("''''''''").should == 8
 			LINote::octaves_from_llp(",,,,,,,,").should == -8
+		end
+		
+		# :octaves_to_delta
+		it "doit répondre à :octaves_to_delta" do
+		  LINote.should respond_to :octaves_to_delta
+		end
+		it ":octaves_to_delta doit retourner la bonne valeur" do
+		  LINote::octaves_to_delta(3).should == "'''"
+			LINote::octaves_to_delta(-3).should == ",,,"
+			LINote::octaves_to_delta(0).should == ""
+			LINote::octaves_to_delta(-4).should == ",,,,"
 		end
 		
 		# :REG_NOTE

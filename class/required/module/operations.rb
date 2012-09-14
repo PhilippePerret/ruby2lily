@@ -39,6 +39,9 @@ module OperationsSurNotes
       rescue NoMethodError => e
         fatal_error(:cant_add_this, :classe => foo.class.to_s)
       end
+      puts "\n\nDans operation::+ :"
+      puts "motif_gauche: #{motif_gauche.inspect}"
+      puts "motif_droit: #{motif_droit.inspect}"
       motif_gauche + motif_droit # rappelle cette méthode mais cf. haut
     end    
   end # / +

@@ -19,6 +19,6 @@ def orchestre
 end
 
 def score
-  GIT1.add "ges c"
-  GIT1.add "<c f a>"
+  motif = Motif::new :notes => "r4\\( <ais c e> geses8( b[ e4])\\) r2 <c'' e g c>", :octave => 3
+  GIT1.add motif
 end

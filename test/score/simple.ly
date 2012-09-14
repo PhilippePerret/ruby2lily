@@ -21,7 +21,7 @@
 	\relative c'' {
 		\clef "treble"
 		\time 6/8
-		\tempo 4 = 120	ges c <c f a>
+		\tempo 4 = 120	\relative c { r4\( <ais c e> geses8( b[ e4])\) r2 <c'' e g c> }
 	}
 }
 }

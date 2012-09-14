@@ -20,6 +20,33 @@ describe String do
 	
 	describe "<string>" do
 	
+		# :abs
+		it "doit répondre à :abs" do
+		  "str".should respond_to :abs
+		end
+		[
+			["c", 48], ["c'", 60], ["ces", 47], ["cis", 49], ["cisis", 50],
+			["b", 59], ["b,", 47],
+			["d", 50], ["d,,", 26], ["d'", 62], ["dis", 51], ["des", 49]
+		].each do |d|
+			note, expected = d
+			it ":abs de #{note} doit renvoyer #{expected}" do
+				note.abs.should == expected
+		  end
+		end
+		# :index_diat
+		it "doit répondre à :index_diat" do
+		  "str".should respond_to :index_diat
+		end
+		[
+			["c", 0], ["d'", 1], ["e,,", 2], ["fes", 3], ["gisis", 4], ["a", 5], 
+			["b", 6], ["mauvais", nil]
+		].each do |d|
+			note, expected = d
+			it ":index_diat de #{note} doit retourner #{expected}" do
+				note.index_diat.should == expected
+		  end
+		end
 		# :is_lilypond?
 		it "doit répondre à :is_lilypond?" do
 		  "str".should respond_to :is_lilypond?
@@ -38,19 +65,6 @@ describe String do
 			suite, res = d
 			it ":is_lilypond doit returner #{res} pour #{suite}" do
 				suite.is_lilypond?.should == res
-		  end
-		end
-		# :dut
-		it "doit répondre à :dut" do
-		  "str".should respond_to :dut
-		end
-		[
-			["str", nil], ["c", 0], ["cis", 1], ["d", 2],
-			["fis", 6], ["bis", 0], ["b", 11], ["bes", 10]
-		].each do |d|
-			note, res = d
-			it ":dut de #{note} doit être #{res}" do
-				note.dut.should == res
 		  end
 		end
 		
@@ -83,9 +97,15 @@ describe String do
 			["c8", "c"], ["<dis16.-^", "dis"],
 			["r", nil], ["str", nil]
 		].each do |d|
-			motif, res = d
-			it ":note_with_alter pour « #{motif} » doit retourner #{res}" do
-			  motif.note_with_alter.should == res
+			suite, res = d
+			res_str = res.nil? ? "une erreur fatale" : res
+			it ":note_with_alter pour « #{suite} » doit retourner #{res_str}" do
+				unless res.nil?
+			  	suite.note_with_alter.should == res
+				else
+					err = detemp(Liby::ERRORS[:not_note_llp], :note => suite)
+					expect{suite.note_with_alter}.to raise_error(SystemExit, err)
+				end
 			end
 		end
 		# :distance_to_do
@@ -255,6 +275,19 @@ describe String do
 			"str".should respond_to :above?
 		end
 		# @note: testé avec ":en_dessous_de" ci-dessous
+		[
+			["d", "s"], ["e", "r"]
+		].each do |d|
+			note, bad = d
+			it ":au_dessus_de? doit lever avec «#{note}» et «#{bad}»" do
+				err = detemp(Liby::ERRORS[:not_a_note], 
+							:bad => bad, :method => "String#au_dessus_de?")
+			  expect{bad.au_dessus_de?(note)}.to raise_error(SystemExit, err)
+				err = detemp(Liby::ERRORS[:not_a_note], 
+							:bad => bad, :method => "String#au_dessus_de?")
+			  expect{note.au_dessus_de?(bad)}.to raise_error(SystemExit, err)
+			end
+		end
 		
 		# :plus_haute_que? /:higher_than?
 		it "doit répondre à :plus_haute_que? et :higher_than?" do
@@ -264,19 +297,56 @@ describe String do
 		# @note: testé ci-dessous
 
 		[
-			["a", "b", false, false],
-			["a", "c", false, true],
-			["c", "d", false, false],
-			["fis", "c", true, true],
-			["c", "fis", false, false],
-			["c", "bes", true, false],
-			["ces", "b", true, false],
-			["ceses", "b", true, false],
-			["ceses", "b", true, false]
+			# self			note				1ère 				1ère			up+franchissement
+			# 											au-dessus		+ haute
+			# 											de 2e ?			que 2e
+			# ---------------------------------------------------------------
+			# Avec do
+			["c", 			"c",					false,		false,		0 + 0],
+			["c", 			"d",					false, 		false,		0 + 0],
+			["d", 			"c", 					true, 		true,			1 + 0],
+			["c", 			"e",					false,		false,		0 + 0],
+			["e", 			"c",					true, 		true,			1 + 0],
+			["c",				"f",					false,		false,		0 + 0],
+			["f", 			"c",					true,			true,			1 + 0],
+			["fis", 		"c", 					true, 		true,			1 + 0],
+			["c", 			"fis", 				false, 		false,		0 + 0],
+			["c",				"g",					true,			false,		1 + 2],
+			["g",				"c",					false,		true,			0 + 2],
+			["c",				"ges",				true,			false,		1 + 2],
+			["ges",			"c",					false,		true,			0 + 2],
+			["c",				"a",					true,			false, 		1 + 2],
+			["a", 			"c",					false,		true,			0 + 2],
+			["c",				"b",					true,			false,		1 + 2],
+			["b",				"c",					false,		true,			0 + 2],
+			["ces", 		"b", 					true, 		false,		1 + 2],
+			["ceses", 	"b", 					true, 		false,		1 + 2],
+			["ceses", 	"b", 					true, 		false,		1 + 2],
+			# Avec fa
+			["f",				"d",					true,			true,			1 + 0],
+			["d",				"f",					false,		false,		0 + 0],
+			["f", 			"e", 					true,			true,			1 + 0],
+			["e",				"f", 					false, 		false,		0 + 0],
+			["f", 			"f", 					false, 		false,		0 + 0],
+			["fis",			"f",					false,		true,			0 + 0],
+			["f",				"g",					false,		false,		0 + 0],
+			["fis", 		"g", 					false,		false,		0 + 0],
+			["fis", 		"ges",				false,		false,		0 + 0],
+			["fisis",		"ges",				false,		true,			0 + 0],
+			["fis",			"geses",			false,		true,			0 + 0],
+			["g",				"f",					true,			true,			1 + 0],
+			["f",				"a",					false,		false,		0 + 0],
+			["a",				"f",					true,			true, 		1 + 0],
+			["f",				"b",					false,		false,		0 + 0],
+			["b",				"f",					true,			true,			1 + 0],
+			["f",				"bis",				false,		false,		0 + 0],
+			["bis", 		"f",					true,			true,			1 + 0],
+			# fin
+			["a", 			"b", 					false, 		false, 		0 + 0]
 		].each do |d|
-			n1, n2, expected, expect_higher = d
-			message = "'#{n1}':au_dessus_de?('#{n2}') doit retourner #{expected}"
-			it message do
+			n1, n2, expected, expect_higher, expected_franchiss = d
+			mess = "'#{n1}':au_dessus_de?('#{n2}') doit retourner #{expected}"
+			it mess do
 				res = n1.au_dessus_de?(n2)
 				if res != expected
 					puts "\nERREUR avec #{message}"
@@ -287,6 +357,14 @@ describe String do
 					res.should === expected
 				end
 			end
+			# Test avec renvoi de l'indication du franchissement d'octave
+			mess = "'#{n1}':au_dessus_de?('#{n2}', franchissement=true) " \
+						 << "doit retourner #{expected_franchiss}"
+			it mess do
+				res = n1.au_dessus_de?(n2, true)
+				res.should == expected_franchiss
+			end
+			# Test de la méthode higher_than
 			it "'#{n1}':higher_than?('#{n2}') doit retourner #{expect_higher}" do
 				n1.higher_than?(n2).should	=== expect_higher
 			end
@@ -356,7 +434,6 @@ describe String do
 			m.class.should == Motif
 			m.notes.should == "c4 c4 c4 e g c c, c"
 		 	m = m * 2
-			puts "non motif après multiplication : #{m.inspect}" if m.class != Motif
 			m.class.should == Motif
 			m.to_s.should == "\\relative c { c4 c4 c4 e g c c, c " \
 												<< "c4 c4 c4 e g c c, c }"

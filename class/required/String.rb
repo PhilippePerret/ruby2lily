@@ -133,6 +133,11 @@ class String
   # 
   # @return   La LINote de la note ou un hash contenant :note (simple),
   #           :alter et :delta
+  # 
+  # @todo:  il faudrait ne pas être obligé de passer par une linote car
+  #         cette méthode peut être appelée de façon intensive.
+  #         Donc: n'instancier une linote que lorsque c'est stipulé.
+  # 
   def explode as_linote = true
     linote = LINote::llp_to_linote self
     return linote if as_linote
@@ -151,12 +156,6 @@ class String
   def with_alter_in_key key
     hash = LINote::alterations_notes_in_key( key )
     hash[self]
-  end
-  # =>  Retourne la distance de la note à ut
-  def dut
-    @dut ||= lambda {
-      LINote::NOTE_STR_TO_INT[note_with_alter]
-    }.call
   end
   
   # => Retourne true si +self+ peut être un motif LilyPond
@@ -179,11 +178,15 @@ class String
   
   # =>  Retourne la note avec son altération
   #     Ex: si self = "<fisis8-^", retourne "fisis"
+  # 
+  # @note: explode lèvera une erreur fatale si self n'est pas une
+  # note lilypond correcte.
+  # 
   def note_with_alter
+    fatal_error(:not_note_llp, :note => self
+      ) if self.match(/^<?[a-g]/).nil?
     @note_with_alter ||= lambda {
-      res = self.scan(/([a-g](eses|isis|es|is)?)/)
-      return nil if res.nil? || res.first.nil?
-      res.first.first
+      self.explode.with_alter
     }.call
   end
   
@@ -206,153 +209,68 @@ class String
   # @param    octave    Octave de self. Si nil, on renvoie la note
   #                     par rapport à 3
   # 
-  # @return   Un hash contenant 
-  #             :note     La note, avec altérations
-  #             :octave   Son octave
-  #             :sup      true si la note est supérieure à self
+  # @return   Une linote de la note la plus proche trouvée
   # 
   # 
-  def closest note, octave = nil                                          # "fis d"   "a d"     "c3 fis"    "fis c"     "gis d"
+  def closest note, octave = nil
     
-    # ========== Nouvelle méthode ==================
-    octave ||= 3
-    octave += LINote::octaves_from_llp self
+    octave_self = octave || 3
+    octave_self += LINote::octaves_from_llp self
 
-    ln_self   = LINote::new self, :octave => octave
-    ln_note_1 = LINote::new note, :octave => (octave - 1)
-    ln_note_2 = LINote::new note, :octave => octave
-    ln_note_3 = LINote::new note, :octave => (octave + 1)
+    # ln_self   = LINote::new self, :octave => octave
     
-    # Les hauteurs absolues de chaque note
-    hauteur_self  = ln_self.abs
-    hauteur_1     = ln_note_1.abs
-    hauteur_2     = ln_note_2.abs
-    hauteur_3     = ln_note_3.abs
+    res = note.au_dessus_de? self, franchissement=true
+    note_est_plus_haut = (res & 1) > 0
+    octave_franchie    = (res & 2) > 0
     
-    # La différence avec la note de référence (self)
-    diff_with_1   = (hauteur_1 - hauteur_self).abs
-    diff_with_2   = (hauteur_2 - hauteur_self).abs
-    diff_with_3   = (hauteur_3 - hauteur_self).abs
+    # Octave ajouté en cas de franchissement
+    ajout_franchissement =  if octave_franchie
+                              note_est_plus_haut ? 1 : -1
+                            else 
+                              0
+                            end
+      
+    # La LINote qui sera renvoyée (à partir de +note+ — calculé ici pour
+    # obtenir son delta d'octave)
+    ln_note = note.explode
+    
+    # Octave final, en tenant compte du delta d'octave de la note, 
+    # et du franchissement ou non de l'octave
+    octave_note = octave_self + ln_note.delta + ajout_franchissement
+    
+    # On régle pour terminer l'octave de la LINote à retourner
+    ln_note.instance_variable_set("@octave", octave_note)
+    
+    # # = débug =
+    # # Résumé des opérations
+    # puts "\n\n=== String#closest ==="
+    # puts "= self: #{self} (octave #{octave_self})"
+    # puts "= note: #{note}"
+    # puts "= Donc : on cherche la note #{note} la + proche de #{self}"
+    # puts "= #{note} plus haut que #{self} ? #{note_est_plus_haut ? 'oui' : 'NON'}"
+    # puts "= Franchissement d'octave ? #{octave_franchie ? 'oui' : 'NON'}"
+    # puts "= (car résultat de #{note}.au_dessus_de?(#{self}) : #{res})"
+    # puts "= Ajout pour le franchissement d'octave : #{ajout_franchissement}"
+    # puts "= Octave final de la note la plus proche : #{octave_note}"
+    # puts "= (calculé par l'addition de :"
+    # puts "=   L'octave de self : #{octave_self}"
+    # puts "=   Le delta de note : #{ln_note.delta}"
+    # puts "=   L'ajout de franchissement d'octave : #{ajout_franchissement}"
+    # puts "================================================"
+    # # = / débug =
 
-    # Le plus petit écart sera le bon
-    plus_petit = [diff_with_1, diff_with_2, diff_with_3].min
-    
-    # @todo: pour le moment, il manque une information qui était donnée
-    # avant : savoir si on montait ou si on descendait. Mais la méthode
-    # appelante peut le savoir aisément grâce à au_dessus_de?
-    return ln_note_1 if plus_petit == diff_with_1
-    return ln_note_2 if plus_petit == diff_with_2
-    return ln_note_3
-    
-    # ========== fin nouvelle méthode ==============
-    
-    # Le delta d'octave de la +note+
-    # -------------------------------
-    delta_note = LINote::octaves_from_llp note
-    delta_self = LINote::octaves_from_llp self
+    return ln_note
 
-    # Retrait des marques d'octave des membres à étudier
-    note = note.gsub(/[',]/, '')
-    self_sans_delta = self.gsub(/[',]/, '')
-    
-    # L'octave réel, en tenant compte du delta d'octave du self
-    octave ||= 3
-    octave += delta_self
-    
-    # Le delta qu'il faudra ajouter à toutes les octaves
-    delta_octaves = delta_note - delta_self
-
-    # Cas piège que je n'ai pas réussi à rationnaliser :
-    # Quand la première note est un b au-dessus d'un c avec une
-    # altération qui fait passer le b au-dessus (ou égal) au do, 
-    # comme par exemple dans :
-    # "bis c", "bis ces"
-    if self_sans_delta[0..0] == "b" && note[0..0] == "c"
-      octave_note = octave + 1 + delta_octaves
-      sup =   Note::valeur_absolue(self_sans_delta, octave) \
-            <= Note::valeur_absolue( note, octave_note)
-      return {:note => note, :octave => octave_note, :sup => sup}
-    end
-    
-    # Cas simple où les deux notes sont identiques
-    if self_sans_delta[0..0] == note[0..0]
-      octave_note = octave + delta_octaves
-      sup = Note::valeur_absolue(self_sans_delta, octave) \
-            <= Note::valeur_absolue(note, octave_note)
-      return {:note => note, :octave => octave_note, :sup => sup}
-    end
-    
-    # "DUT" des deux notes
-    # ---------------------
-    # C'est-à-dire la distance de leur note par rapport à do sur la
-    # gamme chromatique
-    # dut_self = self_sans_delta.dut                                                 # fis = 6   a = 9     c3  => 0    fis => 6    8
-    # dut_note = note.dut                                                 # d = 2     d = 2     fis => 6    c => 0      2
-    
-    # La note est-elle avant self ?
-    # -----------------------------
-    # Il s'agit ici d'une estimation dans l'absolu, sans tenir compte
-    # ni de l'octave ni du comportement de LilyPond par rapport aux
-    # notes.
-    note_is_avant_self = note.dut < self_sans_delta.dut                              # OUI       OUI       NON         OUI         OUI
-    
-    # On calcule le dut de la deuxième note possible
-    dut_other_note = note.dut + (note_is_avant_self ? 12 : -12)           # 14        14        -6          12          14
-    
-    # Dut de la note sous self et de la note au-dessus de self. Une de
-    # ces deux notes sera choisie comme note finale.
-    dut_note_up   = [note.dut, dut_other_note].max                       # 14          6          12          14
-    dut_note_down = [note.dut, dut_other_note].min                       # 2           -6         0           2
-    
-    # Une vérification de routine
-    unless dut_note_up - dut_note_down == 12
-      fatal_error "Mauvaise valeur de calcul obtenu dans String#closest…"
-    end
-    
-    # Distances des deux notes par rapport à self
-    # --------------------------------------------
-    dist_to_up   = dut_note_up - self_sans_delta.dut                                 # 8         6           6           6
-    dist_to_down = self_sans_delta.dut - dut_note_down                               # 4         6           6           6
-        
-    # Le Hash de la note qui sera renvoyé
-    # ------------------------------------
-    # Par défaut, on met l'octave à l'octave courante
-    hash_note = {:note => note, :sup => nil, :octave => octave + delta_octaves}
-    
-    # Est-ce qu'on monte ou est-ce qu'on descend ? 
-    # ---------------------------------------------
-    # Le principe est qu'on va toujours à la note la plus proche et que
-    # is les deux distances sont égales, on va vers la note de la même 
-    # octave.
-    if dist_to_up == dist_to_down
-      # L'octave reste forcément la même dans ce cas
-    else
-      en_montant      = dist_to_up < dist_to_down
-      # Est-ce qu'on franchit une octave
-      # --------------------------------
-      # On le détermine en calculant la distance de self par rapport au
-      # do le plus proche et en voyant si cette distance est strictement
-      # supérieure à la distance à la note (pas de changement d'octave)
-      dist_to_do = self_sans_delta.distance_to_do( en_montant )
-      # Distance la plus courte
-      shortest_dist = [dist_to_up, dist_to_down].min
-      if dist_to_do <= shortest_dist
-        # => Changement d'octave
-        hash_note[:octave] += en_montant ? 1 : -1
-      end
-    end
-
-    # Est-ce que ça monte ou ça descend ?
-    # 
-    self_absolue = Note::valeur_absolue(self_sans_delta, octave)
-    note_absolue = Note::valeur_absolue(hash_note[:note], hash_note[:octave])
-    hash_note[:sup] = note_absolue >= self_absolue
-    
-    # On retourne le hash de la note
-    hash_note
   end
   
-  
+  # =>  Retourne l'index diatonique de +self+
+  # 
+  # @param  self    Une note, simple ou non
+  # @return   L'index dans la gamme diatonique, sans tenir compte
+  #           ni des altérations ni des delta
+  def index_diat
+    LINote::GAMME_DIATONIQUE.index self[0..0]
+  end
   # =>  Retourne true si la note +self+ se trouve au-dessus de la note
   #     +note+ dans un motif LilyPond
   # 
@@ -364,13 +282,86 @@ class String
   # 
   # @param  self    Une note LLP, avec ou sans delta d'octave
   # @param  note    Idem
+  # @param  with_franchissement
+  #                 Si mis à true (false par défaut), la méthode 
+  #                 retourne un nombre dont on teste les bits pour
+  #                 savoir si l'octave est franchi lors du passage entre
+  #                 self et la note.
+  #                 BIT 1   Au-dessus si 1, en dessous si 0
+  #                 BIT 2   Franchissement d'octave si 1, pas si 0
+  #                 Donc :
+  #                 0   =>  +self+ n'est pas au-dessus de +note+
+  #                         et pas de franchissement d'octave
+  #                 1   =>  +self+ est au-dessus de +note+ mais il n'y a
+  #                         pas franchissement d'octave
+  #                 2   =>  +self+ est EN DESSOUS de +note+ mais
+  #                         il y a franchissement d'octave
+  #                 3   =>  +self+ est au-dessus et il y a franchissement
+  #                 On peut faire aussi :
+  #                 au_dessus       = (res & 1) > 0
+  #                 franchissement  = (res & 2) > 0
   # 
   # @return true/false
-  def au_dessus_de? note
-    self.to_linote.au_dessus_de? note.to_linote
+  # 
+  # Est-ce qu'on franchit une octave ?
+  # On le sait quand l'intervalle est négatif (non pas seulement)
+  # "c d" "c e" ""
+  #  0 1
+  # # Intervalles négatifs sans franchissement
+  # "d c" "f d" "f c" ""
+  #  1 0   3 1   3 0
+  # # Franchissement
+  # "b c", "b d" "d a" "d b"
+  #  6 1    6 1   1 5   1 6
+  #  
+  #  # Essai avec :
+  #  # L'octave est franchit quand :
+  #  note plus haute ET (note - self) < 0
+  #  note moins haut ET (note - self) > 0
+  def au_dessus_de? note, with_franchissement = false
+    index_note = note.index_diat
+    fatal_error(:not_a_note, 
+                :bad => note,
+                :method => "String#au_dessus_de?") if index_note.nil?
+    index_self = self.index_diat
+    fatal_error(:not_a_note, 
+                :bad => self, 
+                :method => "String#au_dessus_de?") if index_self.nil?
+    diff_index = index_note - index_self
+    case diff_index
+    when 0    then 
+      au_dessus = false
+      franchiss = false
+    when 1..3, -6..-4 then 
+      au_dessus = false
+      franchiss = diff_index < 0
+    when 4..6, -3..-1 then true
+      au_dessus = true
+      franchiss = diff_index > 0
+    end
+    return au_dessus unless with_franchissement
+    # On doit retourner un nombre où le premier bit correspond à
+    # au-dessus/en dessous et le second à l'indication du franchissement
+    # de l'octave ou non
+    twobits = au_dessus ? 1 : 0
+    twobits += franchiss ? 2 : 0
+    twobits
   end
   alias :above? :au_dessus_de?
   
+  # =>  Return la valeur absolue de +self+, c'est-à-dire son numéro MIDI
+  #     par rapport à :
+  #       - sa note
+  #       - ses altérations
+  #       - son delta d'octave
+  # 
+  # @param  self      La note, avec altération et delta
+  # 
+  # @return   Le nombre, entre 21 (A0) et 108 (C8)
+  # 
+  def abs
+    self.explode( as_linote = true ).abs
+  end
   # =>  Return true si +self+ est au-dessus, en tant que son, de +note+
   # 
   # @warning :  La réponse se fait en fonction de la hauteur absolu du
@@ -380,7 +371,7 @@ class String
   # @param  note  Une note, avec altération et delta d'octave
   # 
   def plus_haute_que? note
-    self.to_linote.plus_haute_que? note.to_linote
+    self.abs > note.abs
   end
   alias :higher_than? :plus_haute_que?
   
@@ -388,8 +379,7 @@ class String
   # trouve après +note+ (qui doit être seulement une note de "a" à
   # "g") dans la gamme diatonique (qui commence à "c")
   def after? note
-    LINote::GAMME_DIATONIQUE.index(self) \
-    > LINote::GAMME_DIATONIQUE.index(note)
+    self.index_diat > note.index_diat
   end
   
   # =>  Return le nombre de demi-tons entre +note+ (une note avec 
