@@ -59,16 +59,35 @@ describe "Multiplication" do
 	#  Mutliplication de Note
 	# -------------------------------------------------------------------
 	describe "de Note" do
-	  	it "doit fonctionner" do
-	  	  pending "à implémenter"
+			[
+				["c", nil, 3, "\\relative c { c c c }"],
+				["d", 4, 4, "\\relative c' { d d d d }"],
+				["des", 2, 1, "\\relative c, { des }"]
+			].each do |d|
+				note, octave, fois, expected = d
+		  	it "Note::«#{note}:oct-#{octave} * #{fois} doit donner : #{expected}" do
+		  	  no = Note::new note, :octave => octave
+					res = no * fois
+					res.class.should == Motif
+					res.to_s.should == expected
+				end
 	  	end
 	end
 	# -------------------------------------------------------------------
 	#  Mutliplication de Chord
 	# -------------------------------------------------------------------
 	describe "de Chord" do
-	  	it "doit fonctionner" do
-	  	  pending "à implémenter"
-	  	end
+		[
+			["c e g", nil, nil, 3, "\\relative c { <c e g> <c e g> <c e g> }"],
+			["c e g c", 1, 8, 2, "\\relative c,, { <c e g c>8 <c e g c>8 }"],
+		].each do |d|
+			notes, octave, duree, fois, expected = d
+	  	it "Chord::«#{notes}#{duree}:oct-#{octave} * #{fois} doit donner : #{expected}" do
+	  	  acc = Chord::new notes, :octave => octave, :duree => duree
+				res = acc * fois
+				res.class.should == Motif
+				res.to_s.should == expected
+			end
+  	end
 	end
 end

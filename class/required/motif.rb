@@ -156,7 +156,6 @@ class Motif < NoteClass
   def to_s params = nil
     return nil if @notes.nil?
     
-    puts "\nMOTIF: #{self.inspect}"
     # Analyse des paramètres transmis
     # --------------------------------
     # Et principalement la durée
