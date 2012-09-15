@@ -20,8 +20,8 @@
 {\new Staff {
 	\relative c'' {
 		\clef "treble"
-		\time 6/8
-		\tempo 4 = 120	\relative c { r4\( <ais c e> geses8( b[ e4])\) r2 <c'' e g c> }
+		\time 4/4
+		\tempo 4 = 120	\relative c' { \times 2/3 { d8 e f } }
 	}
 }
 }

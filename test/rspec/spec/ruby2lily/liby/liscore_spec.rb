@@ -13,7 +13,8 @@ describe Liby::LIScore do
 	# Avant toute chose
 	before(:all) do
 	  @lis = Liby::LIScore
-	  @path_score_ruby = Liby.send('find_path_score', 'partition_test')
+		path = File.join('test', 'score', 'partition_test')
+	  @path_score_ruby = Liby.send('find_path_score', path)
 		cv_set(Liby, :path_ruby_score => @path_score_ruby)
 		@path_score_lily = Liby::path_lily_file
 		File.unlink @path_score_lily if File.exists? @path_score_lily

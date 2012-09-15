@@ -182,6 +182,17 @@ class NoteClass
       :good => "Hash", :bad => params.class.to_s) \
       unless params.class == Hash
     
+    # Définition des notes/note
+    # --------------------------
+    # Elles doivent être définies avant d'autres paramètres
+    # @note: noter que la tournure actuelle empêche de passer par une
+    # méthode qui serait conventionnelle (set_note/set_notes)
+    if params.has_key? :notes
+      @notes  = params.delete(:notes)
+    elsif params.has_key? :note
+      @note   = params.delete(:note)
+    end
+    
     # Vérification et définition de la durée
     # --------------------------------------
     if params.has_key? :duree

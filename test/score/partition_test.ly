@@ -3,26 +3,20 @@
 -- https://github.com/PhilippePerret/ruby2lily.git
 
 -- Ruby score:
-	/Users/philippeperret/Sites/cgi-bin/lilypond/partition_test.rb
+	/Users/philippeperret/Sites/cgi-bin/lilypond/test/score/with_dossier_scores/essai.rb
 %}
 
 \version "2.16.0"
 
 % Informations score
 \header {
+	composer = "Phil"
 }
 
 
 
 % Score
-{	<<\new Staff {
-	\relative c'' {
-		\clef "treble"
-		\time 4/4
-		
-	}
-}
-\new PianoStaff <<
+{\new PianoStaff <<
 	\new Staff {
 		\relative c'' {
 			\clef "treble"
@@ -38,18 +32,4 @@
 		}
 	}
 >>
-\new Staff {
-	\relative c' {
-		\clef "bass"
-		\time 4/4
-		
-	}
-}
-\new Staff {
-	\relative c'' {
-		\clef "treble"
-		\time 4/4
-		
-	}
-}	>>
 }

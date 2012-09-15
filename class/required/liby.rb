@@ -35,6 +35,9 @@ class Liby
       :cant_add_this              => "Un objet de type \#{classe} ne peut être ajouté…",
       
       # === Définitions de l'instrument === #
+      :class_already_exists_for_score_class =>
+        "L'instrument « \#{classe} » ne peut être utilisé pour un score (dans le dossier 'scores') car "\
+        << "cette classe est utilisée par le système…",
       :type_ajout_unknown         => "Impossible d'ajouter à l'instrument. Je ne sais pas comment appréhender la class « \#{type} »…",
       :type_procedure_unexpected  => "Impossible d'ajouter à l'instrument. C'est une procédure qui a été envoyée. Peut-être manque-t-il un « .call » ?…",
 
@@ -46,6 +49,8 @@ class Liby
       
       # === Erreurs durée === #
       :bad_value_duree            => "La durée \#{bad} est invalide !",
+      :bad_value_for_triolet      => "«\#{bad}» est une mauvaise valeur de triolet pour «\#{notes}»",
+      :bad_nombre_notes_for_triolet => "Le motif «\#{notes}» a un mauvais nombre de notes pour appliquer le triolet «\#{bad}»…",
       
       # === Définition du score ===
       :title_not_string           => "Le titre doit être une chaine de caractères",
@@ -305,9 +310,38 @@ class Liby
       true
     end
     
+    # =>  Méthode qui charge tous les fichiers scores si un dossier
+    #     'scores' existe à la racine de la partition
+    # 
+    # @note: Ces fichiers ne définissent pas de classe, mais seulement
+    # les méthodes. On doit se servir du nom du fichier pour
+    # définir le nom de la classe (et renvoyer une erreur si elle existe
+    # déjà) et mettre toutes les méthodes en méthodes static (c'est la
+    # fonction make_global_class_from_file qui s'en charge, dans le 
+    # module 'handy_methods.rb').
+    # 
+    def load_scores_files
+      dossier_scores = path_folder_scores
+      return nil if dossier_scores.nil? # pas de dossier "scores"
+      Dir["#{dossier_scores}/**/*.rb"].each do |score|
+        class_name = File.basename(score, '.rb').decamelize.camelize
+        fatal_error(:class_already_exists_for_score_class, 
+                    :classe => class_name) if eval("defined?(#{class_name})")
+        make_global_class_from_file score, class_name
+      end
+    end
+    
     # -------------------------------------------------------------------
     # Méthodes paths
     # -------------------------------------------------------------------
+    
+    # =>  Return le path du dossier 'scores' pouvant contenir les
+    #     partition. Return nil si ce dossier n'existe pas
+    def path_folder_scores
+      path = File.join(File.dirname(path_ruby_score), 'scores')
+      return path if File.exists?(path) && File.directory?(path)
+    end
+
     # => Retourne le chemin d'accès complet au score ruby
     def path_ruby_score
       @@path_ruby_score

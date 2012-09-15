@@ -36,6 +36,7 @@ class Motif < NoteClass
                       # simple sur le motif : <first>( <autres notes>)
   @legato   = false   # Mis à true quand on doit poser une sur-liaison
                       # sur le motif : <first>\( <autres notes>\)
+  @triolet  = nil     # Mis à la valeur si triolet (p.e. "2/3")
   
   # --- Propriétés d'affichage ---
   @clef     = nil     # La clé à utiliser à l'affichage du motif
@@ -57,6 +58,8 @@ class Motif < NoteClass
     @duration = nil
     @slured   = false
     @legato   = false
+    @triolet  = nil
+    @clef     = nil
     case notes.class.to_s
     when "Hash"   then set_with_hash notes
     when "String" then set_with_string notes
@@ -117,8 +120,20 @@ class Motif < NoteClass
     @notes = LINote::implode notes
     # puts "@notes à la fin du processus : #{@notes}"
   end
-  # =>  Return le motif en string avec l'ajout de la durée +duree+ si 
-  #     elle est spécifiée
+  
+  # => Retourne le motif (ses propriétés) sous forme de Hash
+  def to_hash
+    {
+      :notes    => @notes,
+      :duration => @duration,
+      :octave   => @octave,
+      :slured   => @slured,
+      :legato   => @legato,
+      :triolet  => @triolet,
+      :clef     => @clef
+    }
+  end
+  # =>  Return le motif en string prêt à être inscrit dans la partition
   # 
   # @note : @notes, ici, est soit un string de notes, soit une liste
   #         de motifs qu'il faut traiter séparément.
@@ -141,6 +156,7 @@ class Motif < NoteClass
   def to_s params = nil
     return nil if @notes.nil?
     
+    puts "\nMOTIF: #{self.inspect}"
     # Analyse des paramètres transmis
     # --------------------------------
     # Et principalement la durée
@@ -169,16 +185,54 @@ class Motif < NoteClass
     mk_relative = mark_relative octaves_to_add
 
     # Changement des durées si nécessaire
+    # ------------------------------------
     notes_str = if duree.nil? then @notes 
-                else notes_with_duree(duree) end 
+                else notes_with_duree duree end 
 
     # Liaisons ?
+    # -----------
     notes_str = notes_with_liaison notes_str
-    
+
+    # Triolet ou plus ?
+    # ------------------
+    notes_str = notes_with_triolet notes_str
+
+
     # Finalisation
     return "#{mk_relative} { #{mark_clef}#{notes_str} }"
 
   end
+  
+  # => Renvoie le nombre de notes du motif
+  # 
+  # @param  for_real    Si true, on compte vraiment le nombre de toutes
+  #                     les notes. Sinon (par défaut), on considère qu'un
+  #                     accord ne compte que pour une seule note.
+  def count for_real = false
+    return 0 if @notes.nil? || @notes.blank?
+    if for_real
+      @count_for_real ||= @notes.split(' ').count
+    else
+      @count ||= lambda {
+        count     = 0
+        in_accord = false
+        @notes.split(' ').each do |whole_note|
+          whole_note.scan(/^(<)?([a-gr])(eses|isis|es|is)?([',]*)?([^>]*)?(>)?(.*)?$/){
+            tout, acc_start, note, alter, delta, rien, acc_end, fin = 
+              [$&, $1, $2, $3, $4, $5, $6, $7]
+            if in_accord
+              in_accord = ( acc_end != ">" )
+            else
+              count += 1
+              in_accord = ( acc_start == "<" )
+            end
+          }
+        end
+        count
+      }.call
+    end
+  end
+  alias :nombre_notes :count
   
   # => Définit la clé à utiliser pour le motif
   def set_clef valeur
@@ -297,18 +351,17 @@ class Motif < NoteClass
   # c'est le do de l'accord qui est pris en référence pour connaitre la
   # position du dernier.
   # 
-  # Développement:
-  # Je m'embête pour rien, en fait, il suffit de faire :
-  #   - On prend la note simple suivante (sans altération, sans delta)
-  #   - On regarde si elle est au-dessus ou en dessous (en considérant
-  #     son index diatonique)
-  #   - Si elle est en dessous => on baisse d'une octave si on en franchit une
-  #     Si elle est au-dessus => on augment d'une octave si on en franchit une
-  #   - On ajoute ensuite le delta d'octave pour obtenir l'octave réelle
-  #     de la note.
+  # @note: on en profite pour définir aussi le nombre de notes réelles
+  # et relative (accord => 1 seule note) => @count / @count_for_real
+  # NON : car les silences ne sont pas pris en compte ici
+  # 
   def last_note
     return nil if @notes.nil?
     @last_note ||= lambda {
+    # Pour le comptage des notes NON : les silences ne sont pas pris en
+    # compte ici
+    # @count_for_real = 0
+    # @count          = 0
     # On ne conserve que les notes, les altérations et les marques d'octaves
     liste_notes = []
     # Pour savoir si on se trouve dans un accord
@@ -322,7 +375,6 @@ class Motif < NoteClass
     h_current = nil
     @notes.split(' ').each do |whole_note|
       next if whole_note[0..0] == "r"
-      puts "\n#{self.notes}:last_note : Étude de whole_note: #{whole_note}"
       whole_note.scan(/^(<)?([a-g])(eses|isis|es|is)?([',]*)?([^>]*)?(>)?(.*)?$/){
         tout, acc_start, note, alter, delta, rien, acc_end, fin = 
           [$&, $1, $2, $3, $4, $5, $6, $7]
@@ -418,6 +470,13 @@ class Motif < NoteClass
     markin  = @slured ? '(' : '\('
     markout = @slured ? ')' : '\)'
     LINote::pose_first_and_last_note notes, markin, markout
+  end
+  
+  def notes_with_triolet notes = nil
+    notes ||= @notes
+    return notes if @triolet.nil?
+    puts "\n@triolet n'est pas nil dans #{self.inspect}"
+    "\\times #{@triolet} { #{notes} }"
   end
   
   
@@ -546,6 +605,50 @@ class Motif < NoteClass
     @legato || @notes.match(/\\[\(\)]/) != nil
   end
   
+  # => Transforme le motif en triolet (ou plus)
+  # 
+  # @param  natural    
+  #         La division naturelle du temps, 2 par défaut, c'est-à-dire 
+  #         en binaire, ou le triolet complet : "2/3" par exemple.
+  # @param  nb_notes        
+  #         Nombre de notes dans le nouveau motif. Si nil et que 
+  #         natural n'est pas un String, on met 3
+  def triolet natural = nil, nb_notes = nil
+    natural ||= 2
+    val = "#{natural}"
+    val << "/#{nb_notes || '3'}" unless natural.class == String
+    change_objet_ou_new_instance @notes, {:triolet => val}, false
+  end
+  alias :triplet :triolet
+  
+  # Applique le triolet voulu (méthode conventionnelle, qui sera aussi
+  # utilisée en cas de définition dans les paramètres)
+  # 
+  # @param  valeur    
+  #         La valeur de triolet LLP à appliquer. Si true, on met "2/3"
+  #         qui est la définition naturelle du triolet. Sinon, c'est la
+  #         valeur String à mettre après \times, donc ça doit être une
+  #         valeur LilyPond correcte et correspondant au nombre de notes
+  #         Lève une erreur fatale en cas d'erreur.
+  def set_triolet valeur = nil
+    begin
+      if valeur === true || valeur == "2/3"
+        valeur    = "2/3"
+        nb_notes  = 3
+      else
+        natural, nb_notes = valeur.split("/")
+        raise 'bad_value_for_triolet' if nb_notes.nil?
+        # @todo: il faut ajouter ici les autres valeurs pour les divisions exceptionnelles
+      end
+      raise 'bad_nombre_notes_for_triolet' if nb_notes.to_i != count
+    rescue Exception => e
+      fatal_error(e.message, :bad => valeur, :notes => @notes)
+    end unless valeur.nil?
+    
+    @triolet = valeur
+  end
+  alias :set_triplet :set_triolet
+  
   # => Crée un crescendo à partir du motif
   # 
   # @param  params  Options:
@@ -561,7 +664,7 @@ class Motif < NoteClass
     markin  = for_crescendo ? '\<' : '\>'
     markout = params.has_key?( :end   ) ? " \\#{params[:end]}" : '\!'
     notes_str = LINote::pose_first_and_last_note @notes, markin, markout
-    # @todo: fonctionner comme pour @slured et @legato : en appliquant la marque seulement dans to_s
+    # @todo: fonctionner comme pour @slured et @legato ? en appliquant la marque seulement dans to_s
     motif_leg = "#{start}#{notes_str}"
     change_objet_ou_new_instance motif_leg, params, true
   end
@@ -579,21 +682,25 @@ class Motif < NoteClass
   def change_objet_ou_new_instance new_motif, params, new_defaut
     params = set_new_if_not_defined( params, new_defaut )
 
-    # Définir l'octave du motif
+    make_new_motif = params.delete(:new) === true
+    
+    # Définir les valeurs
     # -------------------------
-    octave =  if params.has_key?( :octave ) && params[:octave] != nil
-                params[:octave]
-              else 
-                @octave
-              end
+    params[:octave] ||= @octave
 
     # Instance nouvelle ou courante modifiée
-    if params[:new] === true
-      Motif::new( :notes  => new_motif, 
-                  :octave => octave )
+    if make_new_motif
+      params[:notes] = new_motif
+      params[:triolet] = @triolet
+      # On prend tous les paramètres du motif courant pour faire
+      # une nouvelle instance
+      # NON : SURTOUT PAS, CAR POUR UN MOTIF AVEC LEGATO, SON ADDITION
+      # AVEC AUTRE CHOSE ALLONGERAIT SON LEGATO
+      # params = to_hash.merge params
+      Motif::new params
     else
       @notes  = new_motif
-      @octave = octave
+      set_params params
       self
     end
   end

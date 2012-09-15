@@ -127,11 +127,14 @@ class LINote < NoteClass
     # 
     # @todo: il faudra l'affiner au cours du temps
     # Cf le motif REG_NOTE_COMPLEXE pour quelque chose de plus complet
-    REG_NOTE = %r{<?[a-gr](?:(?:es|is){1,2})?>?}
+    REG_NOTE = %r{([a-gr](?:(?:es|is){1,2})?)}
+    # REG_NOTE = %r{<?[a-gr](?:(?:es|is){1,2})?>?}
+    REG_NOTE_WITH_DUREE = %r{([a-gr](?:eses|isis|es|is)?)([0-9.~]+)?}
     
     # Expression régulière pour repérer un accord
     # 
     REG_CHORD = %r{(<[a-gr](?:[^>]+)>)}
+    REG_CHORD_WITH_DUREE = %r{(<[a-gr](?:[^>]+)>)([0-9.~]*)?}
     
     # Altérations normales vers altérations lilypond
     ALTERATIONS = { '#' => 'is', '##' => 'isis', 'b' => 'es', 
@@ -450,14 +453,12 @@ class LINote < NoteClass
   # 
   def self.fixe_notes_length notes, duree
     
-    return notes if duree.nil?
+    duree = duree.to_s
+    return notes if duree.blank?
     
     # Contrôle de la durée
     # ---------------------
-    fatal_error(:invalid_duree_notes) if
-      ! [Fixnum, String].include?(duree.class) \
-      || duree.class == Fixnum && (duree < 1 || duree > 2000) \
-      || duree.class == String && (duree.gsub(/[0-9]+\.?/, '') != "")
+    fatal_error(:invalid_duree_notes) if !NoteClass::duree_valide?(duree)
     
     # Contrôle du motif
     # ------------------
@@ -469,11 +470,14 @@ class LINote < NoteClass
     # la durée que sur la première note, sauf si c'est un accord, dans
     # lequel cas il faut mettre la durée à la fin de l'accord.
     unless notes.start_with? '<'
-      notes.sub(/^(#{REG_NOTE})/){ "#{$1}#{duree}"}
+      # puts "notes avant application de durée #{duree} : #{notes}"
+      notes = notes.sub(REG_NOTE_WITH_DUREE){ "#{$1}#{duree}" }
+      # puts "notes après : #{notes}"
     else
       # Accord en début de notes
-      notes.sub(/^(#{REG_CHORD})/){"#{$1}#{duree}"}
+      notes = notes.sub(/^#{REG_CHORD_WITH_DUREE}/){"#{$1}#{duree}" }
     end
+    notes
   end
   
   # -------------------------------------------------------------------

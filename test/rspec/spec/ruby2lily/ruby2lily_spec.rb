@@ -70,6 +70,9 @@ describe "La commande `ruby2lily' sans erreur" do
 	
 	# => 	Simule l'appel en ligne de commande, mais charge en fait le
 	# 		module, ce qui permet d'avoir toutes les valeurs définies
+	# 
+	# @param	argv		Les arguments, soit sous forme de Array soit sous
+	# 								forme de String, comme dans la ligne de commande
 	def simule_ligne_commande argv = nil
 		# On simule l'appel du module avec un argument
 		ARGV.clear
@@ -83,8 +86,8 @@ describe "La commande `ruby2lily' sans erreur" do
 	end
 
 	before(:all) do
-	  @good_score = 'partition_test.rb'
-		@path_pdf		= 'partition_test.pdf'
+	  @good_score = File.join('test', 'score', 'partition_test.rb')
+		@path_pdf		= File.join('test', 'score', 'partition_test.pdf')
 	end
 	
 	describe "Appel en ligne de commande" do
@@ -118,4 +121,18 @@ describe "La commande `ruby2lily' sans erreur" do
 	  end
 	end
 	
+	describe "Chargement des scores (du dossier 'scores')" do
+		it "doit lever une erreur pour une classe existante" do
+			path = File.join('test', 'score', 'with_bad_scores', 'essai.rb')
+			err = detemp(Liby::ERRORS[:class_already_exists_for_score_class],
+										:classe => "Piano")
+	    expect{simule_ligne_commande(path)}.to raise_error(SystemExit, err)
+		end
+	  it "doit charger les partitions si un dossier scores existe" do
+			path = File.join('test', 'score', 'with_dossier_scores', 'essai.rb')
+	    expect{simule_ligne_commande path}.not_to raise_error
+			defined?(JeanSolo).should be_true
+			defined?(RingoStar).should be_true
+	  end
+	end
 end

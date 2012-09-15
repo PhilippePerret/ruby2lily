@@ -10,7 +10,7 @@ describe Liby do
 	# === Méthodes test utiles === #
 	
 	def define_command_line_with_options
-		path_score = 'partition_test.rb'
+		path_score = File.join('test', 'score', 'partition_test.rb')
 		ARGV.clear
 		ARGV << path_score
 		ARGV << "-fpng"
@@ -115,6 +115,9 @@ describe Liby do
 			:orchestre_undefined,
 			:path_lily_undefined,
 			:lilyfile_does_not_exists,
+			:class_already_exists_for_score_class,
+			:bad_value_for_triolet,
+			:bad_nombre_notes_for_triolet,
 			:invalid_motif,
 			:invalid_duree_notes,
 			:cant_add_this,
@@ -194,7 +197,7 @@ describe Liby do
 			cv_get(Liby, :parameters).should == ["unparametre"]
 		end
 		it ":analyze_command_line doit définir @@score_ruby si premier argument OK" do
-			path_score = 'partition_test.rb'
+			path_score = File.join('test', 'score', 'partition_test.rb')
 			plily = File.expand_path(File.join(BASE_LILYPOND, path_score))
 			ARGV.clear
 			ARGV << path_score
@@ -254,7 +257,7 @@ describe Liby do
 			ARGV << "blank"
 		end
 		def define_a_lilypondage
-			path_score = 'partition_test.rb'
+			path_score = File.join('test', 'score', 'partition_test.rb')
 			plily = File.expand_path(File.join(BASE_LILYPOND, path_score))
 			ARGV.clear
 			ARGV << path_score
@@ -289,12 +292,13 @@ describe Liby do
 			
 			# Deux fichiers, un dans le dossier lilypond, l'autre à la racine 
 			# du dossier de l'utilisateur
-			plily = File.expand_path(File.join(BASE_LILYPOND, 'partition_test.rb'))
+			path 	= File.join('test', 'score', 'partition_test.rb') 
+			plily = File.expand_path(File.join(BASE_LILYPOND, path))
 			puser = File.expand_path(File.join('~', 'partition_test.rb'))
 			File.unlink puser if File.exists? puser
 			
 		  Liby::find_path_score('bad_path').should be_nil
-			Liby::find_path_score('partition_test.rb').should == plily
+			Liby::find_path_score(path).should == plily
 
 			File.open(puser, 'wb'){ |f| f.write "# un faux code" }
 			Liby::find_path_score('partition_test.rb').should == puser
@@ -307,6 +311,22 @@ describe Liby do
 			ext = ".#{ext}" unless ext == ""
 			fichier	= File.basename(path, File.extname(path)) << ext
 			File.join(folder, fichier)
+		end
+		
+		it "doit répondre à :path_folder_scores" do
+		  Liby.should respond_to :path_folder_scores
+		end
+		it ":path_folder_scores doit retourner nil si le dossier 'scores' n'existe pas" do
+			path_score = File.join(BASE_LILYPOND, 'test', 'score', 'essais.rb')
+			cv_set(Liby, :path_ruby_score => path_score)
+		  Liby::path_folder_scores.should be_nil
+		end
+		it ":path_folder_scores doit retourner le path s'il existe" do
+			dossier 				= File.join(BASE_LILYPOND, 'test', 'score', 'with_dossier_scores')
+			path_score 			= File.join(dossier, 'essai.rb')
+			path_dir_scores = File.join(dossier, 'scores')
+			cv_set(Liby, :path_ruby_score => path_score)
+			Liby::path_folder_scores.should == path_dir_scores
 		end
 	  it "doit répondre à path_ruby_score" do
 	    Liby.should respond_to :path_ruby_score
@@ -407,6 +427,13 @@ describe Liby do
 		end
 		after(:each) do
 		  File.unlink @path_pdf unless @path_pdf.nil? || !File.exists?(@path_pdf)
+		end
+		
+		it "Liby doit répondre à :load_scores_files" do
+		  Liby.should respond_to :load_scores_files
+		end
+		it "Liby::load_scores_files doit charger les fichiers scores (if any)" do
+		  # Le test est fait dans ruby2lily_spec.rb
 		end
 	  it "Liby doit répondre à :score_ruby_to_score_lilypond" do
 	    Liby.should respond_to :score_ruby_to_score_lilypond

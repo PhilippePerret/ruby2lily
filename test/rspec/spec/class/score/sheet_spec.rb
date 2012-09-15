@@ -23,7 +23,8 @@ describe Score::Sheet do
 	describe "Construction du score" do
 		before(:all) do
 			SCORE = Score::new unless defined? SCORE
-		  @path_score_ruby = Liby.send('find_path_score', 'partition_test')
+			path 	= File.join('test', 'score', 'partition_test.rb')
+		  @path_score_ruby = Liby.send('find_path_score', path)
 			cv_set(Liby, :path_ruby_score => @path_score_ruby)
 			@path_score_lily = Liby::path_lily_file
 		end

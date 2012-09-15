@@ -14,7 +14,7 @@ class Score
   #   Classe
   # -------------------------------------------------------------------
 
-  unless defined?(Score::DEFAULT_VALUES)
+  unless defined?(Score) && defined?(Score::DEFAULT_VALUES)
     # Les préférences pour le score courant
     # (même si c'est une constante de classe)
     PREFERENCES = {

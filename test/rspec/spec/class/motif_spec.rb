@@ -65,6 +65,47 @@ describe Motif do
 		  $DEBUG_ON = false
 		end
 		
+		# :to_hash
+		it "doit répondre à :to_hash" do
+		  @m.should respond_to :to_hash
+		end
+		it ":to_hash doit retourner la bonne valeur" do
+		  mo = Motif::new
+			mo.to_hash.should == {
+				:notes => nil,
+				:octave => 3, 
+				:slured => false, 
+				:legato => false,
+				:triolet => nil,
+				:duration	=> nil,
+				:clef			=> nil
+			}
+			data = { :notes => "a b c", :slured => true, :triolet => true,
+							 :duration => "4.", :clef => "sol" }
+			mo = Motif::new data.dup
+			mo.to_hash.should == data.merge(
+				:octave => 3, :legato => false, :clef => "treble", 
+				:triolet => "2/3"
+			)
+		end
+		# :count / :nombre_notes
+		it "doit répondre à :count et :nombre_notes" do
+		  @m.should respond_to :count
+			@m.should respond_to :nombre_notes
+		end
+		it ":count doit renvoyer le bon nombre de notes" do
+		  mo = Motif::new "a b"
+			mo.count.should == 2
+			mo = Motif::new "a( b c d)"
+			mo.count.should == 4
+			# Cas spécial de l'accord
+			mo = Motif::new "<a c e>"
+			mo.count.should == 1
+			mo.count(real=true).should == 3
+			mo = Motif::new "r <c e g> r"
+			mo.count.should == 3
+			mo.count(real=true).should == 5
+		end
 		# :set_with_string
 		it "doit répondre à :set_with_string" do
 		  @m.should respond_to :set_with_string
@@ -363,6 +404,17 @@ describe Motif do
 			mo.notes_with_liaison("b c").should == "b\\( c\\)"
 		end
 		
+		# :notes_with_triolet
+		it "doit répondre à :notes_with_triolet" do
+		  @m.should respond_to :notes_with_triolet
+		end
+		it ":notes_with_triolet doit retourner la bonne valeur" do
+		  mo = Motif::new "a b c"
+			mo.notes_with_triolet("a b c").should == "a b c"
+			mo.triolet
+			mo.notes_with_triolet("a b c").should == "\\times 2/3 { a b c }"
+		end
+		
 		# :octave_from
 		it "doit répondre à :octave_from" do
 		  @m.should respond_to :octave_from
@@ -623,7 +675,53 @@ describe Motif do
 			end
 		end
 
-		
+		# :triolet et changement de division de temps
+		describe "Triolets et changement de division du temps" do
+			it "doit répondre à :set_triolet / :set_triplet" do
+			  @m.should respond_to :set_triolet
+				@m.should respond_to :set_triplet
+			end
+			it ":set_triolet doit définir le triolet (avec argument true)" do
+			  mo = Motif::new "a b c"
+				mo.set_triolet(true)
+				iv_get(mo, :triolet).should == "2/3"
+			end
+			it ":set_triolet doit définir le triolet (avec argument 2/3)" do
+			  mo = Motif::new "a b c"
+				mo.set_triolet("2/3")
+				iv_get(mo, :triolet).should == "2/3"
+			end
+			it ":set_triolet doit lever une erreur en cas de mauvaise valeur" do
+			  mo = Motif::new "b c d"
+				err = detemp(Liby::ERRORS[:bad_value_for_triolet], 
+											:bad => "bad", :notes => "b c d")
+			  expect{mo.set_triolet("bad")}.to raise_error(SystemExit, err)
+			end
+			it ":set_triolet doit lever une erreur en cas de mauvais nombre de notes" do
+			  mo = Motif::new "b c d e"
+				err = detemp(Liby::ERRORS[:bad_nombre_notes_for_triolet], 
+											:notes => mo.notes, :bad => "2/3")
+				expect{mo.set_triolet(true)}.to raise_error(SystemExit, err)
+			end
+			it "doit répondre à :triolet / :triplet" do
+			  @m.should respond_to :triolet
+				@m.should respond_to :triplet
+			end
+			it ":triolet doit retourner le motif" do
+			  mo = Motif::new "a b c"
+				mo.triolet.class.should == Motif
+			end
+			it ":triolet doit transformer le motif en triolet" do
+			  mo = Motif::new "a b c"
+				iv_get(mo, :triolet).should be_nil
+				new_mo = mo.triolet
+				puts "new_mo: #{new_mo.inspect}"
+				iv_get(new_mo, :triolet).should == "2/3"
+				iv_get(mo, :triolet).should == "2/3"
+				mo.to_s.should == "\\relative c { \\times 2/3 { a b c } }"
+			end
+		end
+
 		# :moins
 		it "doit répondre à :moins" do repond_a :moins end
 		it ":moins doit retourner l'objet" do

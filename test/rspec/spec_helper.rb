@@ -4,6 +4,12 @@ BASE_LILYPOND = File.expand_path(File.join('..','..', File.dirname(__FILE__)))
 
 RSpec.configure do |config|
   
+  # Cf. la méthode éponyme dans ruby2lily.rb
+  def load_class classe
+    classe << ".rb" unless classe.end_with? ".rb"
+    require File.join(BASE_LILYPOND, "class", "required", classe)
+  end unless defined?(load_class)
+  
   DIR_CLASS_LILYPOND = File.join(BASE_LILYPOND, 'class')
   $: << DIR_CLASS_LILYPOND
   $: << File.join(BASE_LILYPOND, 'class', 'required')
@@ -32,7 +38,6 @@ RSpec.configure do |config|
   # test
   Dir["./*.pdf"].each { |pdf| File.unlink pdf }
   Dir["../score/*.pdf"].each { |pdf| File.unlink pdf }
-  
   
   # => Initialise les paths principales liby (score ruby, score
   # lilypond et pdf)

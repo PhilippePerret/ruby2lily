@@ -6,14 +6,36 @@
 # lilypond. C'est le module qui répond à la command `ruby2lily'
 # 
 
-DEBUG = false
+DEBUG = false unless defined? DEBUG
 def dbg txt
   return unless DEBUG
-  puts "#{txt}"
+  # puts "<div>#{txt}</div>"
+  STDOUT.write "<div>#{txt}</div>"
 end
+
+# Chargement d'une classe avec son path complet
+# 
+# J'ai dû initier cette méthode parce qu'il était impossible de lancer
+# la fabrication d'une partition hors du path du dossier. La classe 
+# "score" (et seulement celle-là apparemment) ne se chargeait pas. 
+# Pourtant, les path par défaut étaient correctement définis. Je n'ai
+# toujours pas compris ce qui se passait…
+def load_class classe
+  dbg "Chargement de la classe: #{classe}"
+  classe << ".rb" unless classe.end_with? ".rb"
+  require File.join(BASE_LILYPOND, "class", "required", classe)
+end unless defined?(load_class)
+
+dbg "--> ruby2lily"
 
 # Définition préliminaire (initiliasation)
 BASE_LILYPOND = File.dirname(__FILE__) unless defined? BASE_LILYPOND
+
+dbg "BASE_LILYPOND: #{BASE_LILYPOND}"
+
+# Dir.chdir(BASE_LILYPOND)
+p = File.expand_path(".")
+
 require File.join(BASE_LILYPOND, 'module', 'init.rb')
 require File.join(BASE_LILYPOND, 'module', 'handy_methods.rb')
 
@@ -46,6 +68,10 @@ else
   # =====================
   dbg '----> load score file'
   load Liby::path_ruby_score
+  
+  # Chargement des fichiers séparés (si dossier 'scores' existe)
+  # ================================
+  Liby::load_scores_files
 
   # Composition de l'orchestre
   # ---------------------------

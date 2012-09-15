@@ -5,6 +5,20 @@
 # score courant
 # 
 require 'score'
+load_class 'score'
+
+if !defined?(Score)
+  begin
+    puts "\n\n=== PROBLÈME Score INDÉFINI ==="
+    puts File.expand_path(".")
+    reponse = File.exists?('./class/required/score.rb') ? 'oui' : 'NON'
+    puts "Le fichier existe ? #{reponse}"
+    raise
+  rescue Exception => e
+    puts e.backtrace.join("\n")
+    puts "==================================\n"
+  end
+end
 
 class Score::Sheet
   class << self
