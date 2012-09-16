@@ -18,10 +18,10 @@
 
 % Score
 {\new Staff {
-	\relative c'' {
+	{
 		\clef "treble"
 		\time 4/4
-		\tempo 4 = 120	\relative c' { \times 2/3 { d8 e f } }
+		\tempo 4 = 120	\relative c'' { c a d }
 	}
 }
 }
