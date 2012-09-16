@@ -92,6 +92,10 @@ class Liby
     }
     
     # Liste des options transformées en command ("options-commandes")
+    # ----------------------------------------------------------------
+    # C'est-à-dire que lorsque la clé ci-dessous apparait sous la forme
+    # "--<cle>" dans la commande "ruby2lily...", elle est transformée
+    # en option.
     OPTION_COMMAND_LIST = {
       'version' => true,
       'help'    => true
@@ -102,9 +106,18 @@ class Liby
       'b' => 'es', 'bb' => 'eses', '#' => 'is', '##' => 'isis'
     }
   
-    COMMAND_LIST = {
-      :generate => {}
-    }
+    # Liste des commandes 
+    # --------------------
+    # Pour qu'un première paramètre de la commande `rubu2lily ...` soit
+    # interprété comme une commande et non pas comme un score à 
+    # éditer.
+    # OBSOLÈTE: on teste directement si Liby::Command répond à 
+    # "run_<command>"
+    # COMMAND_LIST = {
+    #   # :new      => {},
+    #   :generate => {}
+    # }
+    
   end # / si les constantes sont déjà définies (tests)
   
   @@path_ruby_score   = nil   # Le path au fichier du score ruby user
@@ -161,7 +174,8 @@ class Liby
       ARGV.each do |membre|
         if membre.start_with? '-'
           treat_as_option membre
-        elsif @@command.nil? && COMMAND_LIST.has_key?( membre.to_sym )
+        elsif @@command.nil? && 
+              Liby::Command.respond_to?("run_#{membre.to_s}")
           @@command = membre.to_s
         else
           @@parameters << membre
@@ -172,6 +186,11 @@ class Liby
       # Toute erreur trouvée est fatale
       treat_errors_command_line
       
+    end
+    
+    # => Retourne la liste des paramètres
+    def parameters
+      @@parameters
     end
     
     # => Analyse l'option de ligne de commande

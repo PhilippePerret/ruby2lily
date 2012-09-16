@@ -36,9 +36,9 @@ describe Liby do
 		it "USAGE doit exister" do
 		  defined?(Liby::USAGE).should be_true
 		end
-		it "COMMAND_LIST doit exister" do
-		  defined?(Liby::COMMAND_LIST).should be_true
-		end
+		# it "COMMAND_LIST doit exister" do
+		#   defined?(Liby::COMMAND_LIST).should be_true
+		# end
 		it "OPTION_LIST doit exister" do
 		  defined?(Liby::OPTION_LIST).should be_true
 		end
@@ -206,10 +206,11 @@ describe Liby do
 		end
 		it ":analyze_command_line doit reconnaître une commande" do
 			ARGV.clear
-			ARGV << "generate" << "blank"
+			ARGV << "new" << "blank"
 			Liby.analyze_command_line
 			Liby.command?.should be_true
-			cv_get(Liby, :command).should == "generate"
+			cv_get(Liby, :command).should_not == "blank"
+			cv_get(Liby, :command).should == "new"
 		end
 		it "doit répondre à :treat_as_option" do
 		  Liby.should respond_to :treat_as_option
@@ -242,6 +243,16 @@ describe Liby do
 		it "doit répondre à :treat_errors_command_line" do
 		  Liby.should respond_to :treat_errors_command_line
 		end
+		
+		it "doit répondre à parameters" do
+		  Liby.should respond_to :parameters
+		end
+		it ":parameters doit renvoyer les paramètres" do
+			cv_set(Liby, :parameters => nil)
+		  Liby.parameters.should be_nil
+			cv_set(Liby, :parameters => ["un", "deux"])
+			Liby.parameters.should == ["un", "deux"]
+		end
 	end
 	
 	# -------------------------------------------------------------------
@@ -253,7 +264,7 @@ describe Liby do
 	describe "Lilypondage ou commande" do
 		def define_a_commande
 		  ARGV.clear
-			ARGV << "generate"
+			ARGV << "new"
 			ARGV << "blank"
 		end
 		def define_a_lilypondage
