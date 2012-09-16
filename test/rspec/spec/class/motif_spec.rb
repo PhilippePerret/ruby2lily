@@ -37,6 +37,38 @@ describe Motif do
 			iv_get(@m, :notes).should 	== "d b a"
 			iv_get(@m, :octave).should 	== 4
 		end
+		it "avec seulement des silences, doit être possible" do
+		  expect{Motif::new("r r r r")}.not_to raise_error
+		end
+		it "quand première note avec durée, on la prend" do
+		  suite = "r1 r r r"
+			mo = Motif::new suite
+			mo.notes.should == "r r r r"
+			mo.duration.should == "1"
+			mo.to_s.should == "\\relative c { r1 r r r }"
+		end
+		it "<motif> doit répondre à :rationnalize_durees" do
+		  mo = Motif::new "c d e"
+			mo.should respond_to :rationnalize_durees
+		end
+		it ":rationnalize_durees doit rationnaliser les durées" do
+			
+		  mo = Motif::new "c1 d1"
+			mo.notes.should == "c d"
+			mo.duration.should == "1"
+			
+			mo = Motif::new( :notes => "c4. d4. e4. f1" )
+			mo.notes.should == "c d e f1"
+			mo.duration.should == "4."
+			
+			mo = Motif::new "c d4 f4"
+			mo.notes.should == "c d4 f4"
+			mo.duration.should be_nil
+			
+		end
+		it "on doit supprimer les marques de durée similaires" do
+		  
+		end
 		it "doit définir la méthode :set_properties pour l'instanciation" do
 			mot = Motif::new "a b c"
 		  mot.should respond_to :set_properties
@@ -56,6 +88,7 @@ describe Motif do
 			mot.set_properties :legato => true
 			iv_get(mot, :legato).should === true
 		end
+		
   end
 	describe "<motif>" do
 		before(:each) do
@@ -117,14 +150,24 @@ describe Motif do
 			mo.duration.should == nil
 			mo.octave.should == 3
 
+			# Une suite "complète" de traitement de la note
 			mo = Motif::new
-			mo.set_with_string "c4."
-			mo.notes.should == "c"
+			mo.set_with_string "do#4."
+			mo.notes.should == "do#4."
+			mo.duration.should == nil
+			mo.any_notes_to_llp
+			mo.notes.should == "cis4."
+			mo.duration.should be_nil
+			mo.rationnalize_durees
+			mo.implode
+			mo.notes.should == "cis"
 			mo.duration.should == "4."
 			mo.octave.should == 3
 			
 			mo = Motif::new
 			mo.set_with_string "cbb( e4 g#) <c e g>8"
+			mo.notes.should == "cbb( e4 g#) <c e g>8"
+			mo.any_notes_to_llp
 			mo.notes.should == "ceses( e4 gis) <c e g>8"
 			mo.duration.should be_nil
 			mo.octave.should == 3
@@ -158,6 +201,32 @@ describe Motif do
 			err = detemp(Liby::ERRORS[:bad_value_duree], :bad => 15 )
 			expect{@m.set_with_hash(:notes => "c d e", :duration => 15)}.to \
 				raise_error(SystemExit, err)
+		end
+		
+		it "doit répondre à :set_octave_from_delta" do
+		  @m.should respond_to :set_octave_from_delta
+		end
+		[
+			["c' a d", nil, 4, "c' { c a d }"],
+			["c, a d", nil, 2, "c, { c a d }"],
+			["c' a d", 2, 3, "c { c a d }"],
+			["r c' a d", 2, 3, "c { r c a d }"],
+			["c,, a d", 2, 0, "c,,, { c a d }"],
+			["r r4 c,, a d", 2, 0, "c,,, { r r4 c a d }"]
+		].each do |d|
+			suite, octave, oct_expected, res_expected = d
+			texte = ":set_octave_from_delta pour « #{suite} » avec " \
+							<< "octave #{octave} doit mettre l'octave à " \
+							<< "#{oct_expected} et la suite à #{res_expected}"
+			it texte do
+			  # @note: on le vérifie à l'instanciation
+				mo = Motif::new suite, :octave => octave
+				mo.octave.should == oct_expected
+				mo.to_s.should == "\\relative #{res_expected}"
+				mo = Motif::new :notes => suite, :octave => octave
+				mo.octave.should == oct_expected
+				mo.to_s.should == "\\relative #{res_expected}"
+			end
 		end
 		
 		# :to_s
@@ -256,11 +325,26 @@ describe Motif do
 		it "doit répondre à :first_note" do
 		  @m.should respond_to :first_note
 		end
-		it ":first_note doit renvoyer un objet de class Note" do
+		it ":first_note doit renvoyer un objet de class LINote" do
 			mo = Motif::new "c e g"
 			mo.first_note.class.should == LINote
 		end
-		it ":first_note doit renvoyer la première note" do
+		it ":first_note (non strict) doit retourner la première note ou le silence" do
+			[
+				["c", 3, "c", 3],
+				["<a c e>", 2, "a", 2],
+				["r <b d fis>4 r c c", 1, "r", 1]
+				# @todo: peut-être d'autres tests ici
+			].each do |d|
+				suite, octave_motif, first, octave_note = d
+				mot = Motif::new(:notes => suite, :octave => octave_motif)
+				first_note = mot.first_note
+				first_note.with_alter.should == first
+				first_note.octave.should == octave_note
+				first_note.duration.should be_nil
+			end
+		end
+		it ":first_note (strict) doit renvoyer la première note" do
 			[
 				["a ees c", 3, "a", 3],
 				["a b c", 3, "a", 3],
@@ -271,7 +355,7 @@ describe Motif do
 			].each do |d|
 				suite, octave_motif, first, octave_note = d
 				mot = Motif::new(:notes => suite, :octave => octave_motif)
-				first_note = mot.first_note
+				first_note = mot.first_note(strict=true)
 				first_note.with_alter.should == first
 				first_note.octave.should == octave_note
 				first_note.duration.should be_nil
@@ -292,12 +376,63 @@ describe Motif do
 			suite						oct/N		last	real_last		oct_last/N
 		-------------------------------------------------------------------
 			c-d-e						3				e			e						3
+			c-d-r						3				r			r						3
 			a-b-c						2				c			c						3
 			a-c-e						3				e			e						4
 			<b-d-fis>				1				b			fis					1
+			d-<d-fis-a>8-r	2				r			r						2
+			d-<d-fis-a>8		2				d			a						2
+			d-<g-bb-d>4 	 	2				g			d						2
+			d-<g-bb-d>4-r 	2				r			r						2
+			d-d,-d,					1				d			d						-1
+			d-d,-d,-r				1				r			r						-1
+			e-e'-f'					2				f			f						4
+			d(-<d,-fis'-aeses,,>8-gis') 	2		gis		gis		2
+			gis-aeses				3				aeses	aeses				3
+		-------------------------------------------------------------------
+		DEFA
+		ary_str.to_array.each do |data|
+			suite 				= data.delete(:suite).gsub(/-/, ' ')
+			octave_motif 	= data.delete(:oct)
+			last					= data.delete(:last)
+			real_last			= data.delete(:real_last)
+			octave_last		= data.delete(:oct_last)
+			it ":last_note (non strict) de « #{suite}»-oct:#{octave_motif} doit retourner #{last}-#{octave_last}" do
+				$DEBUG = false
+				begin
+					mot = Motif::new(:notes => suite, :octave => octave_motif)
+					last_note 			= mot.last_note(strict = false)
+					real_last_note 	= mot.real_last_note( strict = false)
+					raise if 			last_note.class						!= LINote \
+										||	real_last_note.class			!= LINote \
+					 					||	last_note.octave 					!= octave_last \
+										|| 	last_note.with_alter 			!= last \
+										||	real_last_note.with_alter	!= real_last
+				rescue
+					if $DEBUG 
+						$DEBUG = false
+					else
+						$DEBUG = true
+						retry
+					end
+				end
+				last_note.with_alter.should 			== last
+				real_last_note.with_alter.should	== real_last
+				last_note.octave.should 					== octave_last
+			end
+		end
+		
+		ary_str = <<-DEFA
+			suite						oct/N		last	real_last		oct_last/N
+		-------------------------------------------------------------------
+			c-d-e						3				e			e						3
+			a-b-c						2				c			c						3
+			a-c-e						3				e			e						4
+			a-c-e-r-r				3				e			e						4
+			<b-d-fis>				1				b			fis					1
 			d-<d-fis-a>8-r	2				d			a						2
 			d-<g-bb-d>4-r 	2				g			d						2
-			d-d,-d,					1				d			d						-1
+			d-d,-d,-r				1				d			d						-1
 			e-e'-f'					2				f			f						4
 			d(-<d,-fis'-aeses,,>8-gis')-r 	2		gis		gis		2
 			gis-aeses				3				aeses	aeses				3
@@ -309,12 +444,12 @@ describe Motif do
 			last					= data.delete(:last)
 			real_last			= data.delete(:real_last)
 			octave_last		= data.delete(:oct_last)
-			it ":last_note de « #{suite}»-oct:#{octave_motif} doit retourner #{last}-#{octave_last}" do
+			it ":last_note (strict) de « #{suite}»-oct:#{octave_motif} doit retourner #{last}-#{octave_last}" do
 				$DEBUG = false
 				begin
 					mot = Motif::new(:notes => suite, :octave => octave_motif)
-					last_note 			= mot.last_note
-					real_last_note 	= mot.real_last_note
+					last_note 			= mot.last_note(strict=true)
+					real_last_note 	= mot.real_last_note(strict=true)
 					raise if 			last_note.class						!= LINote \
 										||	real_last_note.class			!= LINote \
 					 					||	last_note.octave 					!= octave_last \
@@ -354,7 +489,7 @@ describe Motif do
 			$DEBUG = false
 			begin
 				puts "\n\n$DEBUG ON" if $DEBUG
-				first, last = Motif::new(suite).first_et_last_note
+				first, last = Motif::new(suite).first_et_last_note(strict = true)
 				texte = ":first_et_last_note avec motif «#{suite}» "
 				texte << "doit renvoyer la 1ère note «#{firstexp}-#{firstexp_oct}» "
 				texte << "et la dernière «#{lastexp}-#{lastexp_oct}»"
@@ -715,7 +850,6 @@ describe Motif do
 			  mo = Motif::new "a b c"
 				iv_get(mo, :triolet).should be_nil
 				new_mo = mo.triolet
-				puts "new_mo: #{new_mo.inspect}"
 				iv_get(new_mo, :triolet).should == "2/3"
 				iv_get(mo, :triolet).should == "2/3"
 				mo.to_s.should == "\\relative c { \\times 2/3 { a b c } }"

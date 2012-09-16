@@ -328,21 +328,33 @@ class LINote < NoteClass
 		  :method => "LINote::join") if motif2.class != Motif
 			
     # On prend la première et la dernière note
-    ln_avant = motif1.last_note
-    ln_apres = motif2.first_note
+    # -----------------------------------------
+    # @note: dans le cas où le motif ne contiendrait que des silences,
+    # la linote renvoyée sera nulle. Dans ce cas, on doit quand même
+    # prendre son octave.
+    # 
+    ln_avant = motif1.last_note( strict = true )
+    ln_apres = motif2.first_note( strict = true )
     
-    # On regarde où va se retrouver la deuxième note (première du 
-    # second motif)
-    result = ln_apres.note.au_dessus_de?( ln_avant.note, true )
-    au_dessus = (result & 1) > 0
-    franchiss = (result & 2) > 0
+    unless ln_avant.nil? || ln_apres.nil?
+      # On regarde où va se retrouver la deuxième note (première du 
+      # second motif)
+      # puts "\nln_avant: #{ln_avant.inspect}"
+      # puts "ln_apres: #{ln_apres.inspect}"
+      result = ln_apres.note.au_dessus_de?( ln_avant.note, true )
+      au_dessus = (result & 1) > 0
+      franchiss = (result & 2) > 0
     
-    # On calcule le nouvel octave du second motif
-    # L'octave naturel de la second note serait :
-    added_octaves   = franchiss ? (au_dessus ? 1 : -1) : 0
-    natural_octave  = ln_avant.octave + added_octaves
-    octave_needed   = ln_apres.octave
-    diff_octave     = octave_needed - natural_octave
+      # On calcule le nouvel octave du second motif
+      # L'octave naturel de la second note serait :
+      added_octaves   = franchiss ? (au_dessus ? 1 : -1) : 0
+      natural_octave  = ln_avant.octave + added_octaves
+      octave_needed   = ln_apres.octave
+      diff_octave     = octave_needed - natural_octave
+    else
+      # Quand un des deux motifs est entièrement constitué de silences
+      diff_octave = 0
+    end
     
     unless diff_octave == 0
       # =>  On doit ajouter diff_octave à la note après (diff_octave peut

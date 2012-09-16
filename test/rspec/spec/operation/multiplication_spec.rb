@@ -54,6 +54,15 @@ describe "Multiplication" do
 			("str" * 2).should == "strstr"
 			("-^ 8." * 2).should == "-^ 8.-^ 8."
 		end
+		it "doit permettre la multiplication de silences" do
+		  res = ("r" * 2)
+			res.class.should == Motif
+			res.to_s.should == "\\relative c { r r }"
+			
+			res = "r1" * 2
+			res.class.should == Motif
+			res.to_s.should == "\\relative c { r1 r }"
+		end
 	end
 	# -------------------------------------------------------------------
 	#  Mutliplication de Note

@@ -64,9 +64,11 @@ class Motif < NoteClass
     when "Hash"   then set_with_hash notes
     when "String" then set_with_string notes
     end
-    
     set_properties params
-    
+    any_notes_to_llp
+    rationnalize_durees
+    set_octave_from_delta
+    implode # pour reconstituer @notes explodé avant
   end
   
   # => Définit l'instance Motif à partir d'un Hash de données
@@ -101,26 +103,71 @@ class Motif < NoteClass
   # => Définit le Motif (notes et durée) à partir d'un string
   #
   # @param  str   Un string définissant les notes du motif.
-  #               Peut-être dans n'importe quel format, avec italiennes
-  #               et altérations "#/b"
+  #               Cette suite de note peut être dans n'importe quel
+  #               format, avec italiennes et altérations "#/b"
   def set_with_string str
-    # puts "\n\n--> set_with_string('#{str}')"
-    # Corriger les italiennes et altérations
-    notes = LINote::to_llp str
-    # puts "Notes après LINote::to_llp : #{notes}"
+    @notes = str
+  end
+  
+  # Corrige les notes pour qu'elles soient au format LilyPond
+  # La suite de notes fournie à l'instanciation peut être dans n'importe
+  # quel format, avec italiennes et altérations "#/b". Cette méthode
+  # les transforme en notes lilypond (# => is, b => es, etc.)
+  def any_notes_to_llp
+    return if @notes.nil?
+    @notes = LINote::to_llp @notes
+  end
+  
+  # => Rationnalise les durées
+  # 
+  # Cela consiste à prendre la durée de la première note, si elle
+  # existe. On en profite pour vérifier aussi les notes suivantes, afin
+  # de supprimer les durées similaires ("d1 c1 r1" => "d c r" avec 
+  # duration mis à "1")
+  # 
+  # @produit    Définit éventuellement la propriété @duration du motif
+  # @produit    Supprime les durées inutiles
+  def rationnalize_durees
+    return if @notes.nil?
     # Exploder les notes, pour voir si une durée est définie en
     # première note. Le cas échéant, la prendre
-    notes = LINote::explode notes
+    notes = LINote::explode @notes
     # puts "Notes retournés de LINote::explode : #{notes.inspect}"
     fatal_error(:invalid_motif, :bad => str) if notes.nil?
     unless notes.first.nil? || notes.first.duration.nil?
       @duration = notes.first.duration
-      notes.first.set(:duration => nil)
+      # Tant que la durée de la note est égale, on la supprime
+      notes.each do |note|
+        break if note.duration != @duration
+        note.set(:duration => nil)
+      end
     end
-    @notes = LINote::implode notes
+    @exploded = notes
+    # @notes    = LINote::implode notes # sera fait par autre méthode
     # puts "@notes à la fin du processus : #{@notes}"
   end
   
+  # => Définit l'octave par le delta éventuel
+  # 
+  # La première note du motif, à l'instanciation peut avoir un delta
+  # d'octave. Dans ce cas, on définit l'octave du motif
+  # @note: attention, l'octave peut être définie aussi dans les 
+  # paramètres. Cette méthode, à l'instanciation, étant appelée à la fin,
+  # on prend en compte cette octave
+  # 
+  def set_octave_from_delta
+    return if @notes.nil?
+    @exploded.each do |linote|
+      next if linote.rest?
+      unless linote.delta == 0
+        @octave ||= 3
+        @octave += linote.delta
+        linote.instance_variable_set("@octave_llp", nil)
+      end
+      break # on s'arrête à la première, of course
+    end
+  end
+
   # => Retourne le motif (ses propriétés) sous forme de Hash
   def to_hash
     {
@@ -270,24 +317,30 @@ class Motif < NoteClass
   #     motif.
   # 
   # @usage : [premiere, derniere] = <motif>.first_et_last_note
-  def first_et_last_note
-    [first_note, last_note]
+  def first_et_last_note strict = false
+    [first_note( strict ), last_note( strict )]
   end
 
-  # => Retourne la première note (donc pas un silence) du motif
-  def first_note
+  # => Retourne la première note du motif
+  # 
+  # @param  strict    Si true, c'est uniquement une note qu'on cherche,
+  #                   sinon, un silence peut être retourné
+  def first_note strict = false
     return nil if @notes.nil?
-    @first_note ||= lambda {
+    instance_variable_get("@first_note#{strict ? '_strict' : ''}") \
+    || lambda {
+      reg = strict ? "[a-g]" : "[a-gr]"
       note = nil
       @notes.split(' ').each do |n|
-        if n.match(/^<?[a-g]/) != nil
+        if n.match(/^<?#{reg}/) != nil
           note = n
           break
         end
       end
-      fatal_error(:unable_to_find_first_note_motif, :notes => @notes ) \
-        if note.nil?
-      LINote::new :note => note, :octave => @octave
+      instance_variable_set(
+        "@first_note#{strict ? '_strict' : ''}",
+        note.nil? ? nil : LINote::new(:note => note, :octave => @octave)
+      )
     }.call
   end
   
@@ -295,42 +348,48 @@ class Motif < NoteClass
   #     accord (contrairement à last_note)
   # 
   # @return : la LINote de la toute dernière note du motif
-  def real_last_note
+  # 
+  # @param  strict    Si true, ne renvoie qu'une note, pas un silence
+  # 
+  def real_last_note strict = false
     return nil if @notes.nil?
-    @real_last_note ||= lambda {
-    # On ne conserve que les notes, les altérations et les marques d'octaves
-    liste_notes = []
-    " #{@notes}".gsub(/ <?(([a-g])(eses|isis|es|is)?([',]*))/){
-      tout, note, alter, delta = [$1, $2, $3, $4]
-      liste_notes << {
-        :whole => tout,
-        :note => note, :alter => alter, :delta => delta, :notealt => "#{note}#{alter}"}
-    }
+    instance_variable_get("@real_last_note#{strict ? '_strict' : ''}") \
+    || lambda {
+      ex = strict ? "[a-g]" : "[a-gr]"
+      regexp = / <?((#{ex})(eses|isis|es|is)?([',]*))/
+      # On ne conserve que les notes, les altérations et les marques d'octaves
+      liste_notes = []
+      " #{@notes}".scan( regexp ){
+        tout, note, alter, delta = [$1, $2, $3, $4]
+        liste_notes << {
+          :whole    => tout,
+          :note     => note, :alter => alter, :delta => delta, 
+          :notealt  => "#{note}#{alter}"}
+      }
        
-    octave_courant  = @octave || 3
+      octave_courant  = @octave || 3
     
-    if liste_notes.count == 1
-      return LINote::new liste_notes.first, :octave => octave_courant
-    end
-        
-    previous_note   = nil
-    ln_closest      = nil
-    liste_notes.each do |dnote|
-      note_seule = dnote[:note]
-      unless previous_note.nil?
-        ln_closest = previous_note[:whole].closest( 
-                        dnote[:whole], octave_courant 
-                        )
-        octave_courant = ln_closest.octave
-      end
-      previous_note = dnote
-    end
-    
-    # On produit une linote
-    ln_closest
+      ln =  if liste_notes.count == 1
+              LINote::new liste_notes.first, :octave => octave_courant
+            else
+              previous_note   = nil
+              ln_closest      = nil
+              liste_notes.each do |dnote|
+                note_seule = dnote[:note]
+                unless previous_note.nil?
+                  ln_closest = previous_note[:whole].closest( 
+                                  dnote[:whole], octave_courant 
+                                  )
+                  octave_courant = ln_closest.octave
+                end
+                previous_note = dnote
+              end
+              ln_closest
+            end
+      instance_variable_set("@real_last_note#{strict ? '_strict' : ''}", ln)
     }.call
   end
-  # =>  Return la dernière note (donc pas un silence) du motif en objet
+  # =>  Return la dernière note du motif en objet
   #     LINote
   #     ATTENTION : il ne s'agit pas de la toute dernière note du motif,
   #     mais de la dernière note qui servira de référence pour le delta
@@ -354,80 +413,88 @@ class Motif < NoteClass
   # et relative (accord => 1 seule note) => @count / @count_for_real
   # NON : car les silences ne sont pas pris en compte ici
   # 
-  def last_note
+  def last_note strict = false
     return nil if @notes.nil?
-    @last_note ||= lambda {
-    # Pour le comptage des notes NON : les silences ne sont pas pris en
-    # compte ici
-    # @count_for_real = 0
-    # @count          = 0
-    # On ne conserve que les notes, les altérations et les marques d'octaves
-    liste_notes = []
-    # Pour savoir si on se trouve dans un accord
-    # Tant qu'on est dans un accord, seule la première note importe
-    in_accord = false
-    # La note précédente
-    # On garde sa note (avec altération) et son octave pour savoir où
-    # se trouver la note suivante.
-    h_previous = nil
-    # Le hash qui contiendra les données de la dernière note
-    h_current = nil
-    @notes.split(' ').each do |whole_note|
-      next if whole_note[0..0] == "r"
-      whole_note.scan(/^(<)?([a-g])(eses|isis|es|is)?([',]*)?([^>]*)?(>)?(.*)?$/){
-        tout, acc_start, note, alter, delta, rien, acc_end, fin = 
-          [$&, $1, $2, $3, $4, $5, $6, $7]
-        if in_accord
-          in_accord = ( acc_end != ">" )
-          next # dans un accord, on ne prend rien
-        else
-          # C'est une note qu'on doit étudier
-          unless h_previous.nil?
-            result = note.au_dessus_de?( h_previous[:note], franchissement = true )
-            au_dessus     = (result & 1) > 0
-            new_octave    = (result & 2) > 0
-            add_octave    = new_octave ? (au_dessus ? 1 : -1) : 0
-            delta_octave  = LINote::octaves_from_llp(delta)
-            # L'octave de la note sera :
-            #   - l'octave courant (note précédente)
-            #   + le changement d'octave s'il y en a un
-            #   + le delta d'octave s'il y en a un
-            octave = h_previous[:octave] + add_octave + delta_octave
-            
-            # # = débug =
-            # puts "* note: #{note}#{alter}#{delta}"
-            # puts "*       Au-dessus de #{h_previous[:note]} ? #{au_dessus ? 'oui' : 'NON'}"
-            # puts "*       Nouvelle octave ? #{new_octave ? 'oui' : 'NON'}"
-            # puts "*       Ajout d'octave de positionnement : #{add_octave}"
-            # puts "*       Ajout d'octave de delta : #{delta_octave}"
-            # puts "*       => octave final: #{octave}"
-            # # = /débug =
-            
-            # On mémorise cette note
-            h_current = {:note => note, :octave => octave, :alter => alter}
+    instance_variable_get("@last_note#{strict ? '_strict' : ''}") \
+    || lambda {
+      # Pour le comptage des notes (sauf si strict et true)
+      unless strict
+        @count_for_real = 0
+        @count          = 0
+      end
+      # Expression régulière à utiliser
+      ex = strict ? "[a-g]" : "[a-gr]"
+      regexp = /^(<)?(#{ex})(eses|isis|es|is)?([',]*)?([^>]*)?(>)?(.*)?$/
+      # On ne conserve que les notes, les altérations et les marques d'octaves
+      liste_notes = []
+      # Pour savoir si on se trouve dans un accord
+      # Tant qu'on est dans un accord, seule la première note importe
+      in_accord = false
+      # La note précédente
+      # On garde sa note (avec altération) et son octave pour savoir où
+      # se trouver la note suivante.
+      h_previous = nil
+      # Le hash qui contiendra les données de la dernière note
+      h_current = nil
+      @notes.split(' ').each do |whole_note|
+        @count_for_real += 1 unless strict
+        whole_note.scan( regexp ){
+          tout, acc_start, note, alter, delta, rien, acc_end, fin = 
+            [$&, $1, $2, $3, $4, $5, $6, $7]
+          if in_accord
+            in_accord = ( acc_end != ">" )
+            next # dans un accord, on ne prend rien
           else
-            # octave suivant delta
-            # @note: normalement, la première note d'un motif n'a pas de
-            # delta, mais on ne sait jamais
-            # @todo: à l'avenir, il faudrait prévenir le fait de mettre
-            # un delta sur la première note, on le transformant 
-            # automatiquement en octave.
-            octave = (@octave || 3) + LINote::octaves_from_llp( delta )
+            # C'est une note qu'on doit étudier
+            @count += 1 unless strict
+            unless h_previous.nil?
+              result = note.au_dessus_de?( h_previous[:note], franchissement = true )
+              au_dessus     = (result & 1) > 0
+              new_octave    = (result & 2) > 0
+              add_octave    = new_octave ? (au_dessus ? 1 : -1) : 0
+              delta_octave  = LINote::octaves_from_llp(delta)
+              # L'octave de la note sera :
+              #   - l'octave courant (note précédente)
+              #   + le changement d'octave s'il y en a un
+              #   + le delta d'octave s'il y en a un
+              octave = h_previous[:octave] + add_octave + delta_octave
+            
+              # # = débug =
+              # puts "* note: #{note}#{alter}#{delta}"
+              # puts "*       Au-dessus de #{h_previous[:note]} ? #{au_dessus ? 'oui' : 'NON'}"
+              # puts "*       Nouvelle octave ? #{new_octave ? 'oui' : 'NON'}"
+              # puts "*       Ajout d'octave de positionnement : #{add_octave}"
+              # puts "*       Ajout d'octave de delta : #{delta_octave}"
+              # puts "*       => octave final: #{octave}"
+              # # = /débug =
+            
+              # On mémorise cette note
+              h_current = {:note => note, :octave => octave, :alter => alter}
+            else
+              # octave suivant delta
+              # @note: normalement, la première note d'un motif n'a pas de
+              # delta, mais on ne sait jamais
+              # @todo: à l'avenir, il faudrait prévenir le fait de mettre
+              # un delta sur la première note, on le transformant 
+              # automatiquement en octave.
+              octave = (@octave || 3) + LINote::octaves_from_llp( delta )
+            end
+            h_previous = {:note => note, :alter => alter, :delta => delta, :octave => octave}
+            # Est-ce qu'on rentre dans un accord ?
+            in_accord = ( acc_start == "<" )
           end
-          h_previous = {:note => note, :alter => alter, :delta => delta, :octave => octave}
-          # Est-ce qu'on rentre dans un accord ?
-          in_accord = ( acc_start == "<" )
-        end
-      }
-    end
+        }
+      end
     
-    octave_courant  = @octave || 3
+      octave_courant  = @octave || 3
     
-    # S'il n'y a qu'une note (ou qu'un accord), on prend la première,
-    # sinon, on fait une linote avec la dernière note trouvée
-    unless h_current.nil?
-      LINote::new h_current
-    else first_note end
+      # S'il n'y a qu'une note (ou qu'un accord), on prend la première,
+      # (qui peut être nil en cas de recherche strict — pas de silence —
+      # sinon, on fait de la dernière note trouvée une linote
+      instance_variable_set(
+        "@last_note#{strict ? '_strict' : ''}", 
+        h_current.nil? ? first_note(strict) : LINote::new( h_current )
+        )
     }.call
     
   end
@@ -437,6 +504,19 @@ class Motif < NoteClass
   def exploded
     return nil if @notes.nil?
     @exploded ||= LINote::explode self
+  end
+
+  # => Recompose les notes à partir de leur explosion
+  # 
+  # @explication: à l'instanciation, les @notes sont explodées en leurs
+  # linote afin de faire certains traitement (durée prise de la première
+  # note, octave défini par delta de première note, etc.). On termine
+  # la procédure d'instanciation par cette méthode pour reconstituer
+  # @notes.
+  # 
+  def implode
+    return if @notes.nil?
+    @notes = LINote::implode @exploded
   end
   
   # => Méthode de commodité
@@ -474,7 +554,6 @@ class Motif < NoteClass
   def notes_with_triolet notes = nil
     notes ||= @notes
     return notes if @triolet.nil?
-    puts "\n@triolet n'est pas nil dans #{self.inspect}"
     "\\times #{@triolet} { #{notes} }"
   end
   

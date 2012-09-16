@@ -47,6 +47,16 @@ describe String do
 				note.index_diat.should == expected
 		  end
 		end
+		
+		# :rest?
+		it "doit répondre à :rest?" do
+		  'str'.should respond_to :rest?
+		end
+		it ":rest? doit retourner la bonne valeur" do
+		  "str".should_not be_rest
+			"r".should be_rest
+			"r5".should be_rest
+		end
 		# :is_lilypond?
 		it "doit répondre à :is_lilypond?" do
 		  "str".should respond_to :is_lilypond?
@@ -276,10 +286,10 @@ describe String do
 		end
 		# @note: testé avec ":en_dessous_de" ci-dessous
 		[
-			["d", "s"], ["e", "r"]
+			["d", "s"], ["e", "xx"]
 		].each do |d|
 			note, bad = d
-			it ":au_dessus_de? doit lever avec «#{note}» et «#{bad}»" do
+			it ":au_dessus_de? doit lever une erreur avec «#{note}» et «#{bad}»" do
 				err = detemp(Liby::ERRORS[:not_a_note], 
 							:bad => bad, :method => "String#au_dessus_de?")
 			  expect{bad.au_dessus_de?(note)}.to raise_error(SystemExit, err)
@@ -432,11 +442,11 @@ describe String do
 		it ":+ et * doivent retourner la bonne valeur" do
 		  m = "c4" * 3 + "e g" + "c'" + "c" * 2
 			m.class.should == Motif
-			m.notes.should == "c4 c4 c4 e g c c, c"
+			m.notes.should == "c c c e g c c, c"
 		 	m = m * 2
 			m.class.should == Motif
-			m.to_s.should == "\\relative c { c4 c4 c4 e g c c, c " \
-												<< "c4 c4 c4 e g c c, c }"
+			m.to_s.should == "\\relative c { c4 c c e g c c, c " \
+												<< "c4 c c e g c c, c }"
 		end
 	end
 	# -------------------------------------------------------------------

@@ -62,13 +62,13 @@ class Chord < NoteClass
     notes_ln  = LINote::explode @notes.join(' ')
     begin
       notes_ln.each do |linote|
+        next if linote.rest?
         case linote.delta
         when 1..10    then 
           # Rien à faire, mais laisser filer pour prendre previous
         when -10..-1  then raise
         else # = 0 => s'assurer que la note est après
-          unless previous.nil?
-            res = linote.note.au_dessus_de? previous.note
+          unless previous.nil? || previous.rest?
             raise unless linote.note.au_dessus_de? previous.note
           end
         end

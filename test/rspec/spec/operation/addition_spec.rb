@@ -38,6 +38,13 @@ describe "Addition à String" do
 			res.notes.should == "a bes,"
 			res.octave.should == 4
     end
+		it "avec un string entièrement en silence doit fonctionner" do
+		  res = "c e g c" + "r1 r r r" + "e g"
+		  # res = "c e g c" + "r1 r r r" + "e g#"
+			res.class.should == Motif
+			# res.notes.should == "c e g c r1 r r r e, gis"
+			res.notes.should == "c e g c r1 r r r e, g"
+		end
   end
 	describe "String + Note" do
 		it "doit retourner un motif contenant les notes" do

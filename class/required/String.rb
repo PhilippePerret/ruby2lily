@@ -45,57 +45,20 @@ class String
     begin
       self.as_motif + foo.as_motif
     rescue Exception => e
+      # Ex-commenter le passage ci-dessous pour voir le message d'erreur
+      # en cas de problème d'additions de notes string
+      # puts "\nERREUR dans « + » de string : #{e.message} "
       return "#{self}#{foo}"
     end
   end
   
   # => Retourne la suite +self+ sous forme de Motif
   # 
-  # @note : les italiennes est les altérations #/b sont traités par
-  # la méthode LINote::to_llp
-  # 
   # @note   Self peut être une suite, pas seulement une note seule
   # 
-  # @note : les octaves, dans les strings, peuvent être stipulés à
-  # l'aide d'apostrophes et de dièses. En sachant que ce sont des deltas
-  # et pas des valeurs absolues, et ces deltas se calculent à partir de
-  # c'''. Donc "a'" signifiera a-4e octave.
   def as_motif
     # On traduit en lilypond (italiennes et altérations)
-    suite_llp = LINote::to_llp( self )
-    exploded  = LINote::explode( suite_llp )
-    data = {:notes => [], :duration => nil, :octave => nil}
-    first_note_or_rest_traited = false
-    exploded.each do |linote|
-      unless first_note_or_rest_traited
-        data[:duration] = linote.duration
-        
-        data[:notes]    << linote.to_llp(:except => {:octave_llp => true, :duration => true})
-            # @note : il ne faut pas mettre la marque d'octave lilypond
-            # éventuellement enregistrée dans la LINote, car elle sera
-            # considérée ci-dessous. Au début d'un motif, on évite de
-            # mettre une marque d'octave (apostrophe ou virgule), il vaut
-            # mieux mettre une marque d'octave juste au motif
-            
-        first_note_or_rest_traited = true
-      else
-        # Autre que la première note
-        # MAIS : si les premières étaient des silences, la note courante
-        # peut comporter une marque de delta d'octave. Il faut donc
-        # retirer la marque d'octave tant que data[:octave] est nil
-        except = { :octave_llp => data[:octave].nil? }
-        data[:notes] << linote.to_llp(:except => except)
-      end
-      # On définit l'octave s'il est défini
-      # @note : pas mis sur la première note car ça peut être un silence
-      unless linote.rest?
-        octave = linote.octave
-        data[:octave] = octave if data[:octave].nil?# && octave != 3
-      end
-    end 
-    data[:notes] = data[:notes].join(' ')
-    # On retourne le motif
-    Motif::new( data )
+    Motif::new self
   end
   
   
@@ -156,6 +119,15 @@ class String
   def with_alter_in_key key
     hash = LINote::alterations_notes_in_key( key )
     hash[self]
+  end
+  
+  # => Retourne true si le string +self+ est un silence
+  # 
+  # @todo: pour le moment, la vérification est simpliciste (only la 1ere
+  # lettre) mais on pourrait envisager à l'avenir de la développer si
+  # nécessaire.
+  def rest?
+    self[0..0] == "r"
   end
   
   # => Retourne true si +self+ peut être un motif LilyPond
@@ -319,6 +291,10 @@ class String
   #  note plus haute ET (note - self) < 0
   #  note moins haut ET (note - self) > 0
   def au_dessus_de? note, with_franchissement = false
+    
+    return (with_franchissement ? 0 : false) if self.rest? || note.rest?
+    
+    # Index diatonique des deux notes
     index_note = note.index_diat
     fatal_error(:not_a_note, 
                 :bad => note,
@@ -343,7 +319,7 @@ class String
     # On doit retourner un nombre où le premier bit correspond à
     # au-dessus/en dessous et le second à l'indication du franchissement
     # de l'octave ou non
-    twobits = au_dessus ? 1 : 0
+    twobits  = au_dessus ? 1 : 0
     twobits += franchiss ? 2 : 0
     twobits
   end
