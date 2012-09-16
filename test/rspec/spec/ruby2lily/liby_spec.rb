@@ -379,6 +379,12 @@ describe Liby do
 			cv_set(Liby, :path_ruby_score => p)
 			Liby.path_affixe_file.should == same_path_with_extension(p, "")
 		end
+		it "doit répondre à :path_folder_model" do
+		  Liby.should respond_to :path_folder_model
+		end
+		it ":path_folder_model doit retourner la bonne valeur" do
+		  Liby.path_folder_model.should == File.join(BASE_LILYPOND, 'data', 'model')
+		end
 	end
 	
 	# -------------------------------------------------------------------
@@ -427,6 +433,24 @@ describe Liby do
 					:good => "LINote", :bad => "Motif", :method => "méthode")
 			expect{Liby::raise_unless_linote("méthode", mot1, mot2)}.to \
 				raise_error(SystemExit, err)
+		end
+	end
+	# -------------------------------------------------------------------
+	# 	Méthodes utilitaires
+	# -------------------------------------------------------------------
+	describe "Utilitaires" do
+	  it "doit répondre à :score_name_to_title" do
+	    Liby.should respond_to :score_name_to_title
+	  end
+		[
+			["score", "Score"],
+			["mon_score", "Mon Score"],
+			["eT_uN_auTre", "Et Un Autre"]
+		].each do |d|
+			score_name, title = d
+			it ":score_name_to_title doit renvoyer « #{title} » pour « #{score_name} »" do
+				Liby::score_name_to_title(score_name).should == title
+		  end
 		end
 	end
 	# -------------------------------------------------------------------

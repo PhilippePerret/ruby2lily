@@ -25,6 +25,9 @@ class Liby
       :path_lily_undefined        => "Impossible de définir le chemin au fichier Lilypond…",
       :lilyfile_does_not_exists   => "Le fichier Lilypond du score n'existe pas…",
       
+      # === Méthodes création === #
+      :folder_score_already_exists => "Ce dossier score existe déjà. Il faut le supprimer avant d'en recréer un nouveau",
+      
       # === Méthodes générales === #
       :not_a_note                 => "« \#{bad} » n'est malheureusement pas une note (dans \#{method}))…",
       :bad_type_for_args          => "Mauvais types pour les arguments dans `\#{method}` (attendus : \#{good}, reçus : \#{bad})",
@@ -250,7 +253,18 @@ class Liby
       end
       
     end
+
+    # -------------------------------------------------------------------
+    #   Méthodes utilitaires
+    # -------------------------------------------------------------------
     
+    # => Retourne le titre pour le score +score_name+
+    # 
+    # @note: utile pour la commande new
+    def score_name_to_title score_name
+      score_name.split('_').collect{ |m| m.capitalize }.join(' ')
+    end
+
     # -------------------------------------------------------------------
     #   Traitement des commandes
     # -------------------------------------------------------------------
@@ -354,6 +368,10 @@ class Liby
     # Méthodes paths
     # -------------------------------------------------------------------
     
+    # =>  Return le path au dossier data/model
+    def path_folder_model
+      @@path_folder_model ||= File.join(BASE_LILYPOND, 'data', 'model')
+    end
     # =>  Return le path du dossier 'scores' pouvant contenir les
     #     partition. Return nil si ce dossier n'existe pas
     def path_folder_scores
