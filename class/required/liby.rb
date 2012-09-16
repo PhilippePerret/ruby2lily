@@ -262,7 +262,7 @@ class Liby
     # 
     # @note: utile pour la commande new
     def score_name_to_title score_name
-      score_name.split('_').collect{ |m| m.capitalize }.join(' ')
+      score_name.split(/[_-]/).collect{ |m| m.capitalize }.join(' ')
     end
 
     # -------------------------------------------------------------------
