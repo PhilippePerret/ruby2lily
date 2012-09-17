@@ -263,8 +263,29 @@ class LINote < NoteClass
                       :good => "String ou Motif", 
                       :bad => str.class.to_s)
     end
+    inote         = 0
+    in_accord     = false
+    accord_start  = nil # indice de la première note de l'accord trouvé
     ary_str.each do |membre|
-      data << llp_to_linote( membre )
+      ln = llp_to_linote( membre )
+      if ln.pre == "<"
+        # On rentre dans un accord
+        accord_start = 0 + inote
+        in_accord = true
+      elsif in_accord && ln.post == ">"
+        # Dernière note d'un accord
+        # => Il faut prendre sa durée (if any) et la mettre à toutes
+        # les notes de l'accord
+        duree = ln.duration
+        unless duree.nil?
+          (accord_start..inote).each do |i|
+            data[i].instance_variable_set("@duree_in_chord", duree)
+          end
+        end
+        in_accord = false
+      end
+      data << ln
+      inote += 1
     end
     data
   end
@@ -499,7 +520,8 @@ class LINote < NoteClass
   # -------------------------------------------------------------------
   #   Instance
   # -------------------------------------------------------------------
-  attr_reader :note, :duration, :octave_llp, :alter, :delta
+  attr_reader :note, :duration, :octave_llp, :alter, :delta, :pre, :post,
+              :duree_post, :duree_in_chord
   
   @note_str = nil   # La note string (p.e. "g" ou "fis" ou "eb" ou "g#")
   @note_int = nil   # La note, exprimé par un entier
@@ -513,6 +535,11 @@ class LINote < NoteClass
                       # dernière note : "<.... a>8.", "8." est la 
                       # duree_post (@note: ça sert pour :explode et
                       # :implode)
+  @duree_in_chord=nil # Lors de l'explosion (explode), si la méthode
+                      # rencontre un accord, elle affecte à toutes les
+                      # notes la durée trouvée pour la dernière.
+                      # Cette propriété n'existe donc que pour les
+                      # notes des accords
   @octave_llp = nil   # Le delta d'octave, au format LLP (p.e. « '' »)
   @jeu        = nil   # Jeu string de la note (le texte après le tiret)
   @finger     = nil   # Le doigté éventuel
@@ -620,6 +647,46 @@ class LINote < NoteClass
     valeur
   end
   alias :to_midi :abs
+  
+  # => Retourne la durée de la LINote
+  # 
+  # @note: cette durée se trouve dans :duration pour une note normale
+  # et dans :duree_post pour la dernière note d'un accord. Pour les 
+  # autres notes de l'accord, s'il y a eu explosion (explode), elles se
+  # trouvent dans la propriété @duree_in_chord. Pour l'obtenir, il faut
+  # mettre la valeur de +absolue+ à true.
+  # 
+  # @param  absolue   Si true, la durée d'une note d'un accord est
+  #                   retournée, même si elle n'a pas de durée affectée
+  #                   à l'écriture. Par exemple, pour "<c e f>8", seule
+  #                   la note "f" a une durée (@duree_post) définie. Mais
+  #                   si la LINote a été obtenue par un explode de motif,
+  #                   les autres notes contiennent dans leur propriété
+  #                   @duree_in_chord leur durée (même la dernière)
+  # 
+  def duration absolue = false
+    return @duration    unless @duration.nil?
+    return @duree_post  unless @duree_post.nil? && absolue == true
+    return @duree_in_chord
+  end
+  
+  # =>  Retourne la valeur absolue de la durée de la note (pour calcul
+  #     de mesures par exemple)
+  #     Cette valeur est comptée sur la base d'une noire qui vaut 1.0
+  def duree_absolue
+    duree = duration(true)
+    return nil if duree.nil?
+    valeur = 0
+    duree.scan(/^([0-9]*)?([.]*)?(~)?$/){
+      tout, nombre, points, tilde = [$&, $1, $2, $3]
+      valeur = 4.0 / nombre.to_i
+      valeur_init = 0.0 + valeur
+      unless points.nil?
+        points.length.times { |itime| valeur += valeur_init / (2**(itime + 1)) }
+      end
+    }
+    valeur
+  end
 
   # => Recompose le string à partir des données de la linote
   # 
@@ -652,7 +719,6 @@ class LINote < NoteClass
     note_llp << "#{@finger}#{@post}#{@duree_post}#{@dynamique}"
     return note_llp
   end
-  # alias :to_s :to_llp
   
   # =>  Return la linote comme texte final lilypond
   #     P.e. "\relative c' { dis }"
@@ -665,7 +731,8 @@ class LINote < NoteClass
   # 
   def to_hash
     hash = {}
-    [:note, :alter, :octave_llp, :duration, :pre, :post, :finger, :jeu
+    [:note, :alter, :octave_llp, :duration, :pre, :post, :finger, :jeu,
+      :duree_post, :dynamique
     ].each do |prop|
       hash = hash.merge( prop => instance_variable_get("@#{prop}") )
     end

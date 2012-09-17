@@ -87,6 +87,17 @@ describe Score do
 			  Score.mark_octave(6).should == "c'''"
 			end
 				
+			it "doit répondre à duree_absolue_mesure" do
+			  Score.should respond_to :duree_absolue_mesure
+			end
+			{
+				"4/4" => 4.0, "3/4" => 3.0, "6/8" => 3.0, "3/8" => 1.5,
+				"2/4"	=> 2.0, "2/8" => 1.0
+			}.each do |metrique, expected|
+				it "pour une métrique de #{metrique}, doit renvoyer #{expected}" do
+				  Score.duree_absolue_mesure(metrique).should == expected
+				end
+			end
 		end # / Classe-méthodes
 		
 	end # / Classe
@@ -164,6 +175,24 @@ describe Score do
 				  expect{@s.check_data(:time => bad_time)}.to raise_error(SystemExit, err)
 				end
 			end
-		end		
+			
+		end	
+		
+		describe "(Méthodes de calcul)" do
+		  it "doit répondre à :duree_absolue_mesure" do
+			  Score::new.should respond_to :duree_absolue_mesure
+		  end
+			it ":duree_absolue_mesure doit retourner la bonne valeur" do
+			  # Note: on ne vérifie que pour 2 valeurs puisque la méthode
+				# d'instance :duree_absolue_mesure fait appel à la méthode
+				# statique de même nom qui est testée plus haut
+				score = Score::new
+				score.duree_absolue_mesure.should == 4.0
+				iv_set(score, :time => "3/4")
+				score.duree_absolue_mesure.should == 3.0
+				iv_set(score, :time => "2/8")
+				score.duree_absolue_mesure.should == 1.0
+			end
+		end	
 	end
 end

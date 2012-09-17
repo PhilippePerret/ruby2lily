@@ -43,6 +43,36 @@ describe Instrument do
 				@instru.should respond_to :chords
 			end
 
+			# :explode
+			it "doit répondre à :explode" do
+			  @instru.should respond_to :explode
+			end
+			it ":explode doit retourner un array de toutes les LINotes" do
+				voix = Voice::new
+				voix << "a b c d"
+				voix << "<c e g>8"
+			  res = voix.explode
+				res.class.should == Array
+				res.count.should == 7
+				res.each do |ln|
+					ln.class.should == LINote
+				end
+				ln = res[0]
+				ln.duration.should be_nil
+				ln.note.should == "a"
+				ln.octave.should == 3
+				
+				ln = res[5]
+				ln.note.should == "e"
+				ln.octave.should == 3
+				ln.duration.should be_nil # @todo: ici, il vaudrait mieux : "8"
+				
+				ln = res[6]
+				ln.note.should == "g"
+				ln.octave.should == 3
+				ln.duration.should == "8"
+				
+			end
 			# :mesure / :mesures
 			it "doit répondre à :mesure et :measure" do
 			  @instru.should respond_to :mesure
@@ -54,6 +84,12 @@ describe Instrument do
 			it "doit répondre à :mesures et :measures" do
 			  @instru.should respond_to :mesures
 			  @instru.should respond_to :measures
+			end
+			it ":mesures doit renvoyer les mesures demandées" do
+			  voix = Voice::new()
+				voix << "a4 b c d eis4-^ f g a"
+				res = voix.mesures(2, 2)
+				res.to_s.should == "eis4-^ f g a"
 			end
 
 			# :motif / :motifs

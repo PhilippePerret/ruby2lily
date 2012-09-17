@@ -70,6 +70,19 @@ class Score
     mk.fois(oct.abs)
   end
   
+  # => Retourne la durée d'une mesure de métrique +metrique+
+  # 
+  # @note: compter sur la base du fait qu'une noire vaut 1
+  # 
+  # @param  metrique    Le String de la métrique (p.e. "4/4"). Par défaut
+  #                     une métrique de "4/4"
+  def self.duree_absolue_mesure metrique
+    metrique ||= "4/4"
+    nombre, diviseur = metrique.split('/')
+    valeur_diviseur       = 4.0 / diviseur.to_i
+    valeur_diviseur * nombre.to_i
+  end
+  
   # -------------------------------------------------------------------
   #   Instance
   # -------------------------------------------------------------------
@@ -83,7 +96,7 @@ class Score
   @composer   = nil   # Auteur (compositeur) du morceau courant
   @parolier   = nil   # Parolier du morceau courant (si paroles)
   @key        = nil   # Tonalité (une valeur de clé de LINote::TONALITES)
-  @time       = nil   # Signature
+  @time       = nil   # Signature (métrique)
   @tempo      = nil   # Tempo de référence
   @base_tempo = nil   # Durée de la note tempo de référence (durée llp)
   @meter      = nil   # Texte sous le titre à gauche de la page (peut
@@ -148,5 +161,12 @@ class Score
     methods.each do |method|
       Checkif.send(method, @data[cle.to_sym], data_var)
     end
+  end
+  
+  # => Retourne la durée absolue d'une mesure complète dans la métrique
+  # donnée du score (mise à 4/4 par défaut)
+  # Cette valeur est calculée par rapport à une noire qui vaut 1.0
+  def duree_absolue_mesure
+    Score::duree_absolue_mesure( @time )
   end
 end

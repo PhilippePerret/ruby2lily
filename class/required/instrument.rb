@@ -91,10 +91,46 @@ class Instrument
   alias :measure :mesure
   
   # => Retourne les mesures de l'instrument spécifiées par +params+
-  def mesures params
+  def mesures first, last = nil
+    last ||= first
+    # @todo: produire ici une erreur si last est avant first
     
+    duree_mesure = SCORE::duree_absolue_mesure
+    
+    puts "staff_content : #{staff_content.inspect}"
+    linotes = LINote::explode staff_content
+    puts "linotes: #{linotes.inspect}"
+    position_courante       = 0
+    index_mesure            = 1
+    linotes_expected        = []
+    duree_absolue_last_note = nil
+    linotes.each do |linote|
+      # Tant qu'on n'a pas atteint la dernière mesure voulue,
+      # on prend la linote si on a déjà passé la première mesure voulue
+      if index_mesure >= first
+        linotes_expected << linote
+      end
+      duree_note = linote.duree_absolue || duree_absolue_last_note
+      position_courante += duree_note
+      if position_courante == duree_mesure
+        # Une fin de mesure est atteinte avec cette note
+        index_mesure      += 1 
+        position_courante =  0
+        break if index_mesure > last
+      end
+      duree_absolue_last_note = duree_note
+    end
+    linotes_expected = LINote::implode linotes_expected
+    puts "linotes_expected: #{linotes_expected.inspect}"
+    linotes_expected
   end
   alias :measures :mesures
+  
+  # =>  Retourne l'ensemble des notes de l'instrument, sous forme d'un
+  #     Array d'objets LINote
+  def explode
+    @exploded ||= LINote::explode staff_content
+  end
   
   # -------------------------------------------------------------------
   #   Méthodes de définition de la partition de l'instrument

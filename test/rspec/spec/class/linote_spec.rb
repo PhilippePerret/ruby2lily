@@ -670,6 +670,7 @@ describe LINote do
 			# :to_s
 		end
 		
+		# :set
 		it "doit répondre à :set" do
 		  @ln.should respond_to :set
 		end
@@ -703,6 +704,7 @@ describe LINote do
 				ln.octave.should == octave_expected
 			end
 		end
+		
 		# :rest?
 		it "doit répondre à :rest?" do
 		  @ln.should respond_to :rest?
@@ -790,6 +792,40 @@ describe LINote do
 					ln.index_diat.should == expected
 				end
 		  end
+		end
+		
+		# :duration
+		it "doit répondre à :duration" do
+		  @ln.should respond_to :duration
+		end
+		it ":duration doit renvoyer la bonne valeur" do
+		  motif = Motif::new "<a c e>8."
+			ary_linotes = motif.explode
+			ln = ary_linotes.last
+			ln.duration.should == "8."
+		end
+		it ":duration doit retourner la durée d'une note d'accord" do
+		  motif = Motif::new "<a c e>8."
+			ary_linotes = motif.explode
+			ln = ary_linotes[1]
+			ln.duration.should be_nil
+			ln.duration(true).should == "8."
+		end
+		
+		# :duree_absolue
+		it "doit répondre à duree_absolue" do
+		  @ln.should respond_to :duree_absolue
+		end
+		{
+			"1"  => 4.0, "2" => 2.0, "4" => 1.0, "8" => 0.5, "16" => 0.25,
+			"32" => 0.125,
+			"1." => 6.0, "2." => 3.0, "4." => 1.5, "8." => 0.75, "16." => 0.375,
+			"1.." => 7.0, "2.." => 3.5, "4.." => 1.75
+		}.each do |duree, expected|
+			it "La durée absolue pour une durée LilyPond de '#{duree}' doit être #{expected}" do
+			  ln = LINote::new "c", :duree => duree
+				ln.duree_absolue.should == expected
+			end
 		end
 		
 		# :str_in_context

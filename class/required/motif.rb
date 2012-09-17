@@ -505,6 +505,7 @@ class Motif < NoteClass
     return nil if @notes.nil?
     @exploded ||= LINote::explode self
   end
+  alias :explode :exploded
 
   # => Recompose les notes à partir de leur explosion
   # 
