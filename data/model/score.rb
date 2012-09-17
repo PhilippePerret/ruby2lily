@@ -1,13 +1,13 @@
-@title = "TITRE_MORCEAU"
+@title    = "TITRE_MORCEAU"
 @composer = "COMPOSITEUR"
-@key = "TONALITÉ"
-@time = "4/4"
-@tempo = "120"
+@key      = "TONALITÉ"
+@time     = "4/4"
+@tempo    = 120
 
 def orchestre
   <<-EOO
     
-      name        instrument    staff
+      instrument  class         staff
     -------------------------------------------------------------------
       INSTRU      Instrument    StaffName
     -------------------------------------------------------------------

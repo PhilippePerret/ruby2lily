@@ -9,9 +9,9 @@ EOE
 def orchestre
   <<-EOO
     
-    name    instrument      clef      key
+    instrument  class    staff
   -------------------------------------------------------------------
-    PIANO   Piano           -         -
+    PIANO       Piano     -
   -------------------------------------------------------------------
   
   EOO

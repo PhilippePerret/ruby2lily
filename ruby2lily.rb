@@ -91,7 +91,7 @@ else
     :author       => @author      || @parolier,
     :key          => @key         || @tune || @ton,
     :time         => @time        || @signature,
-    :tempo        => @tempo,
+    :tempo        => @tempo.to_i,
     :base_tempo   => @base_tempo,
     :meter        => @meter       || @instrument,
     :arranger     => @arranger    || @arrangeur,

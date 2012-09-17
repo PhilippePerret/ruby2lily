@@ -10,9 +10,9 @@ COD
 def orchestre
   <<-EOO
     
-      name    instrument    Staff
+      instrument  class    staff
     -------------------------------------------------------------------
-      JANE    Voice         Jane
+      JANE        Voice         Jane
     -------------------------------------------------------------------
     
   EOO

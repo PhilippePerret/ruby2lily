@@ -4,10 +4,10 @@
 
 def orchestre
   <<-EOO
-    name     instrument       clef   key
+    instrument  class    staff
   ----------------------------------------------
-    JANE     Voice            -      -
-    PIANO    Piano            -      -
+    JANE        Voice     -
+    PIANO       Piano     -
   ----------------------------------------------
   EOO
 end

@@ -3,8 +3,8 @@
 
 def orchestre
   <<-EOO
-    name    instrument  clef    key
-    PAUL    Voice       -       -
+    instrument  class    staff
+    PAUL        Voice       -       -
   EOO
 end
 

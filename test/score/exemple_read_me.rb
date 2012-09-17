@@ -8,11 +8,11 @@
 def orchestre
   <<-EOO
     
-    name    instrument
+    instrument  class    staff
   -------------------------------------------------------------------
-    JANE    Voice
-    PETE    Piano
-    HELEN   Cello
+    JANE        Voice     -
+    PETE        Piano     -
+    HELEN       Cello     -
   -------------------------------------------------------------------
   EOO
 end

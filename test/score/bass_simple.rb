@@ -10,9 +10,9 @@
 def orchestre
   <<-EOO
     
-      name    instrument      clef      ton
+      instrument  class    staff
     -------------------------------------------------------------------
-      BASS    Bass            -         -
+      BASS        Bass            -         -
     -------------------------------------------------------------------
   EOO
 end

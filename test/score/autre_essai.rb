@@ -6,10 +6,10 @@
 def orchestre
   <<-EOO
     
-      name    instrument    Staff
+      instrument  class    staff
     -------------------------------------------------------------------
-      SALOME  Piano   Salomé
-      BASS    Bass    Basse
+      SALOME      Piano   Salomé
+      BASS        Bass    Basse
     -------------------------------------------------------------------
     
   EOO

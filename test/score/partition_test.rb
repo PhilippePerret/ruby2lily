@@ -16,7 +16,7 @@ end
 def orchestre
   <<-HDEF
 
-      name        instrument  clef      ton
+      instrument  class     staff     ton
     -------------------------------------------------------------------
       SALLY       Voice       -         -
       PIANO       Piano       -         -

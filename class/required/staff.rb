@@ -105,7 +105,7 @@ class Staff
   
   # => Retourne la marque pour le tempo dans la portée
   def mark_tempo
-    return nil if @tempo.nil? && @tempo_str.nil?
+    return nil if @tempo.to_s.blank?
     mk_base = @base_tempo.nil? ? "4" : @base_tempo
     mk_strg = @tempo_str.nil? ? "" : " \"#{tempo_str}\""
     "\t\\tempo#{mk_strg} #{mk_base} = #{@tempo}"

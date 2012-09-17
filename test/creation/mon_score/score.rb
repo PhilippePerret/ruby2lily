@@ -2,12 +2,12 @@
 @composer = "COMPOSITEUR"
 @key = "TONALITÉ"
 @time = "4/4"
-@tempo = "120"
+@tempo = 120
 
 def orchestre
   <<-EOO
     
-      name        instrument    staff
+      instrument  class         staff
     -------------------------------------------------------------------
       INSTRU      Instrument    StaffName
     -------------------------------------------------------------------
