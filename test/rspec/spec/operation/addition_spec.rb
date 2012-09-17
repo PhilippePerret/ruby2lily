@@ -188,6 +188,8 @@ def define_motifs
 		:notes => "r\\( <ais c e> geses8( b[ e4])\\) r2",
 		:octave => 2, :duration => "4"
 		)
+	# Motif composé seulement de silences
+	@mo_silences = Motif::new('r r r r')
 end
 describe "Addition et Motif" do
 	before(:all) do
@@ -254,6 +256,7 @@ describe "Addition et Motif" do
 		define_motifs if @mo_slured.nil?
 		[
 			[@motif_simple, @motif_simple, "c { c e g c, e g }"],
+			[@mo_silences, @motif_octave_2, "c, { r r r r c e g }"],
 			[@motif_simple, @motif_octave_2, "c { c e g c,, e g }"],
 			[@motif_octave_2, @motif_simple, "c, { c e g c e g }"],
 			[@motif_octave_2, @mo_accord, "c, { c e g <a' c e> }"],
@@ -275,6 +278,14 @@ describe "Addition et Motif" do
 				res.class.should == Motif
 				res.to_s.should == "\\relative #{expected}"
 			end
+		end
+		# Quelques cas spéciaux
+		it "Additions spéciales doit renvoyer le bon motif" do
+		  final = Motif::new('a b c') + 
+							Motif::new('r r r r') + 
+							Motif::new('c e g', :octave => 1)
+			final.class.should == Motif
+			final.to_s.should == '\relative c { a b c r r r r c,,, e g }'
 		end
 	end
 	describe "Motif + Chord" do

@@ -336,7 +336,14 @@ class LINote < NoteClass
     ln_avant = motif1.last_note( strict = true )
     ln_apres = motif2.first_note( strict = true )
     
-    unless ln_avant.nil? || ln_apres.nil?
+    if ln_avant.nil? && ln_apres.nil?
+      diff_octave = 0
+    elsif ln_avant.nil? || ln_apres.nil?
+      # Si le motif avant n'est composé que de silence, la différence
+      # d'octave est une simple comparaison des octaves des deux motifs
+      diff_octave = motif2.octave - motif1.octave
+    else
+      # --- Cas courant ---
       # On regarde où va se retrouver la deuxième note (première du 
       # second motif)
       # puts "\nln_avant: #{ln_avant.inspect}"
@@ -351,9 +358,6 @@ class LINote < NoteClass
       natural_octave  = ln_avant.octave + added_octaves
       octave_needed   = ln_apres.octave
       diff_octave     = octave_needed - natural_octave
-    else
-      # Quand un des deux motifs est entièrement constitué de silences
-      diff_octave = 0
     end
     
     unless diff_octave == 0
