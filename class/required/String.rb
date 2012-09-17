@@ -22,7 +22,6 @@ class String
   # -------------------------------------------------------------------
   #   Redéfinitions propres à Ruby2Lily
   # -------------------------------------------------------------------
-  
 
   # Additionne le string courant avec +foo+ qui peut être de n'importe
   # quelle classe (String, Motif, Note, Chord...)
@@ -84,6 +83,25 @@ class String
       self.x nombre
     end
   end
+
+  # Redéfinition de la méthode [] mais avec possibilité d'appeler
+  # l'ancienne
+  old_crochets = instance_method(:[])
+  define_method(:[]) do |*params|
+    # En cas de Range, on sait que c'est l'ancienne méthode qu'il faut
+    # utiliser (la méthode [] ruby2lily ne supporte pas les Range)
+    if params.first.class != Range && self.is_lilypond?
+      begin
+        motif = self.as_motif
+      rescue Exception => e
+        # On continuera ci-dessous
+      else
+        return motif.send('[]', *params )
+      end
+    end
+    # Dans tous les autres cas, on appelle la méthode normale
+    old_crochets.bind(self).call(*params)
+  end  
   
   # =>  Return un hash contenant :note, :alter et :delta de la note OU
   #     PAR DÉFAUT le LINote de la note

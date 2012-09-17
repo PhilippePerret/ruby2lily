@@ -436,6 +436,30 @@ describe String do
 	end
 
 	# -------------------------------------------------------------------
+	# 	Utilisation des crochets
+	# -------------------------------------------------------------------
+	describe "Traitement des crochets" do
+	  it "doit répondre à :[]" do
+	    "str".should respond_to :[]
+	  end
+		it "doit avoir le comportement par défaut si pas motif lilypond" do
+	  	"string"[0..2].should == "str"
+			"abracadabra"[0].should == 97
+		end
+		it ":[] doit pouvoir définir l'octave" do
+		  res = "a"[5]
+			res.class.should == Motif
+			res.notes.should == "a"
+			res.octave.should == 5
+		end
+		it ":[] doit pouvoir définir la durée" do
+		  res = "a"["4."]
+			res.class.should == Motif
+			res.duration.should == "4."
+			res.octave.should == 3
+		end
+	end
+	# -------------------------------------------------------------------
 	# 	Traitements complexe ('+' et '*' combinés)
 	# -------------------------------------------------------------------
 	describe "Traitements complexes" do
