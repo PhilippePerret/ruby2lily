@@ -69,8 +69,7 @@ class Liby::Command
         # ---------------------------
         path_score = File.join(dossier_score, 'score.rb')
         code_score = File.read( path_score )
-        code_score = code_score.gsub( /@title = "([^"]*?)"/, 
-                                      "@title = \"#{titre_score}\"")
+        code_score = code_score.gsub( /TITRE_MORCEAU/, titre_score )
         File.open(path_score, 'wb'){ |f| f.write code_score }
         
         puts "Le dossier score a été fabriqué"
