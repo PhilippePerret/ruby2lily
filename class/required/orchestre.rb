@@ -62,9 +62,11 @@ class Orchestre
       end
       
       # L'instrument (qui définira la classe du musicien)
-      classe_instrument  = d_instrument.delete(:class).capitalize
+      classe_instrument  = d_instrument.delete(:class)
       if classe_instrument.nil?
         Liby::fatal_error(Orchestre::ERRORS[:instrument_undefined], :name => name)
+      else
+        classe_instrument = classe_instrument.capitalize
       end
       unless Instrument::TYPES.has_key? classe_instrument.to_sym
         Liby::fatal_error(Orchestre::ERRORS[:unknown_instrument], :instrument => classe_instrument)

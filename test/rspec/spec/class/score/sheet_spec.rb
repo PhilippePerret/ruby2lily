@@ -10,9 +10,9 @@ describe Score::Sheet do
 	  SCORE 		= Score::new unless defined? SCORE
 		ORCHESTRE = Orchestre::new unless defined? ORCHESTRE
 		@orch_str = <<-EOO
-				name		instrument	clef		ton
-				CHANT		Voice				-				-
-				PIANO		Piano				-				-
+				instrument	class		staff		clef		ton
+				CHANT				Voice		-				-				-
+				PIANO				Piano		-				-				-
 		EOO
 		ORCHESTRE.compose @orch_str
 	end

@@ -4,9 +4,9 @@
 def orchestre
   <<-EOO
     
-      name    instrument    Staff
+      instrument  class     staff
     -------------------------------------------------------------------
-      PIANO   Piano    Piano
+      PIANO       Piano     Piano
     -------------------------------------------------------------------
     
   EOO

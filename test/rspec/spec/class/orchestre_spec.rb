@@ -46,19 +46,19 @@ describe Orchestre do
 			expect{res = @o.compose(nil)}.to raise_error SystemExit
 		end
 		it ":compose doit lever une erreur s'il manque le nom (constante)" do
-		  code = 	"name\tinstrument\tclef\tton\n" \
+		  code = 	"instrument\tclass\tclef\tton\n" \
 							<< "-\tPiano\tU4\tG"
 			expect{res = @o.compose(code)}.to raise_error SystemExit
 			# @todo: avec l'erreur : Orchestre::ERRORS[:undefined_name]
 		end
 		it ":compose doit lever une erreur si l'instrument n'est pas défini" do
-			code = 	"name\tinstrument\tclef\tton\n" \
+			code = 	"instrument\tclass\tclef\tton\n" \
 							<< "FAUX\t-\t-\t-"
 			expect{res = @o.compose(code)}.to raise_error SystemExit
 			# @todo: avec l'erreur : Orchestre::ERRORS[:instrument_undefined]
 		end
 		it ":compose doit lever une erreur si un instrument n'existe pas" do
-			code = 	"name\tinstrument\tclef\tton\n" \
+			code = 	"instrument\tclass\tclef\tton\n" \
 							<< "FAUX\tbadinstrument\t-\t-"
 			expect{res = @o.compose(code)}.to raise_error SystemExit
 		 	# @todo: avec l'erreur : Orchestre::ERRORS[:unknown_instrument]
@@ -66,7 +66,7 @@ describe Orchestre do
 		it ":compose doit ajouter les instruments à la liste de l'orchestre" do
 		  code = <<-EOC
 
-		name		instrument		clef			ton
+		instrument	class			clef			ton
 	-------------------------------------------------------------------
 		STING		Voice					-					F
 		JEAN		Piano					-					-
