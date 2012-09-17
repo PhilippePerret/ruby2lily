@@ -5,15 +5,14 @@
 def orchestre
   <<-EOO
     
-      name    instrument    Staff
+      instrument  class    staff
     -------------------------------------------------------------------
-      JEAN    Piano         Jean
+      JEAN        Piano    Jean
     -------------------------------------------------------------------
     
   EOO
 end
 
 def score
-  # JEAN << JeanSolo::intro
-  JEAN << "a b c d e f g"
+  JEAN.gauche << JeanSolo.intro
 end

@@ -68,7 +68,7 @@ describe Liby::Command do
 			File.exists?(path_dossier_scores).should be_true
 			File.directory?(path_dossier_scores).should be_true
 			code = File.read(path_score)
-			code.should =~ /@title = "#{score_title}"/
+			code.should =~ /@title([ \t]+)= "#{score_title}"/
 			code.should =~ /def orchestre/
 			code.should =~ /def score/
 		end

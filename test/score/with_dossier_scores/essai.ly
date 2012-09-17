@@ -10,6 +10,7 @@
 
 % Informations score
 \header {
+	title = "Un essai avec dossier score"
 	composer = "Phil"
 }
 

@@ -1,8 +1,8 @@
-@title = "Mon Score"
+@title    = "Mon Score"
 @composer = "COMPOSITEUR"
-@key = "TONALITÉ"
-@time = "4/4"
-@tempo = 120
+@key      = "TONALITÉ"
+@time     = "4/4"
+@tempo    = 120
 
 def orchestre
   <<-EOO
