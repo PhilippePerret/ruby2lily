@@ -55,23 +55,24 @@ class Orchestre
     # contenu par une constante.
     @data_orchestre.each do |d_instrument|
       # Le nom (= la constante qui sera utilisée)
-      name        = d_instrument[:name]
+      # name        = d_instrument[:name]
+      name        = d_instrument[:instrument]
       if name.nil?
         Liby::fatal_error(Orchestre::ERRORS[:undefined_name]) 
       end
       
       # L'instrument (qui définira la classe du musicien)
-      instrument  = d_instrument.delete(:instrument)
-      if instrument.nil?
+      classe_instrument  = d_instrument.delete(:class).capitalize
+      if classe_instrument.nil?
         Liby::fatal_error(Orchestre::ERRORS[:instrument_undefined], :name => name)
       end
-      unless Instrument::TYPES.has_key? instrument.to_sym
-        Liby::fatal_error(Orchestre::ERRORS[:unknown_instrument], :instrument => instrument)
+      unless Instrument::TYPES.has_key? classe_instrument.to_sym
+        Liby::fatal_error(Orchestre::ERRORS[:unknown_instrument], :instrument => classe_instrument)
       end
       d_instrument[:ton] ||= @tonalite_defaut
       
       # On transforme les membres de l'orchestre en constantes globales
-      cmd = "#{name} = #{instrument}::new(#{d_instrument.inspect})"
+      cmd = "#{name} = #{classe_instrument}::new(#{d_instrument.inspect})"
       Kernel.class_eval cmd
       
       # On ajoute cet instrument à la liste des instruments
