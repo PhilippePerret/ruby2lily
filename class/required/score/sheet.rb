@@ -133,8 +133,8 @@ class Score::Sheet
     
     # Retourne la version courante de lilypond
     def lilypond_current_version
-      # @todo: plus tard, il faudra le lire dans un fichier
-      "2.16.0"
+      require "VERSION"
+      RUBY2LILY_VERSION
     end
   end
 end
