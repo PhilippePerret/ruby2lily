@@ -508,8 +508,11 @@ class Liby
         with_mesures = with_instrus = false
       end
       options_modificatrices = with_mesures || with_instrus
-      folder = File.join(folder, 'extraits') if options_modificatrices
-      
+      if options_modificatrices
+        on_test = File.exists?(folder) == false # pour des fausses path, en mode tests
+        folder = File.join(folder, 'extraits')
+        Dir.mkdir(folder, 0777) unless File.exists?( folder ) || on_test
+      end
       # Modification du nom en fonction des options modificatrices
       affixe << "-m#{SCORE.from_mesure}-#{SCORE.to_mesure}" if with_mesures
       affixe << "-inst" if with_instrus

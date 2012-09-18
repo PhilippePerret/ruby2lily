@@ -6,3 +6,30 @@
 	/Users/philippeperret/Sites/cgi-bin/lilypond/test/score/with_dossier_scores/essai.rb
 %}
 
+\version "0.4.2"
+
+% Informations score
+\header {
+	composer = "Phil"
+}
+
+
+
+% Score
+{\new PianoStaff <<
+	\new Staff {
+		\relative c'' {
+			\clef "treble"
+			\time 4/4
+			
+		}
+	}
+	\new Staff {
+		\relative c' {
+			\clef "bass"
+			\time 4/4
+			a b c d
+		}
+	}
+>>
+}
