@@ -125,6 +125,8 @@ describe "Liby - Ligne de commande" do
 				options = cv_get(Liby, :options)
 				options.should have_key 'instruments'
 				options['instruments'].should include 'SALLY'
+				iv_get(SALLY, :displayed).should be_true
+				iv_get(PIANO, :displayed).should be_false
 			end
 			it ":analyze_command_line doit répondre à --instruments" do
 			  init_argv_with [@path_partition_test, "-i=PIANO"]
@@ -133,6 +135,7 @@ describe "Liby - Ligne de commande" do
 				options = cv_get(Liby, :options)
 				options.should have_key 'instruments'
 				options['instruments'].should include 'PIANO'
+				iv_get(PIANO, :displayed).should be_true
 			end
 			it ":analyze_command_line doit lever une erreur si l'instrument est inconnu" do
 			  err = detemp(Liby::ERRORS[:bad_instrument_for_extrait], :inst => "bad")
@@ -148,9 +151,13 @@ describe "Liby - Ligne de commande" do
 			  Liby.treat_option_instruments("SALLY")
 				iv_get(SCORE, :displayed_instruments).should include 'SALLY'
 				iv_get(ORCHESTRE, :instruments).should == [SALLY]
+				iv_get(SALLY, :displayed).should be_true
+				iv_get(PIANO, :displayed).should be_false
 			  Liby.treat_option_instruments("SALLY,PIANO")
 				iv_get(SCORE, :displayed_instruments).should include 'PIANO'
 				iv_get(ORCHESTRE, :instruments).should == [SALLY, PIANO]
+				iv_get(SALLY, :displayed).should be_true
+				iv_get(PIANO, :displayed).should be_true
 			end
 			it ":treat_option_instruments ne doit pas définir un instrument inexistant" do
 			  init_argv_with [@path_partition_test]
@@ -159,6 +166,8 @@ describe "Liby - Ligne de commande" do
 			  Liby.treat_option_instruments("PIANO")
 				iv_get(SCORE, :displayed_instruments).should include 'PIANO'
 				iv_get(ORCHESTRE, :instruments).should == [PIANO]
+				iv_get(SALLY, :displayed).should be_false
+				iv_get(PIANO, :displayed).should be_true
 			end
 
 			it ":analyze_command_line doit définir les instruments affichés" do
@@ -167,6 +176,8 @@ describe "Liby - Ligne de commande" do
 				Liby.analyze_options_extrait
 				SCORE.displayed_instruments.should == ['PIANO']
 				iv_get(ORCHESTRE, :instruments).should == [PIANO]
+				iv_get(SALLY, :displayed).should be_false
+				iv_get(PIANO, :displayed).should be_true
 			end
 			it ":analyze_command_line doit définir les instruments (avec 2 instruments)" do
 			  init_argv_with [@path_partition_test, "-i=PIANO,SALLY"]
@@ -174,6 +185,8 @@ describe "Liby - Ligne de commande" do
 				Liby.analyze_options_extrait
 				SCORE.displayed_instruments.should == ['PIANO', 'SALLY']
 				iv_get(ORCHESTRE, :instruments).should == [PIANO, SALLY]
+				iv_get(SALLY, :displayed).should be_true
+				iv_get(PIANO, :displayed).should be_true
 			end
 
 		end

@@ -132,9 +132,10 @@ class Score::Sheet
     end
     
     # Retourne la version courante de lilypond
+    # @todo: mettre la version de lilypond dans un fichier, comme pour
+    # ruby2lily
     def lilypond_current_version
-      require File.join(BASE_RUBY2LILY, "VERSION.rb")
-      RUBY2LILY_VERSION
+      "2.7.38"
     end
   end
 end

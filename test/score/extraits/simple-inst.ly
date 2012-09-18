@@ -6,7 +6,7 @@
 	/Users/philippeperret/Sites/cgi-bin/lilypond/test/score/simple.rb
 %}
 
-\version "0.4.2"
+\version "2.7.38"
 
 % Informations score
 \header {
@@ -17,18 +17,11 @@
 
 
 % Score
-{	<<\new Staff {
+{\new Staff {
 	\relative c'' {
 		\clef "treble"
 		\time 4/4
-		\tempo 4 = 120	\relative c { a4 b c d e, f g a b c d e f, g a b }
+		\tempo 4 = 120	a4 b c d e f g a \relative c { b c d e f, g a b }
 	}
 }
-\new Staff {
-	\relative c'' {
-		\clef "treble"
-		\time 4/4
-		\tempo 4 = 120	\relative c { f g a b b c d e e, f g a a4 b c d }
-	}
-}	>>
 }

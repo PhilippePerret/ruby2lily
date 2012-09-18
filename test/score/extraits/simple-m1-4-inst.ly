@@ -16,19 +16,3 @@
 
 
 
-% Score
-{	<<\new Staff {
-	\relative c'' {
-		\clef "treble"
-		\time 4/4
-		\tempo 4 = 120	\relative c { a4 b c d e, f g a b c d e f, g a b }
-	}
-}
-\new Staff {
-	\relative c'' {
-		\clef "treble"
-		\time 4/4
-		\tempo 4 = 120	\relative c { f g a b b c d e e, f g a a4 b c d }
-	}
-}	>>
-}

@@ -43,6 +43,8 @@ class Instrument
   # -------------------------------------------------------------------
   @name       = nil   # Le nom (capitales) du musicien (constante) tel
                       # que défini dans le def-hash @orchestre
+                      # @todo: cette propriété ne semble pas être définie
+                      # à l'initialisation => tester
   @data       = nil   # Les data telles que définies dans l'orchestre
   @ton        = nil   # La tonalité de la portée. C'est la tonalité du 
                       # morceau, par défaut, sauf pour les instruments
@@ -56,10 +58,13 @@ class Instrument
   
   @notes      = nil   # La liste String des notes de l'instrument au 
                       # cours du morceau
-                      
+  
+  @displayed = nil    # Détermine si l'instrument doit être affiché ou
+                      # non (lorsqu'une option le retire)
   def initialize data = nil
-    @data   = data
-    @notes  = ""
+    @data       = data
+    @notes      = ""
+    @displayed  = true
     data.each do |prop, value|
       instance_variable_set("@#{prop}", value)
     end unless data.nil?
@@ -93,11 +98,16 @@ class Instrument
   alias :measure :mesure
   
   # => Retourne les mesures de l'instrument spécifiées par +params+
+  # 
+  # Cette méthode est une des méthodes principales de construction de la
+  # partition. 
   def mesures first, last = nil
     last ||= first
     # @todo: produire ici une erreur si last est avant first
     
     # Retourner toutes les notes s'il n'y a pas de filtre de mesure
+    # puts "@notes: #{@notes.inspect}"
+    # @notes contient quelque chose comme : \relative c { a b c }
     return @notes if first.nil? && last.nil?
     
     duree_mesure = SCORE::duree_absolue_mesure
@@ -166,8 +176,23 @@ class Instrument
   alias :<< :add
   
   # => Ajoute la chose comme liste de notes
+  # 
+  # C'est toujours dans cette méthode qu'on finit par passer.
+  # Si l'instrument ne doit pas être affiché, on la court-circuite
   def add_as_string str
+    # return unless @displayed
+    
+    # = débug =
+    unless @displayed
+      puts "L'instrument #{self.class} est zappé, je n'écris pas les notes"
+      return
+    else
+      puts "L'instrument #{self.class} n'est pas zappé, je dois écrire ses notes (#{str})"
+    end
+    # = /débug =
+    
     @notes = "#{@notes} #{str}".strip
+    puts "@notes, devient : #{@notes}"
   end
   # => Ajoute la chose comme accord
   # @param  chord     Instance Chord de l'accord

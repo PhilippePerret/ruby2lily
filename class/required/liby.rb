@@ -242,8 +242,20 @@ class Liby
     # 
     # @note: Les instruments, dans +val+ sont définis par leur nom dans
     # la définition de l'orchestre (capitales)
-    # Si un instrument n'existe pas, une erreur est levée.
+    # @note: Si un instrument n'existe pas, une erreur est levée.
+    # @note:  La propriété @displayed de l'instrument est mise à true
+    #         s'il est affiché, à false otherwise. Cette propriété 
+    #         permet entre autres choses de court-circuiter 
+    #         l'incrémentation de ses notes dans `score`.
+    # 
     def treat_option_instruments val
+      # Réglage du displayed de tous les instruments à false. Ceux qui
+      # devront être affichés seront remis à true ci-dessous
+      ORCHESTRE.instruments.each do |instrument|
+        instrument.instance_variable_set("@displayed", false)
+      end
+      
+      # Récupération des seuls instruments à voir
       begin
         instruments_str   = []
         instruments_objs  = []
@@ -251,13 +263,16 @@ class Liby
           instrument_existe = defined?(eval(instru))
           raise unless instrument_existe
           instruments_str   << instru
-          instruments_objs  << eval(instru)
+          instru_obj = eval(instru)
+          instru_obj.instance_variable_set("@displayed", true)
+          instruments_objs  << instru_obj
         end
         SCORE.instance_variable_set("@displayed_instruments", instruments_str)
         ORCHESTRE.instance_variable_set("@instruments", instruments_objs)
       rescue Exception => e
         fatal_error(:bad_instrument_for_extrait, :inst => val)
       end
+      
     end
     # => Définit les mesures de départ et de fin à afficher
     # 
