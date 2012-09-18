@@ -64,4 +64,28 @@ RSpec.configure do |config|
   def cv_get(classe, var)
     classe.send('class_variable_get', "@@#{var}")
   end
+  
+  
+  # === Pour simuler la ligne de commande === #
+	
+	def define_command_line_with_options
+		path_score = File.join('test', 'score', 'partition_test.rb')
+		ARGV.clear
+		ARGV << path_score
+		ARGV << "-fpng"
+		ARGV << "--option voir"
+	end
+	def define_command_line argv
+		argv = argv.split(' ') if argv.class == String
+		ARGV.clear
+		argv.each { |m| ARGV << m }
+	end
+	
+  # Initialise les arguments (de la ligne de commande avec les valeurs
+  # fournies)
+	def init_argv_with array
+	  array = [ array ] if array.class == String
+	  ARGV.clear
+	  array.each { |membre| ARGV << membre }
+	end
 end
