@@ -12,7 +12,7 @@ describe Liby do
 	  ORCHESTRE = Orchestre::new unless defined? ORCHESTRE
 		path_score = File.join('test', 'score', 'partition_test.rb')
 		@path_partition_test = 
-			File.expand_path(File.join(BASE_LILYPOND, path_score))
+			File.expand_path(File.join(BASE_RUBY2LILY, path_score))
 	end
 	before(:each) do
 	  cv_set(Liby, :options => nil)
@@ -157,7 +157,7 @@ describe Liby do
 			# Deux fichiers, un dans le dossier lilypond, l'autre à la racine 
 			# du dossier de l'utilisateur
 			path 	= File.join('test', 'score', 'partition_test.rb') 
-			plily = File.expand_path(File.join(BASE_LILYPOND, path))
+			plily = File.expand_path(File.join(BASE_RUBY2LILY, path))
 			puser = File.expand_path(File.join('~', 'partition_test.rb'))
 			File.unlink puser if File.exists? puser
 			
@@ -181,12 +181,12 @@ describe Liby do
 		  Liby.should respond_to :path_folder_scores
 		end
 		it ":path_folder_scores doit retourner nil si le dossier 'scores' n'existe pas" do
-			path_score = File.join(BASE_LILYPOND, 'test', 'score', 'essais.rb')
+			path_score = File.join(BASE_RUBY2LILY, 'test', 'score', 'essais.rb')
 			cv_set(Liby, :path_ruby_score => path_score)
 		  Liby::path_folder_scores.should be_nil
 		end
 		it ":path_folder_scores doit retourner le path s'il existe" do
-			dossier 				= File.join(BASE_LILYPOND, 'test', 'score', 'with_dossier_scores')
+			dossier 				= File.join(BASE_RUBY2LILY, 'test', 'score', 'with_dossier_scores')
 			path_score 			= File.join(dossier, 'essai.rb')
 			path_dir_scores = File.join(dossier, 'scores')
 			cv_set(Liby, :path_ruby_score => path_score)
@@ -300,7 +300,7 @@ describe Liby do
 		  Liby.should respond_to :path_folder_model
 		end
 		it ":path_folder_model doit retourner la bonne valeur" do
-		  Liby.path_folder_model.should == File.join(BASE_LILYPOND, 'data', 'model')
+		  Liby.path_folder_model.should == File.join(BASE_RUBY2LILY, 'data', 'model')
 		end
 	end
 	
@@ -399,7 +399,7 @@ describe Liby do
 		  Liby.should respond_to :generate_pdf
 		end
 		it ":generate_pdf doit produire le pdf" do
-		  affixe_score = File.join(BASE_LILYPOND, 'test', 'score', 'simple')
+		  affixe_score = File.join(BASE_RUBY2LILY, 'test', 'score', 'simple')
 			cv_set(Liby, :path_ruby_score => "#{affixe_score}.rb" )
 			cv_set(Liby, :path_lily_file 	=> "#{affixe_score}.ly")
 			@path_pdf = Liby::path_pdf_file

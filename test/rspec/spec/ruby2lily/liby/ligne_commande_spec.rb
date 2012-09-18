@@ -11,7 +11,7 @@ describe "Liby - Ligne de commande" do
 	  ORCHESTRE = Orchestre::new unless defined? ORCHESTRE
 		path_score = File.join('test', 'score', 'partition_test.rb')
 		@path_partition_test = 
-			File.expand_path(File.join(BASE_LILYPOND, path_score))
+			File.expand_path(File.join(BASE_RUBY2LILY, path_score))
   end
 	# -------------------------------------------------------------------
 	# 	Analyse des arguments (lignes de commande)

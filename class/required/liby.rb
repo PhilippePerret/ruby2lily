@@ -439,7 +439,7 @@ class Liby
     
     # =>  Return le path au dossier data/model
     def path_folder_model
-      @@path_folder_model ||= File.join(BASE_LILYPOND, 'data', 'model')
+      @@path_folder_model ||= File.join(BASE_RUBY2LILY, 'data', 'model')
     end
     # =>  Return le path du dossier 'scores' pouvant contenir les
     #     partition. Return nil si ce dossier n'existe pas
@@ -541,7 +541,7 @@ class Liby
       return path if File.exists? path
       path = File.expand_path(File.join('~', path_rel))
       return path if File.exists? path
-      path = File.expand_path(File.join(BASE_LILYPOND, path_rel))
+      path = File.expand_path(File.join(BASE_RUBY2LILY, path_rel))
       return path if File.exists? path
       nil
     end

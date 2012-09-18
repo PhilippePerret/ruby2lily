@@ -23,21 +23,21 @@ end
 def load_class classe
   dbg "Chargement de la classe: #{classe}"
   classe << ".rb" unless classe.end_with? ".rb"
-  require File.join(BASE_LILYPOND, "class", "required", classe)
+  require File.join(BASE_RUBY2LILY, "class", "required", classe)
 end unless defined?(load_class)
 
 dbg "--> ruby2lily"
 
 # Définition préliminaire (initiliasation)
-BASE_LILYPOND = File.dirname(__FILE__) unless defined? BASE_LILYPOND
+BASE_RUBY2LILY = File.dirname(__FILE__) unless defined? BASE_RUBY2LILY
 
-dbg "BASE_LILYPOND: #{BASE_LILYPOND}"
+dbg "BASE_RUBY2LILY: #{BASE_RUBY2LILY}"
 
-# Dir.chdir(BASE_LILYPOND)
+# Dir.chdir(BASE_RUBY2LILY)
 p = File.expand_path(".")
 
-require File.join(BASE_LILYPOND, 'module', 'init.rb')
-require File.join(BASE_LILYPOND, 'module', 'handy_methods.rb')
+require File.join(BASE_RUBY2LILY, 'module', 'init.rb')
+require File.join(BASE_RUBY2LILY, 'module', 'handy_methods.rb')
 
 # Analyse de la ligne de commande
 # --------------------------------

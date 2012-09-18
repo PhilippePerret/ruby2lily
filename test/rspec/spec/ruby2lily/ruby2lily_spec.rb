@@ -4,12 +4,12 @@
 require 'spec_helper'
 require 'liby'
 
-PATH_RUBY2LILY = File.join(BASE_LILYPOND, 'ruby2lily.rb')
+PATH_RUBY2LILY = File.join(BASE_RUBY2LILY, 'ruby2lily.rb')
 
 describe "L'application" do
 	before(:all) do
-	  @path_version = File.join(BASE_LILYPOND, 'VERSION.rb')
-	  @path_help 		= File.join(BASE_LILYPOND, 'HELP.md')
+	  @path_version = File.join(BASE_RUBY2LILY, 'VERSION.rb')
+	  @path_help 		= File.join(BASE_RUBY2LILY, 'HELP.md')
 	end
   it "doit contenir un fichier VERSION" do
     File.exists?(@path_version).should be_true
@@ -82,7 +82,7 @@ describe "La commande `ruby2lily' sans erreur" do
 			argv = argv.split(' ') if argv.class == String
 			argv.each { |c| ARGV << c }
 		end
-		load File.join(BASE_LILYPOND, 'ruby2lily.rb')
+		load File.join(BASE_RUBY2LILY, 'ruby2lily.rb')
 	end
 
 	before(:all) do

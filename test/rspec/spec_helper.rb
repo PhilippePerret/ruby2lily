@@ -1,27 +1,27 @@
 require 'fileutils'
 
-BASE_LILYPOND = File.expand_path(File.join('..','..', File.dirname(__FILE__)))
+BASE_RUBY2LILY = File.expand_path(File.join('..','..', File.dirname(__FILE__)))
 
 RSpec.configure do |config|
   
   # Cf. la méthode éponyme dans ruby2lily.rb
   def load_class classe
     classe << ".rb" unless classe.end_with? ".rb"
-    require File.join(BASE_LILYPOND, "class", "required", classe)
+    require File.join(BASE_RUBY2LILY, "class", "required", classe)
   end unless defined?(load_class)
   
-  DIR_CLASS_LILYPOND = File.join(BASE_LILYPOND, 'class')
+  DIR_CLASS_LILYPOND = File.join(BASE_RUBY2LILY, 'class')
   $: << DIR_CLASS_LILYPOND
-  $: << File.join(BASE_LILYPOND, 'class', 'required')
-  $: << File.join(BASE_LILYPOND, 'class', 'optional')
+  $: << File.join(BASE_RUBY2LILY, 'class', 'required')
+  $: << File.join(BASE_RUBY2LILY, 'class', 'optional')
   
   # Chargement des constantes
-  require File.join(BASE_LILYPOND, 'module', 'constants.rb')
+  require File.join(BASE_RUBY2LILY, 'module', 'constants.rb')
   # Chargement de toutes les librairies requises
   Dir["#{DIR_CLASS_LILYPOND}/required/**/*.rb"].each { |lib| require lib }
   # Chargement des méthodes pratiques et des fonctions de notes
-  require File.join(BASE_LILYPOND, 'module', 'handy_methods.rb')
-  require File.join(BASE_LILYPOND, 'module', 'note_methods.rb')
+  require File.join(BASE_RUBY2LILY, 'module', 'handy_methods.rb')
+  require File.join(BASE_RUBY2LILY, 'module', 'note_methods.rb')
 
   config.before(:all){
     # À faire avant chaque describe

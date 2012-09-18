@@ -23,7 +23,7 @@ class Liby::Command
 
     # => Affiche l'aide de l'application
     def run_help
-      path  = File.join(BASE_LILYPOND, 'HELP.md')
+      path  = File.join(BASE_RUBY2LILY, 'HELP.md')
       texte = File.read(path)
       puts "\n\n#{texte}"
       texte # pour les tests
@@ -31,7 +31,7 @@ class Liby::Command
     
     # => Renvoie la version et des informations en console
     def run_version
-      require File.join(BASE_LILYPOND, 'VERSION.rb')
+      require File.join(BASE_RUBY2LILY, 'VERSION.rb')
       version = "- version: #{RUBY2LILY_VERSION}"
       auteur  = "- author: Philippe Perret <philippe.perret@yahoo.fr" 
       github  = "- github: https://github.com/PhilippePerret/ruby2lily"

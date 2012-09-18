@@ -7,7 +7,7 @@
 # la class Note (spec/class/note_spec.rb)
 # 
 require 'spec_helper'
-require File.join(BASE_LILYPOND, 'module', 'note_methods.rb')
+require File.join(BASE_RUBY2LILY, 'module', 'note_methods.rb')
 
 
 describe "Module/note_methods" do

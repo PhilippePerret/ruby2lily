@@ -50,7 +50,7 @@ describe Liby::Command do
 			Liby::analyze_command_line
 			cv_get(Liby, :command).should == "new"
 			# On se place dans le dossier pour tester
-			folder_test_creation = File.join(BASE_LILYPOND, 'test', 'creation')
+			folder_test_creation = File.join(BASE_RUBY2LILY, 'test', 'creation')
 			path_score = File.join(folder_test_creation, score_name, 'score.rb')
 			path_dossier_scores = File.join(folder_test_creation, score_name, 'scores')
 			

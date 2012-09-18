@@ -2,12 +2,12 @@
 # Test des méthodes pratiques
 # 
 require 'spec_helper'
-require File.join(BASE_LILYPOND, 'module', 'handy_methods.rb')
+require File.join(BASE_RUBY2LILY, 'module', 'handy_methods.rb')
 
 
 describe "Fonction :make_global_class_from_file" do
 	before(:all) do
-	  @path = File.join(BASE_LILYPOND, 'test', 'score', 
+	  @path = File.join(BASE_RUBY2LILY, 'test', 'score', 
 						'test_handy_methods', 'scores', 'jean_test_handy.rb')
 		
 	end

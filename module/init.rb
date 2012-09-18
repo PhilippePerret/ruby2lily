@@ -2,19 +2,19 @@
 # Initialisation de ruby2lily
 # 
 # Required
-#     BASE_LILYPOND     Path au dossier Lilypond-ruby
+#     BASE_RUBY2LILY     Path au dossier Lilypond-ruby
 # 
 
 unless defined? DIR_MOD_LILYPOND
-  DIR_CLASS_LILYPOND  = File.join(BASE_LILYPOND, 'class') unless defined? DIR_CLASS_LILYPOND
-  DIR_MOD_LILYPOND    = File.join(BASE_LILYPOND, 'module')
+  DIR_CLASS_LILYPOND  = File.join(BASE_RUBY2LILY, 'class') unless defined? DIR_CLASS_LILYPOND
+  DIR_MOD_LILYPOND    = File.join(BASE_RUBY2LILY, 'module')
 
   $: << DIR_CLASS_LILYPOND
   dbg "Je mets #{DIR_CLASS_LILYPOND} en path par défaut"
-  p = File.join(BASE_LILYPOND, 'class', 'required')
+  p = File.join(BASE_RUBY2LILY, 'class', 'required')
   $: << p
   dbg "Je mets #{p} en path par défaut"
-  p = File.join(BASE_LILYPOND, 'class', 'optional')
+  p = File.join(BASE_RUBY2LILY, 'class', 'optional')
   $: << p
   dbg "Je mets #{p} en path par défaut"
 
@@ -30,6 +30,6 @@ unless defined? DIR_MOD_LILYPOND
   end
   
   # Chargement des fonctions de notes (ut, re, etc.)
-  require File.join(BASE_LILYPOND, 'module', 'note_methods.rb')
+  require File.join(BASE_RUBY2LILY, 'module', 'note_methods.rb')
   
 end

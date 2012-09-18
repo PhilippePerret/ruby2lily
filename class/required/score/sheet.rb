@@ -133,7 +133,7 @@ class Score::Sheet
     
     # Retourne la version courante de lilypond
     def lilypond_current_version
-      require "VERSION"
+      require File.join(BASE_RUBY2LILY, "VERSION.rb")
       RUBY2LILY_VERSION
     end
   end
