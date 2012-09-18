@@ -95,11 +95,14 @@ class Instrument
     last ||= first
     # @todo: produire ici une erreur si last est avant first
     
+    # Retourner toutes les notes s'il n'y a pas de filtre de mesure
+    return @notes if first.nil? && last.nil?
+    
     duree_mesure = SCORE::duree_absolue_mesure
     
-    puts "staff_content : #{staff_content.inspect}"
-    linotes = LINote::explode staff_content
-    puts "linotes: #{linotes.inspect}"
+    # puts "staff_content : #{staff_content.inspect}"
+    linotes = LINote::explode @notes
+    # puts "linotes: #{linotes.inspect}"
     position_courante       = 0
     index_mesure            = 1
     linotes_expected        = []
@@ -217,6 +220,8 @@ class Instrument
                         :octave_clef  => @octave_clef
                         )
 
+    # @todo: ci-dessous, on pourra retirer le mark_relative, qui
+    # ne sert à rien
     "\\new Staff {"                                   \
     << "\n\t\\#{mark_relative} {"                     \
     << "\n#{staff_header}".gsub(/\n/, "\n\t")         \
@@ -239,10 +244,9 @@ class Instrument
   
   # => Return le contenu des notes de l'instrument
   # 
-  # @note : pour le moment, on ne fait que retourner les notes mémorisées
-  # mais à l'avenir un traitement plus sérieux devra peut-être être fait.
+  # @notes: si un filtre des mesures est appliquées, on l'utilise
   def staff_content
-    @notes
+    mesures SCORE::from_mesure, SCORE::to_mesure
   end
   
   # => Return la marque "relative c..."

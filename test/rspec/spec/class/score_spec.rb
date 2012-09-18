@@ -176,7 +176,24 @@ describe Score do
 				end
 			end
 			
-		end	
+			it "doit répondre à :from_mesure" do
+			  @s.should respond_to :from_mesure
+				@s.should respond_to :to_mesure
+			end
+			it "doit répondre à :set_mesures" do
+			  @s.should respond_to :set_mesures
+			end
+			it ":set_mesures doit permettre de définir les mesures" do
+				@s.from_mesure.should be_nil
+				@s.to_mesure.should be_nil
+			  @s.set_mesures :from => 1
+				@s.from_mesure.should == 1
+				@s.to_mesure.should be_nil
+				@s.set_mesures :to => 15, :from => nil
+				@s.from_mesure.should be_nil
+				@s.to_mesure.should == 15
+			end
+		end	# / Méthodes de définition
 		
 		describe "(Méthodes de calcul)" do
 		  it "doit répondre à :duree_absolue_mesure" do
@@ -193,6 +210,6 @@ describe Score do
 				iv_set(score, :time => "2/8")
 				score.duree_absolue_mesure.should == 1.0
 			end
-		end	
+		end
 	end
 end

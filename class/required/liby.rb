@@ -25,6 +25,11 @@ class Liby
       :path_lily_undefined        => "Impossible de définir le chemin au fichier Lilypond…",
       :lilyfile_does_not_exists   => "Le fichier Lilypond du score n'existe pas…",
       
+      # === Ligne de commande === #
+      :commandline_lack_mesures_definition => 
+                                  "La définition des mesures est manquante avec l'option --mesures" \
+                                  << " (@usage: rubytoliby .... -m/--mesures=<mesure départ>-<mesure fin)",
+      :commandline_bad_mesures_definition => "Les mesures sont mal définies : seulement des nombres (ou rien)",
       # === Méthodes création === #
       :folder_score_already_exists => "Ce dossier score existe déjà. Il faut le supprimer avant d'en recréer un nouveau",
       
@@ -91,7 +96,9 @@ class Liby
                       :lily => true},
       'f'         => 'format',
       'help'      => {:hname => "Aide ruby2lily", :lily => false},
-      'h'         => 'help'
+      'h'         => 'help',
+      'm'         =>  'mesures',
+      'mesures'   => {:hname => "Mesures à afficher", :lily => false}
     }
     
     # Liste des options transformées en command ("options-commandes")
@@ -109,17 +116,6 @@ class Liby
       'b' => 'es', 'bb' => 'eses', '#' => 'is', '##' => 'isis'
     }
   
-    # Liste des commandes 
-    # --------------------
-    # Pour qu'un première paramètre de la commande `rubu2lily ...` soit
-    # interprété comme une commande et non pas comme un score à 
-    # éditer.
-    # OBSOLÈTE: on teste directement si Liby::Command répond à 
-    # "run_<command>"
-    # COMMAND_LIST = {
-    #   # :new      => {},
-    #   :generate => {}
-    # }
     
   end # / si les constantes sont déjà définies (tests)
   
@@ -210,13 +206,54 @@ class Liby
         option = OPTION_LIST[option_courte]
         fatal_error(:unknown_option, :option => option_courte) if option.nil?
         valeur = doption[2..-1]
+        valeur = valeur[1..-1] if valeur.start_with? "="
       end
       # Est-ce que c'est une "option-command"
       if OPTION_COMMAND_LIST.has_key? option
         @@command = option
       else
         @@options = @@options.merge option => valeur
+        if self.respond_to?("treat_option_#{option}")
+          self.send("treat_option_#{option}", valeur)
+        end
       end
+    end
+    
+    # -------------------------------------------------------------------
+    #   Méthodes de traitement immédiat de l'option
+    # 
+    #   @principe:  Si la méthode « treat_option_<option longue> »
+    #               existe, elle est invoquée ci-dessus lors de l'analyse
+    #               de la ligne de commande.
+    # -------------------------------------------------------------------
+    
+    # => Définit les mesures de départ et de fin à afficher
+    # 
+    # @param  val   String contenant "<mesure départ>-<mesure fin>"
+    #               On peut aussi donner seulement la mesure de départ,
+    #               "<départ>", ou la mesure de fin "-<mesure fin>"
+    def treat_option_mesures val
+      if val.to_s.blank?
+        fatal_error(:commandline_lack_mesures_definition) 
+      end
+      # Récupération des valeurs et test
+      begin
+        from, to = val.split('-')
+        from =  if from.to_s.blank? then nil
+                else 
+                  raise unless from.integer?
+                  from.to_i
+                end
+        to =    if to.to_s.blank? then nil
+                else 
+                  raise unless to.integer? 
+                  to.to_i
+                end
+      rescue Exception => e
+        fatal_error(:commandline_bad_mesures_definition)
+      end
+      # Définition des mesures
+      SCORE.set_mesures :from => from, :to => to
     end
     
     # =>  Méthode qui vérifie que la ligne de commande est correcte et
@@ -397,13 +434,59 @@ class Liby
     # Cette méthode part du principe que tous les fichiers d'un même
     # score (partition) possède le même path, à la différence de 
     # l'extension près.
+    # 
+    # THOUGH...
+    # 
+    # Avec certaines options (mesures, instruments, ...) les partitions
+    # ne doivent pas être générées au même endroit, mais dans un dossier
+    # 'extraits'. C'est cette méthode qui, en appelant path_per_options,
+    # gère ces différents cas.
+    # 
     def path_of_extension extension = ""
       return nil if path_ruby_score.nil?
+      real_path = path_per_options
+      extension = ".#{extension}" unless extension == ""
+      real_path << extension
+    end
+    
+    # =>  Retourne le path sans extension en fonction des options
+    #     modificatrices de path
+    # 
+    # @principe: sans option, le fichier .ly et .pdf porteront le même
+    # nom que le score ruby, et seront placés à ses côtée.
+    # En revanche, lorsque l'utilisateur choisi des mesures particulières
+    # et/ou des instruments particuliers ou tout autre forme d'options
+    # modificatrices de path, cette méthode renvoie le path relatif dans
+    # le dossier 'extraits' en ajoutant au nom du fichier les 
+    # informations concernant ces options.
+    # Par exemple, si le score est :
+    #     GIVEN Le score ruby est 'mon_score.rb'
+    #     WHEN  L'option '--mesures=12-56 est utilisée
+    #     THEN  La méthode doit renvoyer 'extraits/mon_score-m12-56'
+    #           @noter: sans extension
+    def path_per_options
       folder  = File.dirname(@@path_ruby_score)
       affixe  = File.basename(@@path_ruby_score, '.rb')
-      extension = ".#{extension}" unless extension == ""
-      File.join(folder, "#{affixe}#{extension}")
+
+      # Options modificatrices ?
+      unless @@options.nil?
+        with_mesures  = @@options.has_key?('mesures')
+        with_instrus  = @@options.has_key?('instruments')
+      else
+        with_mesures = with_instrus = false
+      end
+      options_modificatrices = with_mesures || with_instrus
+      folder = File.join(folder, 'extraits') if options_modificatrices
+      
+      # Modification du nom en fonction des options modificatrices
+      affixe << "-m#{SCORE.from_mesure}-#{SCORE.to_mesure}" if with_mesures
+      affixe << "-inst" if with_instrus
+
+      # Path retourné
+      File.join(folder, affixe)
     end
+    
+    
   end # / class << self
 
 

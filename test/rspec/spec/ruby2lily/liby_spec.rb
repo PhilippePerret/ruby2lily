@@ -6,25 +6,26 @@ require 'liby'
 
 describe Liby do
 	# @note: seule la classe est utilisée (singleton)
-	
-	# === Méthodes test utiles === #
-	
-	def define_command_line_with_options
-		path_score = File.join('test', 'score', 'partition_test.rb')
-		ARGV.clear
-		ARGV << path_score
-		ARGV << "-fpng"
-		ARGV << "--option voir"
-	end
-	def define_command_line argv
-		argv = argv.split(' ') if argv.class == String
-		ARGV.clear
-		argv.each { |m| ARGV << m }
-	end
-	
+		
 	before(:all) do
 	  SCORE = Score::new unless defined? SCORE
 	  ORCHESTRE = Orchestre::new unless defined? ORCHESTRE
+		path_score = File.join('test', 'score', 'partition_test.rb')
+		@path_partition_test = 
+			File.expand_path(File.join(BASE_LILYPOND, path_score))
+	end
+	before(:each) do
+	  cv_set(Liby, :options => nil)
+		iv_set(SCORE, :from_mesure 						=> nil)
+		iv_set(SCORE, :to_mesure 							=> nil)
+		iv_set(SCORE, :displayed_instruments 	=> nil)
+	end
+	
+	after(:all) do
+	  cv_set(Liby, :options => nil)
+		iv_set(SCORE, :from_mesure 						=> nil)
+		iv_set(SCORE, :to_mesure 							=> nil)
+		iv_set(SCORE, :displayed_instruments 	=> nil)	  
 	end
 	# -------------------------------------------------------------------
 	# 	Constantes
@@ -60,6 +61,7 @@ describe Liby do
 		  test_option_cmd 'help'
 		end
 	end
+	
 	# Tests des options
 	describe "Option" do
 	  def test_option opt, valeur = nil
@@ -98,162 +100,16 @@ describe Liby do
 		it "--format doit être une option lilypond" do
 		  get_option('format')[:lily].should === true
 		end
-	end
-	# -------------------------------------------------------------------
-	# 	Liste des erreurs
-	# -------------------------------------------------------------------
-	describe "Liste des erreurs" do
-		before(:all) do
-		  @derrs = Liby::ERRORS
+		it "-m doit être définie et retourner 'mesures'" do
+		  test_option 'm', 'mesures'
 		end
-		[
-			:string_required,
-			:command_line_empty,
-			:unknown_option,
-			:arg_path_file_ruby_needed,
-			:arg_score_ruby_unfound,
-			:orchestre_undefined,
-			:path_lily_undefined,
-			:lilyfile_does_not_exists,
-			:class_already_exists_for_score_class,
-			:bad_value_for_triolet,
-			:bad_nombre_notes_for_triolet,
-			:invalid_motif,
-			:invalid_duree_notes,
-			:cant_add_this,
-			:cant_add_any_to_motif,
-			:unable_to_find_first_note_motif,
-			:unable_to_find_last_note_motif,
-			:too_much_parameters_to_crochets,
-			:bad_class_in_parameters_crochets,
-			:bad_params_in_crochet,
-			:bad_value_duree,
-			:bad_type_for_args,
-			:bad_args_for_join_linote,
-			:motif_cant_be_surslured,
-			:bad_args_for_chord,
-			:type_ajout_unknown
-		].each do |cle_erreur|
-			it "l'erreur :#{cle_erreur} doit exister" do
-				Liby::ERRORS.should have_key cle_erreur
-			end
+		it "--mesures doit être définie" do
+		  test_option 'mesures'
 		end
 	end
 	
-	# -------------------------------------------------------------------
-	# 	Traitement des erreurs
-	# -------------------------------------------------------------------
-	describe "Traitement des erreurs" do
-	  it "Liby doit répondre à :error" do
-	    Liby.should respond_to :error
-	  end
-		it ":error doit renvoyer la bonne valeur" do
-			bad_path = "mon/path.rb"
-		  err = Liby.error(:arg_score_ruby_unfound, :path => bad_path)
-			err_formated = Liby::ERRORS[:arg_score_ruby_unfound]
-			err_formated = err_formated.sub(/#\{path\}/, bad_path)
-			err.strip.should == err_formated.strip
-		end
-		it "Liby doit répondre à :fatal_error" do
-		  Liby.should respond_to :fatal_error
-		end
-		it ":fatal_error doit exiter le programme" do
-			expect{Liby::fatal_error(:arg_score_ruby_unfound)}.to raise_error SystemExit
-		end
-		it ":analyze_command_line doit exiter avec des mauvais arguments" do
-			badpath = "path/to/score/ruby.rb"
-			define_command_line badpath
-			err = detemp(Liby::ERRORS[:arg_score_ruby_unfound], :path => badpath)
-			expect{Liby.analyze_command_line}.to raise_error(SystemExit, err)
-			cv_get(Liby, :path_ruby_score).should be_nil
-		end
-		it ":treat_errors_command_line doit lever une erreur si mauvaise commande" do
-		  # Aucun paramètres
-			cv_set(Liby, :parameters => [])
-			cv_set(Liby, :options => [])
-			cv_set(Liby, :command => nil)
-			expect{Liby::treat_errors_command_line}.to \
-				raise_error( SystemExit, Liby::ERRORS[:command_line_empty])
-		end
-	end
-	
-	# -------------------------------------------------------------------
-	# 	Analyse des arguments (lignes de commande)
-	# -------------------------------------------------------------------
-	describe "Analyse des arguments" do
-		before(:each) do
-		  init_all_paths_liby
-		end
-		it "Liby doit répondre à :analyze_command_line" do
-		  Liby.should respond_to :analyze_command_line
-		end
-		it ":analyze_command_line doit définir les valeurs" do
-		  cv_set(Liby, :options => nil)
-			cv_set(Liby, :parameters => nil)
-			define_command_line "-fformat unparametre"
-			expect{Liby.analyze_command_line}.to raise_error
-				# car "unparametre n'est pas un score valide"
-			cv_get(Liby, :options).should == {'format' => "format"}
-			cv_get(Liby, :parameters).should == ["unparametre"]
-		end
-		it ":analyze_command_line doit définir @@score_ruby si premier argument OK" do
-			path_score = File.join('test', 'score', 'partition_test.rb')
-			plily = File.expand_path(File.join(BASE_LILYPOND, path_score))
-			ARGV.clear
-			ARGV << path_score
-			Liby.analyze_command_line
-			cv_get(Liby, :path_ruby_score).should == plily
-		end
-		it ":analyze_command_line doit reconnaître une commande" do
-			ARGV.clear
-			ARGV << "new" << "blank"
-			Liby.analyze_command_line
-			Liby.command?.should be_true
-			cv_get(Liby, :command).should_not == "blank"
-			cv_get(Liby, :command).should == "new"
-		end
-		it "doit répondre à :treat_as_option" do
-		  Liby.should respond_to :treat_as_option
-		end
-		it ":treat_as_option doit reconnaitre une vraie option" do
-		  cv_set(Liby, :options => {})
-			Liby::treat_as_option "-v"
-			cv_get(Liby, :options).should == {} # car "option-commande"
-			Liby::treat_as_option '-fpng'
-			cv_get(Liby, :options).should == 
-				{ 'format' => "png" }
-		end
-		it ":treat_as_option doit transformer en commande une option-commande" do
-		  cv_set(Liby, :options => {}, :command => nil)
-			Liby::treat_as_option '-v'
-			cv_get(Liby, :command).should == "version"
-			Liby.should be_command
-		  cv_set(Liby, :options => {}, :command => nil)
-			Liby::treat_as_option '--version'
-			cv_get(Liby, :command).should == "version"
-			Liby.should be_command
-		end
-		
-		it ":treat_as_option doit lever une erreur si une option courte est inconnue" do
-			err = detemp(Liby::ERRORS[:unknown_option], :option => '?')
-		  expect{Liby::treat_as_option( '-?' )}.to \
-				raise_error(SystemExit, err)
-		end
-		
-		it "doit répondre à :treat_errors_command_line" do
-		  Liby.should respond_to :treat_errors_command_line
-		end
-		
-		it "doit répondre à parameters" do
-		  Liby.should respond_to :parameters
-		end
-		it ":parameters doit renvoyer les paramètres" do
-			cv_set(Liby, :parameters => nil)
-		  Liby.parameters.should be_nil
-			cv_set(Liby, :parameters => ["un", "deux"])
-			Liby.parameters.should == ["un", "deux"]
-		end
-	end
+	# La partie ligne de commande est testée dans :
+	# 	liby/command_line_spec.rb
 	
 	# -------------------------------------------------------------------
 	# 	Lilypondage ou commande
@@ -268,10 +124,7 @@ describe Liby do
 			ARGV << "blank"
 		end
 		def define_a_lilypondage
-			path_score = File.join('test', 'score', 'partition_test.rb')
-			plily = File.expand_path(File.join(BASE_LILYPOND, path_score))
-			ARGV.clear
-			ARGV << path_score
+			init_argv_with [@path_partition_test]
 		end
 		before(:each) do
 			define_a_commande
@@ -349,6 +202,70 @@ describe Liby do
 			cv_set(Liby, :path_ruby_score => p)
 			Liby.path_ruby_score.should == p
 		end
+		
+		# :path_of_extension
+		it "doit répondre à :path_of_extension (private)" do
+		  # Liby.private_class_methods.should include "path_of_extension"
+			# en attendant d'être en 1.9
+			begin
+				Liby.send("path_of_extension", "pdf")
+			rescue Exception => e
+				true.should be_false
+			end
+		end
+		it ":path_of_extension doit retourner la bonne valeur (SANS option modificatrice de path)" do
+			path_ini = File.join('path', 'to', 'monscore.rb')
+			cv_set(Liby, :path_ruby_score => path_ini)
+		  res = Liby.send("path_of_extension", 'rb')
+			res.should == path_ini
+		end
+		it ":path_of_extension doit retourner la bonne valeur (AVEC option modificatrice de path)" do
+		  cv_set(Liby, :path_ruby_score => File.join('path', 'to', 'mon_score.rb'))
+			cv_set(Liby, :options => {'mesures' => "ffff"})
+			iv_set(SCORE, :from_mesure => 2)
+			res = Liby.send("path_of_extension", "ly")
+			res.should == File.join('path', 'to', 'extraits', 'mon_score-m2-.ly')
+		end
+		
+		# :path_per_options
+		it "doit répondre à :path_per_options (private)" do
+		  # Liby.private_class_methods.should include "path_per_options"
+			# en attendant d'être en 1.9
+			begin
+				Liby.send("path_per_options")
+			rescue Exception => e
+				true.should be_false
+			end
+		end
+		it ":path_per_options avec options mesures doit retourner la bonne valeur" do
+			folder_ini = File.join('path', 'to')
+			path_ini = File.join(folder_ini, 'mon_score')
+		  cv_set(Liby, :path_ruby_score => "#{path_ini}.rb")
+			res = Liby.send('path_per_options')
+			res.should == path_ini
+			cv_set(Liby, 	:options => {'mesures' => "ffff"})
+			iv_set(SCORE, :from_mesure => 2)
+			res = Liby.send('path_per_options')
+			res.should == File.join(folder_ini, 'extraits', "mon_score-m2-")
+			iv_set(SCORE, :from_mesure => nil)
+			iv_set(SCORE, :to_mesure => 4)
+			res = Liby.send('path_per_options')
+			res.should == File.join(folder_ini, 'extraits', "mon_score-m-4")
+			iv_set(SCORE, :from_mesure => 2)
+			iv_set(SCORE, :to_mesure => 6)
+			res = Liby.send('path_per_options')
+			res.should == File.join(folder_ini, 'extraits', "mon_score-m2-6")
+		end
+		it ":path_per_options avec options instruments doit retourner le bon path" do
+			path_ini = File.join('path', 'to', 'mon_score')
+		  cv_set(Liby, 	:path_ruby_score => "#{path_ini}.rb")
+			Liby.send('path_per_options').should == path_ini
+			cv_set(Liby, 	:options => {'instruments' => "ffff"})
+			path = File.join('path', 'to', 'extraits', 'mon_score-inst')
+			Liby.send('path_per_options').should == path
+			
+		end
+		# :path_lily_file
 		it "doit répondre à :path_lily_file" do
 		  Liby.should respond_to :path_lily_file
 		end

@@ -88,22 +88,28 @@ class Score
   # -------------------------------------------------------------------
   attr_reader :title, :opus, :subtitle, :composer, :parolier, :key, 
               :time, :tempo, :base_tempo, :meter, :arranger, :description,
-              :code
+              :code,
+              # Options modificatrices
+              :from_mesure, :to_mesure, :displayed_instruments
               
-  @title      = nil   # Titre du morceau courant
-  @opus       = nil   # Opus (sans "Op. ")
-  @subtitle   = nil   # Sous-titre du morceau courant
-  @composer   = nil   # Auteur (compositeur) du morceau courant
-  @parolier   = nil   # Parolier du morceau courant (si paroles)
-  @key        = nil   # Tonalité (une valeur de clé de LINote::TONALITES)
-  @time       = nil   # Signature (métrique)
-  @tempo      = nil   # Tempo de référence
-  @base_tempo = nil   # Durée de la note tempo de référence (durée llp)
-  @meter      = nil   # Texte sous le titre à gauche de la page (peut
-                      # être aussi défini par "@instrument")
-  @arranger   = nil   # Arrangeur ou provenance
-  @description= nil   # Description sous le titre
-  @code       = nil   # Code sous l'header, ayant produit la partition
+  @title          = nil     # Titre du morceau courant
+  @opus           = nil     # Opus (sans "Op. ")
+  @subtitle       = nil     # Sous-titre du morceau courant
+  @composer       = nil     # Auteur (compositeur) du morceau courant
+  @parolier       = nil     # Parolier du morceau courant (si paroles)
+  @key            = nil     # Tonalité (une valeur de clé de LINote::TONALITES)
+  @time           = nil     # Signature (métrique)
+  @tempo          = nil     # Tempo de référence
+  @base_tempo     = nil     # Durée de la note tempo de référence (durée llp)
+  @meter          = nil     # Texte sous le titre à gauche de la page (peut
+                            # être aussi défini par "@instrument")
+  @arranger       = nil     # Arrangeur ou provenance
+  @description    = nil     # Description sous le titre
+  @code           = nil     # Code sous l'header, ayant produit la partition
+                       
+  @from_mesure    = nil     # Mesure de départ pour l'affichage (défaut: nil)
+  @to_mesure      = nil     # Mesure de fin pour l'affichage (défaut: nil)
+  @displayed_instruments=nil  # Les instruments à afficher. Si nil: tous
   
   def initialize params = nil
     
@@ -163,6 +169,16 @@ class Score
     end
   end
   
+  # =>  Méthode interne permettant de définir les mesures de départ et
+  #     de fin (pour les extraits)
+  # 
+  # @param  params    Hash contenant :from et/ou :to avec les valeurs
+  #                   que doivent prendre @from_mesure et @to_mesure
+  def set_mesures params
+    # @todo: ici, une vérification de la validité des informations
+    @from_mesure  = params[:from] if params.has_key? :from
+    @to_mesure    = params[:to]   if params.has_key? :to
+  end
   # => Retourne la durée absolue d'une mesure complète dans la métrique
   # donnée du score (mise à 4/4 par défaut)
   # Cette valeur est calculée par rapport à une noire qui vaut 1.0
