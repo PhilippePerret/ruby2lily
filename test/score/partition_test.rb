@@ -18,6 +18,7 @@ def orchestre
 
       instrument  class     staff     ton
     -------------------------------------------------------------------
+      # Garder absolument SALLY et PIANO car les tests en ont besoin
       SALLY       Voice       -         -
       PIANO       Piano       -         -
       BASSE       Bass        -         -

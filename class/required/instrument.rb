@@ -33,8 +33,10 @@ class Instrument
   # -------------------------------------------------------------------
   #   La classe
   # -------------------------------------------------------------------
-  @@instruments = nil       # La liste des instruments (instances)
-  
+  @@instruments = nil   # NORMALEMENT, OBSOLÈTE
+                        # C'EST ORCHESTRE.instruments qui contient les
+                        # instrument
+    
   
   # -------------------------------------------------------------------
   #   Instance

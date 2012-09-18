@@ -30,6 +30,8 @@ class Liby
                                   "La définition des mesures est manquante avec l'option --mesures" \
                                   << " (@usage: rubytoliby .... -m/--mesures=<mesure départ>-<mesure fin)",
       :commandline_bad_mesures_definition => "Les mesures sont mal définies : seulement des nombres (ou rien)",
+      :bad_instrument_for_extrait => "Les instruments doivent impérativement exister dans l'orchestre (\#{inst})",
+      
       # === Méthodes création === #
       :folder_score_already_exists => "Ce dossier score existe déjà. Il faut le supprimer avant d'en recréer un nouveau",
       
@@ -90,15 +92,17 @@ class Liby
     }
     
     OPTION_LIST = {
-      'version'   => {:hname => "Version de ruby2lily", :lily => false},
-      'v'         => 'version',
-      'format'    => {:hname => "Format du fichier de sortie (LilyPond)",
-                      :lily => true},
-      'f'         => 'format',
-      'help'      => {:hname => "Aide ruby2lily", :lily => false},
-      'h'         => 'help',
-      'm'         =>  'mesures',
-      'mesures'   => {:hname => "Mesures à afficher", :lily => false}
+      'f'           => 'format',
+      'h'           => 'help',
+      'i'           => 'instruments',
+      'm'           =>  'mesures',
+      'v'           => 'version',
+      'version'     => {:hname => "Version de ruby2lily", :lily => false},
+      'format'      => {:hname => "Format du fichier de sortie (LilyPond)",
+                        :lily => true},
+      'help'        => {:hname => "Aide ruby2lily", :lily => false},
+      'mesures'     => {:hname => "Mesures à afficher", :lily => false},
+      'instruments' => {:hname => "Instruments à afficher", :lily => false}
     }
     
     # Liste des options transformées en command ("options-commandes")
@@ -213,20 +217,48 @@ class Liby
         @@command = option
       else
         @@options = @@options.merge option => valeur
-        if self.respond_to?("treat_option_#{option}")
-          self.send("treat_option_#{option}", valeur)
-        end
       end
     end
     
+    # =>  Méthode appelée juste avant la fabrication de la partition,
+    #     pour analyser les options de ligne de commande qui génèrent des
+    #     extraits de la partition.
+    def analyze_options_extrait
+      if @@options.has_key?('instruments')
+        treat_option_instruments( @@options['instruments'])
+      end
+      if @@options.has_key?('mesures')
+        treat_option_mesures( @@options['mesures'] )
+      end
+    end
     # -------------------------------------------------------------------
-    #   Méthodes de traitement immédiat de l'option
+    #   Méthodes de traitement de l'option
     # 
-    #   @principe:  Si la méthode « treat_option_<option longue> »
-    #               existe, elle est invoquée ci-dessus lors de l'analyse
-    #               de la ligne de commande.
     # -------------------------------------------------------------------
     
+    
+    # =>  Définit (par la ligne de commandes principalement) les seuls
+    #     instruments à afficher dans la partition (extrait)
+    # 
+    # @note: Les instruments, dans +val+ sont définis par leur nom dans
+    # la définition de l'orchestre (capitales)
+    # Si un instrument n'existe pas, une erreur est levée.
+    def treat_option_instruments val
+      begin
+        instruments_str   = []
+        instruments_objs  = []
+        val.split(',').each do |instru|
+          instrument_existe = defined?(eval(instru))
+          raise unless instrument_existe
+          instruments_str   << instru
+          instruments_objs  << eval(instru)
+        end
+        SCORE.instance_variable_set("@displayed_instruments", instruments_str)
+        ORCHESTRE.instance_variable_set("@instruments", instruments_objs)
+      rescue Exception => e
+        fatal_error(:bad_instrument_for_extrait, :inst => val)
+      end
+    end
     # => Définit les mesures de départ et de fin à afficher
     # 
     # @param  val   String contenant "<mesure départ>-<mesure fin>"

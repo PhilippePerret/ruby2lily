@@ -99,6 +99,10 @@ else
     :code         => @code  # development only
   )
 
+  # Analyse les options d'extraits (quand on ne veut afficher que
+  # quelques mesures ou quelques instruments)
+  Liby::analyze_options_extrait
+  
   # Transformation du score ruby en score lilypond
   # -----------------------------------------------
   dbg '----> score'

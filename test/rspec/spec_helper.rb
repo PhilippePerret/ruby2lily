@@ -47,6 +47,11 @@ RSpec.configure do |config|
 		cv_set(Liby, :path_ruby_score   => nil)			
 		cv_set(Liby, :path_affixe_file  => nil)			
   end
+  # => Initialise les options et paramètres
+  def init_options_et_parametres
+    cv_set(Liby, :options => nil)
+    cv_set(Liby, :parameters => nil)
+  end
   
   def iv_set(objet, hash)
     hash.each do |k, v|

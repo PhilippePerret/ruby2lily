@@ -18,10 +18,17 @@ class Orchestre
   # -------------------------------------------------------------------
   #   Instance
   # -------------------------------------------------------------------
+  attr_reader :instruments
+  
   @data_orchestre   = nil   # Les data complètes de l'orchestre
   @tonalite_defaut  = nil   # Tonalité par défaut (la première trouvée)
-  @instruments      = nil   # Liste des instruments (constantes qui 
-                            # sont des instances d'instruments)
+  @instruments      = nil
+      # La liste des instruments (instances d'Instrument) 
+      # Cette liste est définie par la méthode `orchestre` du score, mais
+      # peut-être redéfinie par la ligne de commande ruby2lily, dans le
+      # cas où seuls certains instruments doivent être affichés (extrait
+      # de score). C'est elle qui est utilisée pour passer en revue les
+      # instruments et construire leur portée
   
   def initialize
   end
