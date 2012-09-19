@@ -245,6 +245,7 @@ class LINote < NoteClass
     # +note_llp+ n'était donc pas au bon format
     fatal_error(:not_note_llp, :note => note_llp)
   end
+  
   # => Return les données notes du motif +str+ (motif LilyPond)
   # ------------------------------------------------------------
   # @param  str   Un string contenant les notes à analyser
@@ -422,6 +423,7 @@ class LINote < NoteClass
 
   # =>  Return la valeur string de la note en fonction du +context+
   #     soumis.
+  #     CETTE MÉTHODE DOIT DEVENIR OBSOLÈTE (ELLE N'EST PAS EFFICIENTE)
   # @param note_int La note, exprimée en entier.
   # @param context  Hash qui doit définir au moins la clé :tonalite
   #                 indiquant la tonalité dans laquelle se trouve la
@@ -467,6 +469,7 @@ class LINote < NoteClass
   # =>  Retourne la marque LilyPond delta pour l'octave +octaves+
   #     Par exemple, pour 3, retourne « ''' »
   def self.octaves_to_delta octaves
+    return "" if octaves == 0
     mk = octaves > 0 ? "'" : ","
     mk.fois(octaves.abs)
   end
@@ -549,7 +552,8 @@ class LINote < NoteClass
   @octave     = nil   # Fixé par d'autre méthode ou à l'instanciation si
                       # dans les paramètres. Si on l'appelle par la
                       # méthode `octave', l'octave est compté à partir
-                      # de l'octave 3, en ajoutant le delta
+                      # de l'octave 3 ou l'octave fournie, en ajoutant 
+                      # le delta
   @delta      = nil   # Delta d'octave (calculé en général d'après 
                       # la valeur de @octave_llp)
                       
@@ -569,18 +573,7 @@ class LINote < NoteClass
   #         - :octave     La hauteur en octave de la note
   # 
   # @properties
-  #           :note     La note anglo-saxonne simple (seulement a-g)
-  #                     0 si c'est un silence.
-  #           :alter    Les altérations éventuelles / ""
-  #                     "is" ou "isis" ou "es" ou "eses" ou ""
-  #           :duration    La durée de la note / nil
-  #           :octave_llp Le delta d'octave, au format lilypond
-  #           :pre      Ce qu'il y a avant la note (p.e. "<" pour les
-  #                     accord)
-  #           :post     Ce qu'il y a après la note (p.e. ">" pour la
-  #                     dernière note d'un accord)
-  #           :finger   Le doigté indiqué
-  #           :jeu      L'indication de jeu sur la note.
+  #           cf. ci-dessus
   # 
   def initialize valeur = nil, params = nil
     case valeur.class.to_s
@@ -673,6 +666,7 @@ class LINote < NoteClass
   # =>  Retourne la valeur absolue de la durée de la note (pour calcul
   #     de mesures par exemple)
   #     Cette valeur est comptée sur la base d'une noire qui vaut 1.0
+  #     Donc, par exemple, une ronde vaut 4.0, une blanche 2.0, etc.
   def duree_absolue
     duree = duration(true)
     return nil if duree.nil?
@@ -699,11 +693,14 @@ class LINote < NoteClass
   #                 Dans ce cas, on indique dans params :
   #                   :except => {:octave_llp => true}
   # 
-  # @note : contrairement à la méthode :to_s, :to_llp renvoie l'octave
-  # en delta d'octave, pas en marque relative.
-  #   Soit la linote "c" à l'octave -1
-  #     linote.to_llp   =>    "c,"
-  #     linote.to_s     =>    "\\relative c, { c }"
+  # @note:  Contrairement à la méthode :to_s, :to_llp renvoie l'octave
+  #         en delta d'octave, pas en marque relative.
+  #         Soit la linote "c" à l'octave -1
+  #           linote.to_llp   =>    "c,"
+  #           linote.to_s     =>    "\\relative c, { c }"
+  #
+  # @note:  Cette méthode est utilisée pour l'instrument, en méthode
+  #         finale pour composer le code pour LilyPond.
   # 
   def to_llp params = nil
     params ||= {}
@@ -727,6 +724,55 @@ class LINote < NoteClass
     "#{Score::mark_relative(@octave)} { #{note} }"
   end
   
+  # =>  Définit le delta de +self+ pour que la linote suive +linote+ en
+  #     fonction de leurs octaves respectives
+  # 
+  def as_next_of linote, params = nil
+    fatal_error(:param_method_linote_should_be_linote, :ln => self, 
+                :method => "as_next_of") unless linote.class == LINote
+    params ||= {}
+    instrument = params[:instrument]
+    
+    # Octave naturelle de +self+ si elle suivait sans delta +linote+
+    self_natural_octave = natural_octave_after linote, instrument
+  
+    # La différence d'octave pour savoir si un delta est nécessaire
+    diff_octaves    = self.octave - self_natural_octave
+    delta_octaves   = LINote::octaves_to_delta diff_octaves
+
+    # Propriété delta redéfini
+    @delta = delta_octaves
+  end
+  
+  # =>  Retourne l'octave "naturelle" qu'aurait la linote +self+ si elle
+  #     suivait la +linote+ sans delta
+  #     Par exemple :
+  #     GIVEN   Une linote de note "a" et d'octave 0
+  #     WHEN    On demande l'octave naturelle d'une note "c"
+  #     THEN    La méthode renvoie 1
+  # 
+  # @param  linote      Une instance de LINote
+  # @param  instrument  Optionnellement, l'instance Instrument de 
+  #                     l'instrument, pour connaitre les octaves par
+  #                     défaut.
+  # 
+  # @return   Un entier Fixnum représentant l'octave naturelle de self
+  # 
+  def natural_octave_after linote, instrument = nil
+    fatal_error(:param_method_linote_should_be_linote, :ln => self, 
+      :method => "natural_octave_after") unless linote.class == LINote
+    # Position de +self+ par rapport à +linote+, sans tenir compte
+    # pour le moment de l'octave de linote
+    # On demande à savoir si l'octave a été franchie (true en 2e param)
+    result = self.note.au_dessus_de?( linote.note, true )
+    au_dessus       = (result & 1) > 0
+    new_octave      = (result & 2) > 0
+    # Octave franchi, en cas de nouvelle octave
+    add_octave      = new_octave ? (au_dessus ? 1 : -1) : 0
+    # En fonction de l'octave de +linote+, l'octave qu'aurait +self+ 
+    # sans delta
+    linote.octave(instrument) + add_octave
+  end
   # => Return la linote sous forme de hash
   # 
   def to_hash
@@ -753,9 +799,19 @@ class LINote < NoteClass
   end
   # =>  Return l'octave de la note (le calcule d'après octave_llp si
   #     non défini, en partant de l'octave 3)
+  # 
   # @return entier représentant l'octave de la note
-  def octave
-    @octave ||= ( 3 + delta )
+  # 
+  # @param  instrument    L'instrument (objet Instrument) optionnel,
+  #                       définissant l'octave par défaut
+  # 
+  def octave instrument = nil
+    @octave ||= lambda {
+        octave_defaut = unless instrument.nil?
+                          instrument.octave_defaut || 3
+                        else 3 end
+        ( octave_defaut + delta )
+      }.call
   end
   # =>  Return le nombre d'octaves ajoutées ou retirées par le delta
   #     de la LINote

@@ -705,6 +705,77 @@ describe LINote do
 			end
 		end
 		
+		# :natural_octave_after
+		it "doit répondre à :natural_octave_after" do
+		  @ln.should respond_to :natural_octave_after
+		end
+		it ":natural_octave_after doit lever une erreur si le 1er param n'est pas une linote" do
+			err = detemp(Liby::ERRORS[:param_method_linote_should_be_linote],
+									:ln => @ln, :method => "natural_octave_after")
+		  expect{@ln.natural_octave_after("a")}.to raise_error(SystemExit, err)
+		end
+		ary = <<-DEFA
+			note1 o1/N		note2		expected/N
+		---------------------------------------
+			c			1				c				1
+			c			2				c				2
+			c			2				a				1
+			c			5				fis			5
+			fis		5				c				5
+			fis		5				cisis		5
+			g			5				c				6
+			g			5				cisis		6
+		---------------------------------------
+		DEFA
+		ary.to_array.each do |d|
+			ln1 = LINote::new( d[:note1], :octave => d[:o1])
+			ln2 = LINote::new( d[:note2], :octave => 0)
+			octave_expected = d[:expected]
+			message = "#{ln2.note}-#{ln2.octave}.natural_octave_after" \
+								<< "(#{ln1.note}-#{ln1.octave}) doit retourner " \
+								<< "#{octave_expected} comme octave naturel"
+			it message do
+			  ln2.natural_octave_after(ln1).should == octave_expected
+			end
+		end
+		
+		# :as_next_of
+		it "doit répondre à :as_next_of" do
+		  @ln.should respond_to :as_next_of
+		end
+		it ":as_next_of doit lever une erreur si le paramètre n'est pas une linote" do
+			err = detemp(Liby::ERRORS[:param_method_linote_should_be_linote], 
+										:ln => @ln, :method => "as_next_of")
+		  expect{@ln.as_next_of('')}.to raise_error(SystemExit, err)
+		end
+		ary = <<-DEFA
+				note1	o1/N		note2	o2/N	delta
+			----------------------------------
+					a			-				a		-				-
+					a			1				a		0				,
+					a			1				c 	0				,,
+					a			1				c		1				,
+					a			1				c		2				-
+					f			1				c		1				-
+					f			1				c		2				'
+					f			2				c		1				,
+					g			2				c		3				-
+					g			2				c		5				''
+			----------------------------------
+		DEFA
+		ary.to_array.each do |d|
+			delta_expected = d[:delta] || ""
+			ln1 = LINote::new(d[:note1], :octave => d[:o1])
+			ln2 = LINote::new(d[:note2], :octave => d[:o2])
+			d_str = delta_expected.blank? ? "rien" : "« #{delta_expected} »"
+			texte = "#{d[:note2]}-#{d[:o2]}:as_next_of" \
+							<< "(#{d[:note1]}-#{d[:o1]})" \
+							<< " doit mettre le delta à #{d_str}"
+			it texte do
+				ln2.as_next_of ln1
+				ln2.delta.should == delta_expected
+		  end
+		end
 		# :rest?
 		it "doit répondre à :rest?" do
 		  @ln.should respond_to :rest?
