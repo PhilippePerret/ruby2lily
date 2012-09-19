@@ -41,6 +41,8 @@ class Instrument
   # -------------------------------------------------------------------
   #   Instance
   # -------------------------------------------------------------------
+  attr_reader :octave_defaut
+  
   @name       = nil   # Le nom (capitales) du musicien (constante) tel
                       # que défini dans le def-hash @orchestre
                       # @todo: cette propriété ne semble pas être définie
@@ -56,46 +58,23 @@ class Instrument
   @staff      = nil   # Instance Staff pour la construction de la portée
                       # de l'instrument
   
-  @notes      = nil   # La liste String des notes de l'instrument au 
-                      # cours du morceau
+  @notes      = nil   # La liste Array des notes de l'instrument au 
+                      # cours du morceau. Ce sont des instances de LINote
+                      # contenant toutes les informations et notamment :
+                      # l'octave, la durée
   
   @displayed = nil    # Détermine si l'instrument doit être affiché ou
                       # non (lorsqu'une option le retire)
+                      
   def initialize data = nil
     @data       = data
-    @notes      = ""
+    @notes      = []
     @displayed  = true
     data.each do |prop, value|
       instance_variable_set("@#{prop}", value)
     end unless data.nil?
   end
   
-  # => Retourne un accord (instance Accord) de l'instrument
-  def accord params = nil
-    Chord::new params
-  end
-  alias :chord :accord
-  
-  # => Retourne les accords de l'instrument spécifiés par +params+
-  def accords params
-    @chords ||= {}
-  end
-  alias :chords :accords
-  
-  # => Retourne un motif (instance Motif) de l'instrument
-  def motif params = nil
-    Motif::new params
-  end
-  # => Retourne les motifs de l'instrument spécifiés par +params+
-  def motifs params
-    @motifs ||= {}
-  end
-  
-  # => Retourne une mesure (instance Mesure) de l'instrument
-  def mesure params = nil
-    Measure::new params
-  end
-  alias :measure :mesure
   
   # => Retourne les mesures de l'instrument spécifiées par +params+
   # 
@@ -108,18 +87,15 @@ class Instrument
     # Retourner toutes les notes s'il n'y a pas de filtre de mesure
     # puts "@notes: #{@notes.inspect}"
     # @notes contient quelque chose comme : \relative c { a b c }
-    return @notes if first.nil? && last.nil?
+    return @notes_lilypond if first.nil? && last.nil?
     
     duree_mesure = SCORE::duree_absolue_mesure
     
-    # puts "staff_content : #{staff_content.inspect}"
-    linotes = LINote::explode @notes
-    # puts "linotes: #{linotes.inspect}"
     position_courante       = 0
     index_mesure            = 1
     linotes_expected        = []
     duree_absolue_last_note = nil
-    linotes.each do |linote|
+    @notes.each do |linote|
       # Tant qu'on n'a pas atteint la dernière mesure voulue,
       # on prend la linote si on a déjà passé la première mesure voulue
       if index_mesure >= first
@@ -154,8 +130,8 @@ class Instrument
   # => Ajoute l'élément +some+ à la partition de l'instrument
   # 
   # @param  some   
-  #         Peut-être :
-  #         - String des notes à ajouter, p.e. "c2 bb | c4 d d d"
+  #         Peut être :
+  #         - String des notes à ajouter, p.e. "c2 bb c4 d d d"
   #         - Un motif (instance Motif)
   #         - Un hash complexe pouvant définir dans quelles mesures il
   #           faut ajouter la séquence (rare).
@@ -163,8 +139,9 @@ class Instrument
   #                   motifs ou les accords (à commencer par la durée,
   #                   spécifiée par :duree => <duree lilypond>)
   def add some, params = nil
+    return unless @displayed
     case some.class.to_s
-    when 'String' then  add_as_string LINote::to_llp(some)
+    when 'String' then  add_as_string some, params
     when 'Motif'  then  add_as_motif  some, params
     when 'Chord'  then  add_as_chord  some, params
     when 'Hash'   then raise "Les hash ne sont pas encore traités"
@@ -175,25 +152,59 @@ class Instrument
   end
   alias :<< :add
   
+  # =>  Insert les notes
+  # 
+  # @param  notes   Array des instances LINotes à insérer dans les
+  #                 notes de l'instrument.
+  # 
+  # @note:  C'est la méthode finale de la suite :
+  #           add <something> (ci dessus)
+  #           add_<suivant type something> (p.e. "add_as_motif")
+  #           add_notes 
+  # 
+  # @note:  C'est dans cette méthode qu'on va gérer les delta pour faire
+  #         le bon raccord octave avec les notes précédentes.
+  # 
+  def add_notes linotes, params = nil
+    
+    return if linotes.nil? || linotes.empty?
+    
+    # Gestion du raccord avec note précédente
+    # ----------------------------------------
+    # @principe:    Le principe est simple : si la dernière note n'a
+    #               pas la même octave que la première note des nouvelles
+    #               notes, il faut modifier le delta de la première des
+    #               nouvelles notes.
+    unless @notes.empty?
+      note_last     = @notes.last.note
+      octave_last   = @notes.last.octave( treat_accord = true )
+      note_newune   = linotes.first.note
+      octave_newune = linotes.first.octave
+    end
+    
+    # Traitement des paramètres
+    # -------------------------
+    # @rappel:  les paramètres peuvent tout modifier dans une donnée,
+    #           comme l'octave, la durée, etc.
+    # @note:    on les ajoute seulement à la première note (peut-être
+    #           que ça sera différent plus tard) 
+    params.each { |p, v| @notes.first[p] = v } unless params.nil?
+    @notes = @notes + linotes
+  end
+  
   # => Ajoute la chose comme liste de notes
   # 
-  # C'est toujours dans cette méthode qu'on finit par passer.
-  # Si l'instrument ne doit pas être affiché, on la court-circuite
-  def add_as_string str
-    # return unless @displayed
-    
-    # = débug =
-    unless @displayed
-      puts "L'instrument #{self.class} est zappé, je n'écris pas les notes"
-      return
-    else
-      puts "L'instrument #{self.class} n'est pas zappé, je dois écrire ses notes (#{str})"
-    end
-    # = /débug =
-    
-    @notes = "#{@notes} #{str}".strip
-    puts "@notes, devient : #{@notes}"
+  # La méthode transforme le string +str+ en liste de LINotes pour pouvoir
+  # l'insérer dans la suite des notes de l'instrument.
+  # 
+  # @note:    Transforme les italiennes et altérations normales en 
+  #           lilypond
+  # 
+  def add_as_string str, params = nil
+    suite_str = LINote::to_llp(str)
+    add_notes LINote::explode suite_str, params
   end
+  
   # => Ajoute la chose comme accord
   # @param  chord     Instance Chord de l'accord
   # @param  duree     Durée (lilypond) optionnelle
@@ -216,6 +227,25 @@ class Instrument
       n = "#{n}#{params[:duree]}"
     end
     add_as_string n
+  end
+  
+  # =>  Définit @notes_lilypond, suite de notes au format lilypond
+  # 
+  # @principe: la méthode passe en revue toutes les LINotes de @notes
+  # et les ajoute.
+  # 
+  # @return   Le string fabriqué, prêt à être mis dans le score lilypond
+  # 
+  # @note     Ne commence pas par « \relative ... » (cf. ci-dessous)
+  # 
+  # @note     Je n'ai plus besoin de traiter l'octave ici puisqu'il est
+  #           maintenant traité au bon endroit, c'est-à-dire dans la
+  #           première marque relative.
+  # 
+  def notes_to_llp
+    return "" if @notes.empty?
+    @notes_lilypond = ""
+    @notes.each { |ln| @notes_lilypond << ln.to_llp }
   end
   
   # -------------------------------------------------------------------
@@ -278,9 +308,40 @@ class Instrument
   
   # => Return la marque "relative c..."
   # 
-  # Cette méthode est la méthode par défaut, elle doit être
-  # définie dans l'instrument s'il en possède une autre
   def mark_relative
-    "relative c''"
+    octave =  unless @notes.empty?
+                @notes.first.octave
+              else
+                @octave_defaut || 4
+              end
+    Score::mark_relative( octave )
   end
+  # 
+  # # => Retourne un accord (instance Accord) de l'instrument
+  # def accord params = nil
+  #   Chord::new params
+  # end
+  # alias :chord :accord
+  # 
+  # # => Retourne les accords de l'instrument spécifiés par +params+
+  # def accords params
+  #   @chords ||= {}
+  # end
+  # alias :chords :accords
+  # 
+  # # => Retourne un motif (instance Motif) de l'instrument
+  # def motif params = nil
+  #   Motif::new params
+  # end
+  # # => Retourne les motifs de l'instrument spécifiés par +params+
+  # def motifs params
+  #   @motifs ||= {}
+  # end
+  # 
+  # # => Retourne une mesure (instance Mesure) de l'instrument
+  # def mesure params = nil
+  #   Measure::new params
+  # end
+  # alias :measure :mesure
+  # 
 end

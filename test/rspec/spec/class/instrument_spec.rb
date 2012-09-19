@@ -30,18 +30,18 @@ describe Instrument do
 	  end
 	
 		describe "Sous-instances" do
-			# :accord / :accords
-			it "doit répondre à :accord et :chord" do
-			  @instru.should respond_to :accord
-				@instru.should respond_to :chord
-			end
-			it ":accord doit renvoyer une instance de class Accord" do
-			  @instru.accord.class.should == Chord
-			end
-			it "doit répondre à :accords et :chords" do
-			  @instru.should respond_to :accords
-				@instru.should respond_to :chords
-			end
+			# # :accord / :accords
+			# it "doit répondre à :accord et :chord" do
+			#   @instru.should respond_to :accord
+			# 	@instru.should respond_to :chord
+			# end
+			# it ":accord doit renvoyer une instance de class Accord" do
+			#   @instru.accord.class.should == Chord
+			# end
+			# it "doit répondre à :accords et :chords" do
+			#   @instru.should respond_to :accords
+			# 	@instru.should respond_to :chords
+			# end
 
 			# :explode
 			it "doit répondre à :explode" do
@@ -73,14 +73,14 @@ describe Instrument do
 				ln.duration.should == "8"
 				
 			end
-			# :mesure / :mesures
-			it "doit répondre à :mesure et :measure" do
-			  @instru.should respond_to :mesure
-				@instru.should respond_to :measure
-			end
-			it ":mesure doit retourner une instance de classe Mesure" do
-			  @instru.mesure.class.should == Measure
-			end
+			# # :mesure / :mesures
+			# it "doit répondre à :mesure et :measure" do
+			#   @instru.should respond_to :mesure
+			# 	@instru.should respond_to :measure
+			# end
+			# it ":mesure doit retourner une instance de classe Mesure" do
+			#   @instru.mesure.class.should == Measure
+			# end
 			it "doit répondre à :mesures et :measures" do
 			  @instru.should respond_to :mesures
 			  @instru.should respond_to :measures
@@ -92,16 +92,16 @@ describe Instrument do
 				res.to_s.should == "eis4-^ f g a"
 			end
 
-			# :motif / :motifs
-			it "doit répondre à :motif" do
-			  @instru.should respond_to :motif
-			end
-			it ":motif doit retourner une instance de classe Motif" do
-			  @instru.motif.class.should == Motif
-			end
-			it "doit répondre à :motifs" do
-			  @instru.should respond_to :motifs
-			end
+			# # :motif / :motifs
+			# it "doit répondre à :motif" do
+			#   @instru.should respond_to :motif
+			# end
+			# it ":motif doit retourner une instance de classe Motif" do
+			#   @instru.motif.class.should == Motif
+			# end
+			# it "doit répondre à :motifs" do
+			#   @instru.should respond_to :motifs
+			# end
 		end # / sous-instances
 
 		# -------------------------------------------------------------------
@@ -160,6 +160,19 @@ describe Instrument do
 			  @instru.add motif
 				iv_get(@instru, :notes).should == "\\relative c { a( b c b a) }"
 			end
+			
+			# :add_notes
+			# (méthode finale qui reçoit et conserve les notes)
+			it "doit répondre à :add_notes" do
+			  @instru.should respond_to :add_notes
+			end
+			it ":add_notes doit ajouter les notes" do
+			  iv_set(@instru, @notes => "")
+				@instru.add_notes("a b c")
+				iv_get(@instru, @notes).should == "a b c"
+				@instru.add_notes("b,, c d <a d f>")
+				iv_get(@instru, @notes).should == "a b c b,, c d <a d f>"
+			end
 		end
 
 		# -------------------------------------------------------------------
@@ -168,6 +181,20 @@ describe Instrument do
 		describe "vers score lilypond" do
 			before(:all) do
 			  SCORE = Score::new unless defined? SCORE
+			end
+			# :notes_to_llp
+			it "doit répondre à :notes_to_llp" do
+			  @instru.should respond_to :notes_to_llp
+			end
+			it ":notes_to_llp doit définir @notes_lilypond" do
+				iv_set(@instru, :notes => [])
+			  @instru.notes_to_llp
+				iv_get(@instru, :notes_lilypond).should == ""
+				ln = LINote::new("c", :octave => 4, :duration => 8)
+				iv_set(@instru, :notes => [ln])
+				@instru.notes_to_llp
+				iv_get(@instru, :notes_lilypond).should == "c8"
+				# @todo: faire des tests plus complets ici
 			end
 			# :to_lilypond
 		  it "doit répondre à to_lilypond" do
