@@ -18,7 +18,7 @@ describe "Méthode :[]" do
 			no.class.should == Note
 			res = no["8"]
 			res.class.should == Note
-			res.to_s.should == "c8"
+			res.to_s.should == "\\relative c' { c8 }"
 			no[2,"4"].to_s.should == "\\relative c, { c4 }"
 		end
   end
@@ -34,7 +34,7 @@ describe "Méthode :[]" do
 		it "doit retourner un bon motif" do
 		  mo = Motif::new "c(\\< d e)\\!"
 			mo_duree_8 = mo["8"]
-			mo_duree_8.to_s.should == "\\relative c { c8(\\< d e)\\! }"
+			mo_duree_8.to_s.should == "\\relative c' { c8(\\< d e)\\! }"
 			mo_octave_2 = mo[2]
 			mo_octave_2.to_s.should == "\\relative c, { c(\\< d e)\\! }"
 			mo_oct1_dur4 = mo["4", -1]
@@ -72,7 +72,7 @@ describe "Méthode :[]" do
 		end
 		it "doit pouvoir recevoir une unique valeur string (=> durée)" do
 		  res = @acc["16"]
-			res.to_s.should == "\\relative c { <a c e>16 }"
+			res.to_s.should == "\\relative c' { <a c e>16 }"
 		end
 		it "doit pouvoir recevoir une unique valeur octave (=> octave)" do
 		  res = @acc[2]
@@ -80,11 +80,11 @@ describe "Méthode :[]" do
 		end
 		it "doit pouvoir recevoir une valeur de durée-mot" do
 		  res = @acc[blanche]
-			res.to_s.should == "\\relative c { <a c e>2 }"
+			res.to_s.should == "\\relative c' { <a c e>2 }"
 		end
 		it "ne doit pas changer l'octave si nil" do
 		  res = @acc[nil, 16]
-			res.to_s.should == "\\relative c { <a c e>16 }"
+			res.to_s.should == "\\relative c' { <a c e>16 }"
 		end
 		it "doit pouvoir recevoir un hash" do
 		  res = @acc[:duree => 8, :octave => -1]

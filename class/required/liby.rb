@@ -50,7 +50,9 @@ class Liby
         << "cette classe est utilisée par le système…",
       :type_ajout_unknown         => "Impossible d'ajouter à l'instrument. Je ne sais pas comment appréhender la class « \#{type} »…",
       :type_procedure_unexpected  => "Impossible d'ajouter à l'instrument. C'est une procédure qui a été envoyée. Peut-être manque-t-il un « .call » ?…",
-
+      :bad_params_in_add_notes_instrument => 
+        "Mauvais arguments dans Instrument#add_notes. Une liste de LINotes ou un Motif est requis " \
+        << "(instrument: \#{instrument}, bad params: \#{params.inspect} )",
       # === Portée === #
       :bad_clef                   => "La clé '\#{clef}' est inconnue",
       

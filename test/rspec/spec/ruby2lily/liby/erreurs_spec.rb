@@ -47,7 +47,8 @@ describe Liby do
 			:motif_cant_be_surslured,
 			:bad_args_for_chord,
 			:type_ajout_unknown,
-			:param_method_linote_should_be_linote
+			:param_method_linote_should_be_linote,
+			:bad_params_in_add_notes_instrument
 		].each do |cle_erreur|
 			it "l'erreur :#{cle_erreur} doit exister" do
 				Liby::ERRORS.should have_key cle_erreur

@@ -6,7 +6,7 @@
 	/Users/philippeperret/Sites/cgi-bin/lilypond/test/score/with_dossier_scores/essai.rb
 %}
 
-\version "0.4.2"
+\version "2.7.38"
 
 % Informations score
 \header {
@@ -18,7 +18,7 @@
 % Score
 {\new PianoStaff <<
 	\new Staff {
-		\relative c'' {
+		\relative c' {
 			\clef "treble"
 			\time 4/4
 			

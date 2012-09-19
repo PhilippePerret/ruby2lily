@@ -3,6 +3,9 @@
 # 
 class Cello < Instrument
   
-  @octave_defaut = 1
+  def initialize params = nil
+    super(params)
+    @octave_defaut = 3
+  end
   
 end

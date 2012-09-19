@@ -15,7 +15,7 @@ class Chord < NoteClass
   attr_reader :notes, :octave, :duration
   
   @notes    = nil   # La liste array des notes, de la + basse à la + haute
-  @octave   = nil   # L'octave (par défaut : 3)
+  @octave   = nil   # L'octave (par défaut : 4)
   @duration = nil   # La durée (if any) de l'accord
   # Si des propriétés sont ajoutées, penser à les ajouter dans le
   # clonage de initialize (when "Chord")
@@ -30,7 +30,7 @@ class Chord < NoteClass
   #                   Peut-être un hash (non utilisé encore)
   # 
   def initialize notes = nil, params = nil
-    @octave   = 3
+    @octave   = 4
     @duration = nil
     @notes    = []
     case notes.class.to_s
@@ -158,7 +158,7 @@ class Chord < NoteClass
     ln_first = notes.first.to_linote
     notes[0] = ln_first.with_alter
     # Affecter les notes à l'accord
-    chord.instance_variable_set("@notes", notes)
+    chord.set_params :notes => notes
     chord
   end
   alias :renversement :renverse

@@ -53,10 +53,10 @@ class String
   
   # => Retourne la suite +self+ sous forme de Motif
   # 
-  # @note   Self peut être une suite, pas seulement une note seule
+  # @note   +self+ peut être une suite, pas seulement une note seule
+  # @note   Les italiennes et altérations "normales" seront transformées
   # 
   def as_motif
-    # On traduit en lilypond (italiennes et altérations)
     Motif::new self
   end
   
@@ -201,11 +201,12 @@ class String
   # 
   # @return   Une linote de la note la plus proche trouvée
   # 
+  # @todo: cette méthode n'est-elle pas obsolète ?
   # 
   def closest note, octave = nil
     
-    octave_self = octave || 3
-    octave_self += LINote::octaves_from_llp self
+    octave_self = octave || 4
+    octave_self += LINote::delta_from_markdelta self
 
     # ln_self   = LINote::new self, :octave => octave
     
@@ -229,7 +230,7 @@ class String
     octave_note = octave_self + ln_note.delta + ajout_franchissement
     
     # On régle pour terminer l'octave de la LINote à retourner
-    ln_note.instance_variable_set("@octave", octave_note)
+    ln_note.set :octave => octave_note
     
     # # = débug =
     # # Résumé des opérations

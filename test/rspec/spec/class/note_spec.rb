@@ -59,7 +59,7 @@ describe Note do
 		    res = Note::create_note("c")
 				res.class.should == Note
 				res.it.should == "c"
-				res.octave.should == 3
+				res.octave.should == 4
 		  end
 		
 			# :split_note_et_octave
@@ -133,7 +133,7 @@ describe Note do
 				it ":initialize doit traiter une note fournie avec octave" do
 				  @n = Note::new "c,"
 					@n.it.should == "c"
-					@n.octave.should == 2
+					@n.octave.should == 3
 				end
 				
 				# :set_params (hérité de NoteClass)
@@ -149,25 +149,25 @@ describe Note do
 				  @n.set 'd'
 					@n.it.should == "d"
 					iv_get(@n, :itit).should == "ré"
-					@n.octave.should == 3
+					@n.octave.should == 4
 				end
 				it ":set doit traiter une note italienne simple" do
 				  @n.set 'si'
 					@n.it.should == "b"
 					iv_get(@n, :itit).should == "si"
-					@n.octave.should == 3
+					@n.octave.should == 4
 				end
 				it ":set doit traiter une anglaise avec octave" do
 				  @n.set "f'"
 					@n.it.should == "f"
 					iv_get(@n, :itit).should == "fa"
-					@n.octave.should == 4
+					@n.octave.should == 5
 				end
 				it ":set doit traiter une italienne avec octave" do
 				  @n.set "sol,,"
 					@n.it.should == "g"
 					iv_get(@n, :itit).should == "sol"
-					@n.octave.should == 1
+					@n.octave.should == 2
 				end
 				it ":set doit traiter un silence" do
 				  @n.set "r"
@@ -212,7 +212,7 @@ describe Note do
 					mo = n.as_motif
 					mo.class.should == Motif
 					mo.notes.should == "c"
-					mo.octave.should == 0
+					mo.octave.should == 1
 				end
 				it ":to_silence" do
 				  @n.should respond_to :to_silence
@@ -326,7 +326,7 @@ describe Note do
 					end
 					it ":as_#{len} doit renvoyer la bonne valeur" do
 					  res = @n.send("as_#{len}")
-						res.should == "g#{duree}"
+						res.should == "\\relative c' { g#{duree} }"
 					end
 					it ":as_#{len} doit mettre la durée à #{duree}" do
 						iv_set(@n, :duration => nil)

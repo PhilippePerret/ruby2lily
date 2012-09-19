@@ -19,7 +19,7 @@ describe Chord do
 		it "avec argument array doit être valide" do
 		  @c = Chord::new ["c", "e", "g"]
 			iv_get(@c, :notes).should == ["c", "e", "g"]
-			@c.octave.should == 3
+			@c.octave.should == 4
 		end
 		it "avec argument hash doit être valide" do
 		  @c = Chord::new :notes => ["a", "cis", "e"], :octave => 2
@@ -97,7 +97,7 @@ describe Chord do
 		end
 		it ":to_s doit renvoyer la bonne valeur avec une durée spécifiée" do
 			@c = Chord::new "c e g"
-			@c.to_s(4).should == "\\relative c { <c e g>4 }"
+			@c.to_s(4).should == "\\relative c' { <c e g>4 }"
 		end
 		
 		# :to_acc
@@ -118,11 +118,11 @@ describe Chord do
 			notes = "a c e"
 		  acc = Chord::new notes
 			acc.to_hash.should == { :notes => notes.split(' '), 
-															:duration => nil, :octave => 3}
+															:duration => nil, :octave => 4}
 			notes = "c e g"
-			acc = Chord::new :notes => notes, :octave => 4, :duration => "4."
+			acc = Chord::new :notes => notes, :octave => 5, :duration => "4."
 			acc.to_hash.should == { :notes => notes.split(' '), 
-															:duration => "4.", :octave => 4}
+															:duration => "4.", :octave => 5}
 		end
 		# :as_motif
 		it "doit répondre à :as_motif" do
@@ -135,7 +135,7 @@ describe Chord do
 			mo.to_s.should == "\\relative c,,,, { <a c e> }"
 			iv_set(chord, :duration => 8)
 			mo = chord.as_motif
-			mo.notes.should_not == "<a c e>8"
+			(mo.notes == "<a c e>8" ).should be_false
 			mo.notes.should == "<a c e>"
 			# puts "mo: #{mo.inspect}"
 			mo.to_s.should == "\\relative c,,,, { <a c e>8 }"
@@ -147,7 +147,7 @@ describe Chord do
 		end
 		it ":with_duree doit renvoyer la bonne valeur" do
 			@c = Chord::new "c e g"
-			@c.with_duree(4).should == "\\relative c { <c e g>4 }"
+			@c.with_duree(4).should == "\\relative c' { <c e g>4 }"
 		end
 		
 		# :renversement / renverse

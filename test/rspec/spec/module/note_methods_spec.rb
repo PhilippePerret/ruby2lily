@@ -23,7 +23,7 @@ describe "Module/note_methods" do
 			end
 			it "l'octave de #{note} doit être 3" do
 			  n = eval("#{note}()")
-				n.octave.should == 3
+				n.octave.should == 4
 			end
 		end
 	end # / les notes

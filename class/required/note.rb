@@ -33,7 +33,7 @@ class Note < NoteClass
   # => Return la note +note+ avec les paramètres +params+
   def self.create_note note, params = nil
     params ||= {}
-    params[:octave] ||= 3
+    params[:octave] ||= 4
     Note::new note, params
   end
   
@@ -109,7 +109,7 @@ class Note < NoteClass
   def initialize note = nil, params = nil
     # Valeurs par défaut
     @rest     = false
-    @octave   = 3
+    @octave   = 4
     @duration = nil
     set note unless note.nil?
     set_params params
@@ -118,10 +118,8 @@ class Note < NoteClass
   def set valeur
     linote  = LINote::llp_to_linote( LINote::to_llp( valeur ) )
     @it     = linote.note
-    unless linote.octave_llp.nil?
-      @octave = 3 + LINote::octaves_from_llp( linote.octave_llp )
-    end
-    @rest = linote.rest?
+    @octave = 4 + linote.delta
+    @rest   = linote.rest?
     if @rest
       @it = @itit = nil
     else

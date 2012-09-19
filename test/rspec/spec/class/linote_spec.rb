@@ -202,14 +202,14 @@ describe LINote do
 			# Notes et accords
 			notes = "ces <a c'' eeses,,>8 e <gis bes>156. r4."
 			dpo = "duree_post"
-			ollp = "octave_llp"
+			ollp = "delta/N"
 			comp_str = <<-DEFA
 				note	pre		post	jeu		duration		alter		#{dpo} #{ollp}
 				--------------------------------------------------------			
 				c			-			-			-			-		 		 		es			-				-
 				a			<			-			-			-		 		 		-				-				-
-				c			-			-			-			-		 		 		-				-				''
-				e			-			>			-			-		 		 		eses		8				,,
+				c			-			-			-			-		 		 		-				-				2
+				e			-			>			-			-		 		 		eses		8				-2
 				e			-			-			-			-		 		 		-				-				-
 				g			<			-			-			-		 		 		is			-				-
 				b			-			>			-			-		 		 		es			156.		-
@@ -238,7 +238,7 @@ describe LINote do
 		  res = LINote::llp_to_linote("a")
 			res.class.should == LINote
 		end
-		olp = "octave_llp"
+		olp = "mark_delta"
 		d   = "delta/N"
 		fi	= "finger"
 		ary_bonnes_valeurs = <<-DEFH
@@ -265,13 +265,14 @@ describe LINote do
 		DEFH
 		ary_bonnes_valeurs.to_array.each do |data_llp|
 			suite = data_llp.delete(:suite)
+			data_llp[:mark_delta] = "" if data_llp[:mark_delta].nil?
 			it "LINote::llp_to_linote('#{suite}') doit retourner : #{data_llp.inspect}" do
 				linote = LINote::llp_to_linote(suite)
 				linote.class.should == LINote
-				[:note, :alter, :octave_llp, :jeu, :finger].each do |prop|
+				[:note, :alter, :delta, :jeu, :finger].each do |prop|
 					iv_get(linote, prop).should == data_llp[prop]
 				end
-				linote.delta.should == data_llp[:delta]
+				linote.mark_delta.should == data_llp[:mark_delta]
 			end
 		end
 
@@ -392,30 +393,30 @@ describe LINote do
 		end
 		
 			
-		# :octaves_from_llp
-		it "doit répondre à :octaves_from_llp" do
-		  LINote.should respond_to :octaves_from_llp
+		# :delta_from_markdelta
+		it "doit répondre à :delta_from_markdelta" do
+		  LINote.should respond_to :delta_from_markdelta
 		end
-		it ":octaves_from_llp doit renvoyer la bonne valeur" do
-			LINote::octaves_from_llp("").should  == 0
-			LINote::octaves_from_llp(nil).should == 0
-		  LINote::octaves_from_llp("'").should == 1
-			LINote::octaves_from_llp(",").should == -1
-			LINote::octaves_from_llp("''").should == 2
-			LINote::octaves_from_llp(",,").should == -2
-			LINote::octaves_from_llp("''''''''").should == 8
-			LINote::octaves_from_llp(",,,,,,,,").should == -8
+		it ":delta_from_markdelta doit renvoyer la bonne valeur" do
+			LINote::delta_from_markdelta("").should  == 0
+			LINote::delta_from_markdelta(nil).should == 0
+		  LINote::delta_from_markdelta("'").should == 1
+			LINote::delta_from_markdelta(",").should == -1
+			LINote::delta_from_markdelta("''").should == 2
+			LINote::delta_from_markdelta(",,").should == -2
+			LINote::delta_from_markdelta("''''''''").should == 8
+			LINote::delta_from_markdelta(",,,,,,,,").should == -8
 		end
 		
-		# :octaves_to_delta
-		it "doit répondre à :octaves_to_delta" do
-		  LINote.should respond_to :octaves_to_delta
+		# :mark_delta
+		it "doit répondre à :mark_delta" do
+		  LINote.should respond_to :mark_delta
 		end
-		it ":octaves_to_delta doit retourner la bonne valeur" do
-		  LINote::octaves_to_delta(3).should == "'''"
-			LINote::octaves_to_delta(-3).should == ",,,"
-			LINote::octaves_to_delta(0).should == ""
-			LINote::octaves_to_delta(-4).should == ",,,,"
+		it ":mark_delta doit retourner la bonne valeur" do
+		  LINote::mark_delta(3).should == "'''"
+			LINote::mark_delta(-3).should == ",,,"
+			LINote::mark_delta(0).should == ""
+			LINote::mark_delta(-4).should == ",,,,"
 		end
 		
 		# :REG_NOTE
@@ -504,6 +505,24 @@ describe LINote do
 	    @ln = LINote::new "c"
 	  end
 
+		# Instanciation
+		it "L'instanciation doit définir les valeurs qui font défaut" do
+		  ln = LINote::new "c"
+			ln.duration.should be_nil
+			ln.delta.should == 0
+		end
+		# :mark_delta
+		it "doit répondre à :mark_delta" do
+		  @ln.should respond_to :mark_delta
+		end
+		it ":mark_delta doit renvoyer la bonne valeur en fonction du delta" do
+		  ln = LINote::new "c"
+			ln.mark_delta.should == ""
+			ln.set :delta => 2
+			ln.mark_delta.should == "''"
+			ln.set :delta => -2
+			ln.mark_delta.should == ",,"
+		end
 		# :abs / :to_midi
 		it "doit répondre à :abs" do
 		  ln = LINote::new "ces'"
@@ -583,7 +602,7 @@ describe LINote do
 		end
 		it ":to_s doit retourner la bonne valeur" do
 		  ln = LINote::new "c"
-			ln.to_s.should == "\\relative c { c }"
+			ln.to_s.should == "\\relative c' { c }"
 			ln = LINote::new :note => "c#", :octave => 1, :duree => "8", :jeu => "^"
 			ln.to_s.should == "\\relative c,, { cis8-^ }"
 		end
@@ -609,14 +628,14 @@ describe LINote do
 		end
 		dur = "duration"
 		dup = "duree_post"
-		olp = "octave_llp"
+		olp = "delta/N"
 		dyn = "dynamique"
 		data_test = <<-DEFH
 			note			pre		post	#{dur} #{dup} #{olp} alter jeu finger #{dyn} res
 		-------------------------------------------------------------------
 			c					-			-			-			-				-			-			-			-			-			c
-			c					-			(			4			-				'			es		-			-			-			ces'4(
-			c					<     -			8			-				,,		isis	^		-			\\!		<cisis,,8-^\\!
+			c					-			(			4			-				1			es		-			-			-			ces'4(
+			c					<     -			8			-				-2		isis	^		-			\\!		<cisis,,8-^\\!
 		-------------------------------------------------------------------
 		DEFH
 		data_test = data_test.to_array
@@ -638,18 +657,18 @@ describe LINote do
 		  @ln.should respond_to :to_hash
 		end
 		it ":to_hash doit renvoyer la bonne valeur" do
-			hash = {:note => "c", :duration => 4, :octave_llp => "''",
+			hash = {:note => "c", :duration => 4, :delta => 2,
 							:alter => "es" }
 		  ln = LINote::new hash
 		 	ln_to_hash = ln.to_hash
 			hash.each { |prop, val| ln_to_hash[prop].should == val }
 			ln = LINote::new "aisis''8"
 			hash_ln = ln.to_hash
-			hash_ln[:note].should == "a"
+			hash_ln[:note].should 		== "a"
 			hash_ln[:duration].should == "8"
-			hash_ln[:alter].should == "isis"
-			hash_ln[:octave_llp].should == "''"
-			hash_ln[:octave].should == 5
+			hash_ln[:alter].should 		== "isis"
+			hash_ln[:delta].should 		== 2
+			hash_ln[:octave].should 	== 6
 		end
 		
 		# :as_note
@@ -688,19 +707,19 @@ describe LINote do
 		  @ln.should respond_to :octave
 		end
 	  [
-			["c", nil, "", 3],
-			["c", 1, "", 1],
-			["c", -2, "", -2],
-			["c", nil, "'", 4],
-			["c", nil, ",,", 1]
+			["c", nil, 0, 4],
+			["c", 1, 0, 1],
+			["c", -2, 0, -2],
+			["c", nil, 1, 5],
+			["c", nil, -2, 2]
 		].each do |d|
-			note, octave, llp, octave_expected = d
+			note, octave, delta, octave_expected = d
 			texte = ":octave de #{note} "
 			texte << (octave.nil? ? "sans octave" : "d'octave #{octave}")
-			texte << (llp == "" ? "" : " avec octave llp « #{llp} »")
+			texte << (delta == 0 ? "" : " avec delta « #{delta} »")
 			texte << " doit renvoyer #{octave_expected}"
 			it texte do
-				ln = LINote::new :note => note, :octave => octave, :octave_llp => llp
+				ln = LINote::new :note => note, :octave => octave, :delta => delta
 				ln.octave.should == octave_expected
 			end
 		end
@@ -749,28 +768,27 @@ describe LINote do
 		  expect{@ln.as_next_of('')}.to raise_error(SystemExit, err)
 		end
 		ary = <<-DEFA
-				note1	o1/N		note2	o2/N	delta
+				note1	o1/N		note2	o2/N	delta/N
 			----------------------------------
 					a			-				a		-				-
-					a			1				a		0				,
-					a			1				c 	0				,,
-					a			1				c		1				,
+					a			1				a		0				-1
+					a			1				c 	0				-2
+					a			1				c		1				-1
 					a			1				c		2				-
 					f			1				c		1				-
-					f			1				c		2				'
-					f			2				c		1				,
+					f			1				c		2				1
+					f			2				c		1				-1
 					g			2				c		3				-
-					g			2				c		5				''
+					g			2				c		5				2
 			----------------------------------
 		DEFA
 		ary.to_array.each do |d|
-			delta_expected = d[:delta] || ""
+			delta_expected = d[:delta] || 0
 			ln1 = LINote::new(d[:note1], :octave => d[:o1])
 			ln2 = LINote::new(d[:note2], :octave => d[:o2])
-			d_str = delta_expected.blank? ? "rien" : "« #{delta_expected} »"
 			texte = "#{d[:note2]}-#{d[:o2]}:as_next_of" \
 							<< "(#{d[:note1]}-#{d[:o1]})" \
-							<< " doit mettre le delta à #{d_str}"
+							<< " doit mettre le delta à #{delta_expected}"
 			it texte do
 				ln2.as_next_of ln1
 				ln2.delta.should == delta_expected

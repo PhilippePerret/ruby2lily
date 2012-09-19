@@ -48,11 +48,12 @@ class Voice < Instrument
   # -------------------------------------------------------------------
   #   L'instance
   # -------------------------------------------------------------------
-  @paroles = nil
+  @paroles        = nil
   
   def initialize data = nil
     
     super( data )
+    @octave_defaut  = 4
   end
   
 end

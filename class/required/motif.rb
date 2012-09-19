@@ -54,7 +54,7 @@ class Motif < NoteClass
   #           précisément la hauteur du motif.
   def initialize notes = nil, params = nil
     @notes    = nil
-    @octave   = 3
+    @octave   = 4
     @duration = nil
     @slured   = false
     @legato   = false
@@ -67,7 +67,6 @@ class Motif < NoteClass
     set_properties params
     any_notes_to_llp
     rationnalize_durees
-    set_octave_from_delta
     implode # pour reconstituer @notes explodé avant
   end
   
@@ -139,32 +138,8 @@ class Motif < NoteClass
       # Tant que la durée de la note est égale, on la supprime
       notes.each do |note|
         break if note.duration != @duration
-        note.set(:duration => nil)
+        note.set :duration => nil
       end
-    end
-    @exploded = notes
-    # @notes    = LINote::implode notes # sera fait par autre méthode
-    # puts "@notes à la fin du processus : #{@notes}"
-  end
-  
-  # => Définit l'octave par le delta éventuel
-  # 
-  # La première note du motif, à l'instanciation peut avoir un delta
-  # d'octave. Dans ce cas, on définit l'octave du motif
-  # @note: attention, l'octave peut être définie aussi dans les 
-  # paramètres. Cette méthode, à l'instanciation, étant appelée à la fin,
-  # on prend en compte cette octave
-  # 
-  def set_octave_from_delta
-    return if @notes.nil?
-    @exploded.each do |linote|
-      next if linote.rest?
-      unless linote.delta == 0
-        @octave ||= 3
-        @octave += linote.delta
-        linote.instance_variable_set("@octave_llp", nil)
-      end
-      break # on s'arrête à la première, of course
     end
   end
 
@@ -264,7 +239,7 @@ class Motif < NoteClass
         in_accord = false
         @notes.split(' ').each do |whole_note|
           whole_note.scan(/^(<)?([a-gr])(eses|isis|es|is)?([',]*)?([^>]*)?(>)?(.*)?$/){
-            tout, acc_start, note, alter, delta, rien, acc_end, fin = 
+            tout, acc_start, note, alter, mark_delta, rien, acc_end, fin = 
               [$&, $1, $2, $3, $4, $5, $6, $7]
             if in_accord
               in_accord = ( acc_end != ">" )
@@ -360,14 +335,16 @@ class Motif < NoteClass
       # On ne conserve que les notes, les altérations et les marques d'octaves
       liste_notes = []
       " #{@notes}".scan( regexp ){
-        tout, note, alter, delta = [$1, $2, $3, $4]
+        tout, note, alter, mark_delta = [$1, $2, $3, $4]
         liste_notes << {
           :whole    => tout,
-          :note     => note, :alter => alter, :delta => delta, 
+          :note     => note, 
+          :alter    => alter, 
+          :delta    => LINote::delta_from_markdelta(mark_delta), 
           :notealt  => "#{note}#{alter}"}
       }
        
-      octave_courant  = @octave || 3
+      octave_courant  = @octave || 4
     
       ln =  if liste_notes.count == 1
               LINote::new liste_notes.first, :octave => octave_courant
@@ -439,8 +416,9 @@ class Motif < NoteClass
       @notes.split(' ').each do |whole_note|
         @count_for_real += 1 unless strict
         whole_note.scan( regexp ){
-          tout, acc_start, note, alter, delta, rien, acc_end, fin = 
+          tout, acc_start, note, alter, mark_delta, rien, acc_end, fin = 
             [$&, $1, $2, $3, $4, $5, $6, $7]
+          delta = LINote::delta_from_markdelta(mark_delta)
           if in_accord
             in_accord = ( acc_end != ">" )
             next # dans un accord, on ne prend rien
@@ -452,19 +430,18 @@ class Motif < NoteClass
               au_dessus     = (result & 1) > 0
               new_octave    = (result & 2) > 0
               add_octave    = new_octave ? (au_dessus ? 1 : -1) : 0
-              delta_octave  = LINote::octaves_from_llp(delta)
               # L'octave de la note sera :
               #   - l'octave courant (note précédente)
               #   + le changement d'octave s'il y en a un
               #   + le delta d'octave s'il y en a un
-              octave = h_previous[:octave] + add_octave + delta_octave
+              octave = h_previous[:octave] + add_octave + delta
             
               # # = débug =
-              # puts "* note: #{note}#{alter}#{delta}"
+              # puts "* note: #{note}#{alter}#{mark_delta}"
               # puts "*       Au-dessus de #{h_previous[:note]} ? #{au_dessus ? 'oui' : 'NON'}"
               # puts "*       Nouvelle octave ? #{new_octave ? 'oui' : 'NON'}"
               # puts "*       Ajout d'octave de positionnement : #{add_octave}"
-              # puts "*       Ajout d'octave de delta : #{delta_octave}"
+              # puts "*       Ajout d'octave de delta : #{delta}"
               # puts "*       => octave final: #{octave}"
               # # = /débug =
             
@@ -477,16 +454,21 @@ class Motif < NoteClass
               # @todo: à l'avenir, il faudrait prévenir le fait de mettre
               # un delta sur la première note, on le transformant 
               # automatiquement en octave.
-              octave = (@octave || 3) + LINote::octaves_from_llp( delta )
+              octave = (@octave || 4) + delta
             end
-            h_previous = {:note => note, :alter => alter, :delta => delta, :octave => octave}
+            h_previous = {
+              :note => note, 
+              :alter => alter, 
+              :delta => delta, 
+              :octave => octave
+              }
             # Est-ce qu'on rentre dans un accord ?
             in_accord = ( acc_start == "<" )
           end
         }
       end
     
-      octave_courant  = @octave || 3
+      octave_courant  = @octave || 4
     
       # S'il n'y a qu'une note (ou qu'un accord), on prend la première,
       # (qui peut être nil en cas de recherche strict — pas de silence —
@@ -516,8 +498,8 @@ class Motif < NoteClass
   # @notes.
   # 
   def implode
-    return if @notes.nil?
-    @notes = LINote::implode @exploded
+    return nil if @notes.nil? || exploded.nil?
+    @notes = LINote::implode exploded
   end
   
   # => Méthode de commodité
@@ -573,7 +555,7 @@ class Motif < NoteClass
   # 
   # @return le texte '\relative c..'
   def mark_relative ajout = 0
-    Score::mark_relative( (@octave || 3) + (ajout || 0) )
+    Score::mark_relative( (@octave || 4) + (ajout || 0) )
   end
     
   # -------------------------------------------------------------------

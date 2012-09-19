@@ -84,14 +84,14 @@ describe Piano do
 			code = <<-EOC
 \\new PianoStaff <<
 	\\new Staff {
-		\\relative c'' {
+		\\relative c' {
 			\\clef "treble"
 			\\time 3/8
 			
 		}
 	}
 	\\new Staff {
-		\\relative c' {
+		\\relative c {
 			\\clef "bass"
 			\\time 3/8
 			

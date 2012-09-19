@@ -60,16 +60,16 @@ describe Instrument do
 				ln = res[0]
 				ln.duration.should be_nil
 				ln.note.should == "a"
-				ln.octave.should == 3
+				ln.octave.should == 4
 				
 				ln = res[5]
 				ln.note.should == "e"
-				ln.octave.should == 3
-				ln.duration.should be_nil # @todo: ici, il vaudrait mieux : "8"
+				ln.octave.should == 5
+				ln.duration.should be_nil # @fixme: ici, il vaudrait mieux : "8"
 				
 				ln = res[6]
 				ln.note.should == "g"
-				ln.octave.should == 3
+				ln.octave.should == 6
 				ln.duration.should == "8"
 				
 			end
@@ -123,7 +123,7 @@ describe Instrument do
 			end
 			it ":<< doit ajouter les notes" do
 			  @instru << "a b e"
-				iv_get(@instru, :notes).should == "a b e"
+				@instru.notes_to_llp.should == "\\relative c' { a b e }"
 			end
 			
 			# :add_as_string
@@ -132,11 +132,11 @@ describe Instrument do
 			end
 			it ":add_as_string doit ajouter les notes" do
 				notes = "a b c"
-				iv_set(@instru, :notes => "")
+				iv_set(@instru, :notes => [])
 			  @instru.add notes
-				iv_get(@instru, :notes).should == notes
+				@instru.notes_to_llp.should == notes
 				@instru.add "fb b##"
-				iv_get(@instru, :notes).should == notes << " fes bisis"
+				@instru.notes_to_llp.should == "#{notes} fes bisis"
 			end
 			
 			# :add_as_chord
@@ -146,9 +146,9 @@ describe Instrument do
 			it ":add_as_chord doit ajouter l'accord" do
 				accord = Chord::new ["c", "eb", "g"]
 			  @instru.add accord
-				iv_get(@instru, :notes).should == "\\relative c { <c ees g> }"
+				@instru.notes_to_llp.should == "\\relative c' { <c ees g> }"
 				@instru.add accord, :duree => 4
-				iv_get(@instru, :notes).should == "\\relative c { <c ees g> } \\relative c { <c ees g>4 }"
+				@instru.notes_to_llp.should == "\\relative c' { <c ees g> <c ees g>4 }"
 			end
 			
 			# :add_as_motif
@@ -158,23 +158,66 @@ describe Instrument do
 			it ":add_as_motif doit ajouter le motif" do
 				motif = Motif::new "a( b c b a)"
 			  @instru.add motif
-				iv_get(@instru, :notes).should == "\\relative c { a( b c b a) }"
+				@instru.notes_to_llp.should == "\\relative c' { a( b c b a) }"
 			end
 			
-			# :add_notes
-			# (méthode finale qui reçoit et conserve les notes)
-			it "doit répondre à :add_notes" do
-			  @instru.should respond_to :add_notes
-			end
-			it ":add_notes doit ajouter les notes" do
-			  iv_set(@instru, @notes => "")
-				@instru.add_notes("a b c")
-				iv_get(@instru, @notes).should == "a b c"
-				@instru.add_notes("b,, c d <a d f>")
-				iv_get(@instru, @notes).should == "a b c b,, c d <a d f>"
-			end
 		end
 
+		# -------------------------------------------------------------------
+		# 	Tests complet de :add_notes
+		# 
+		# 	C'est la méthode principale d'ajouts de notes à l'instrument
+		# -------------------------------------------------------------------
+		describe "Méthode principale :add_notes" do
+			def init_notes
+				iv_set(@instru, :notes => [])
+			end
+			def notes_instru
+				iv_get(@instru, :notes)
+			end
+			it "doit exister" do
+			  @instru.should respond_to :add_notes
+			end
+			it "doit lever une erreur si mauvais paramètres" do
+				err = detemp(Liby::ERRORS[:bad_params_in_add_notes_instrument],
+											:instrument => @instru.name,
+											:params			=> "bad")
+			  expect{@instru.add_notes("bad")}.to raise_error(SystemExit, err)
+			end
+			it ":doit ajouter des notes simples" do
+				init_notes
+				mot1 = Motif::new "a b c"
+				mot2 = Motif::new "d e f"
+				puts "= motif 1: #{mot1.inspect}"
+				puts "= motif 2: #{mot2.inspect}"
+				@instru.add_notes mot1
+				@instru.notes_to_llp.should == "a b c"
+				iv_get(@instru, :notes).count.should == 3
+				@instru.add_notes mot2
+				iv_get(@instru, :notes).count.should == 6
+				@instru.notes_to_llp.should == "a b c d, e f"
+			end
+			it ":doit régler correctement l'octave lors d'une jonction" do
+			  mot1 = Motif::new "a b c", :octave => 2
+				puts "= motif 1: #{mot1.inspect}"
+				mot2 = Motif::new "d e f" # ie à l'octave 4
+				init_notes
+				@instru.add_notes mot1
+				ln = notes_instru.first
+				ln.octave.should == 2
+				@instru.octave.should == 2
+				puts "= Dernière ln avant ajout motif 2 : #{notes_instru.last.inspect}"
+				@instru.add_notes mot2
+				ln = notes_instru[3]
+				puts "= 4e ln: #{ln.inspect}"
+				ln.octave.should == 4
+				ln.delta.should == 1
+				ln.mark_delta.should == "'"
+				@instru.notes_to_llp.should == "a b c d' e f"
+			end
+			# Tests les plus complets possible de add_notes
+			
+		end
 		# -------------------------------------------------------------------
 		# 	Méthodes de construction du score Lilypond
 		# -------------------------------------------------------------------
@@ -186,16 +229,6 @@ describe Instrument do
 			it "doit répondre à :notes_to_llp" do
 			  @instru.should respond_to :notes_to_llp
 			end
-			it ":notes_to_llp doit définir @notes_lilypond" do
-				iv_set(@instru, :notes => [])
-			  @instru.notes_to_llp
-				iv_get(@instru, :notes_lilypond).should == ""
-				ln = LINote::new("c", :octave => 4, :duration => 8)
-				iv_set(@instru, :notes => [ln])
-				@instru.notes_to_llp
-				iv_get(@instru, :notes_lilypond).should == "c8"
-				# @todo: faire des tests plus complets ici
-			end
 			# :to_lilypond
 		  it "doit répondre à to_lilypond" do
 		    @instru.should respond_to :to_lilypond
@@ -204,14 +237,14 @@ describe Instrument do
 			  score = @instru.to_lilypond
 				score.class.should == String
 				score.should == 
-					"\\new Staff {\n\t\\relative c'' {" \
+					"\\new Staff {\n\t\\relative c' {" \
 					<< "\n\t\t\\clef \"treble\"" \
 					<< "\n\t\t\\time 4/4\n\t\t" \
 					<< "\n\t}\n}"
 				suite = "c d e f g a b c"
 				@instru << suite
 				@instru.to_lilypond.should == 
-					"\\new Staff {\n\t\\relative c'' {" \
+					"\\new Staff {\n\t\\relative c' {" \
 					<< "\n\t\t\\clef \"treble\"" \
 					<< "\n\t\t\\time 4/4\n\t\t" \
 					<< suite \
@@ -240,7 +273,8 @@ describe Instrument do
 			  @instru.should respond_to :staff_content
 			end
 			it ":staff_content doit retourner le bon code" do
-				iv_set(@instru, :notes => "a( b c)")
+				iv_set(@instru, :notes => [])
+				@instru.add_as_string "a( b c)"
 			  @instru.staff_content.should_not == ""
 				@instru.staff_content.should =~ /a\( b c\)/
 			end
@@ -251,9 +285,9 @@ describe Instrument do
 			end
 			it ":mark_relative doit renvoyer la bonne valeur" do
 			  @i = Voice::new # par défaut car non défini dans Voice:Class
-				@i.mark_relative.should == "relative c''"
-				@i = Bass::new
-				@i.mark_relative.should == "relative c'"
+				@i.mark_relative.should == "\\relative c'"
+				une_basse = Bass::new
+				une_basse.mark_relative.should == "\\relative c"
 			end
 		end # -> score lilypond
 
