@@ -5,15 +5,11 @@ class Bass < Instrument
   # -------------------------------------------------------------------
   #   L'instance
   # -------------------------------------------------------------------
+  @octave_defaut = 1
   
   def initialize data = nil
     super( data )
     @clef = "F"
-  end
-  
-  # Overwrite la méthode par défaut
-  def mark_relative
-    "relative c'"
   end
   
 end

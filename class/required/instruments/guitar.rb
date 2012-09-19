@@ -8,6 +8,8 @@ class Guitar < Instrument
   # -------------------------------------------------------------------
   #   L'instance
   # -------------------------------------------------------------------
+  @octave_defaut = 3
+  
   def initialize data = nil
     
     super( data )

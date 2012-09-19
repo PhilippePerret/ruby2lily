@@ -21,7 +21,11 @@ class Piano < Instrument
   end
   
   def droite
-    @main_droite ||= Instrument::new
+    @main_droite ||= lambda {
+        main = Instrument::new
+        main.instance_variable_set("@octave_defaut", 4)
+        main
+        }.call
   end
   alias :main_droite  :droite
   alias :right_hand   :droite
