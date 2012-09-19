@@ -82,7 +82,8 @@ class Liby
       
       # ==== LINote ==== #
       :not_note_llp               => "« \#{note} » n'est pas une note LiLyPond correcte",
-      
+      :param_method_linote_should_be_linote  => 
+          "Le paramètre pour LINote#\#{method} doit être une instance LINote… (pour \#{ln.inspect})",
       # === Chord === #
       :bad_args_for_chord         => "Les arguments de l'accord «\#{chord}» sont invalides : \#{error}",
       # ==== Note ==== #
