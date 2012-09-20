@@ -466,25 +466,94 @@ describe LINote do
 		
   end # / classe
 	describe "Méthodes de classe" do
-		# :pose_first_and_last_note
-		it "doit répondre à :pose_first_and_last_note" do
-		  LINote.should respond_to :pose_first_and_last_note
-		end
-		previous_suite = nil
-		[
-			["a b c d", 'IN', 'OUT', "aIN b c dOUT"],
-			[nil, '(', ')', "a( b c d)"],
-			[nil, '\(', '\)', "a\\( b c d\\)"],
-			[nil, '\<', '\!', "a\\< b c d\\!"],
-			["aeses,8-^ b c disis''-.", '(', ')', "aeses,8-^( b c disis''-.)"]
-		].each do |d|
-			suite, markin, markout, expected = d
-			suite = previous_suite if suite.nil?
-			it ":pose_first_and_last_note sur «#{suite}» avec «#{markin}» et «#{markout}»" do
-				res = LINote::pose_first_and_last_note(suite, markin, markout)
-				res.should == expected
+		describe "Dépôt :post sur première ou dernière note" do
+			# :post_first_and_last_note
+			it "doit répondre à :post_first_and_last_note" do
+			  LINote.should respond_to :post_first_and_last_note
 			end
-			previous_suite = suite
+			previous_suite = nil
+			[
+				["a b c d", 'IN', 'OUT', "aIN b c dOUT"],
+				[nil, '(', ')', "a( b c d)"],
+				[nil, '\(', '\)', "a\\( b c d\\)"],
+				[nil, '\<', '\!', "a\\< b c d\\!"],
+				["aeses,8-^ b c disis''-.", '(', ')', "aeses,-^( b c disis''-.)"]
+						# @note: dans ce dernier cas, la durée "8" disparait puisque
+						# le string, dans l'opération, est transformé en motif. Donc,
+						# puisque cette durée est placée sur la première note, elle
+						# se retrouve comme @duration du motif.
+			].each do |d|
+				suite, markin, markout, expected = d
+				suite = previous_suite if suite.nil?
+				it ":post_first_and_last_note sur «#{suite}» avec «#{markin}» et «#{markout}»" do
+					res = LINote::post_first_and_last_note(suite, markin, markout)
+					res.class.					should == Array
+					res.first.class.		should == LINote
+					LINote.implode(res).should == expected
+				end
+				previous_suite = suite
+			end
+
+			# :post_first_note
+			it "doit répondre à :post_first_note" do
+			  LINote.should respond_to :post_first_note
+			end
+			it ":post_first_note doit pouvoir recevoir un string" do
+			  expect{LINote::post_first_note("a b c", '\)')}.not_to raise_error
+			end
+			it ":post_first_note doit pouvoir recevoir une liste de LINotes" do
+				ary_ln = [LINote::new("a"), LINote::new("b")]
+			  expect{LINote::post_first_note(ary_ln, '\)')}.not_to raise_error
+			end
+			it ":post_first_note doit retourner une liste de LINotes" do
+			  res = LINote::post_first_note("a b c", '\)')
+				res.class.should == Array
+				res.first.class.should == LINote
+			end
+			it ":post_first_note doit ajouter un signe à un post existant" do
+			  ary = LINote::post_first_note("a b c", '\(')
+				res = LINote::post_first_note( ary, '\<' )
+				res.class.should == Array
+				res.first.class.should == LINote
+				res.first.post.should == '\(\<'
+			end
+			it ":post_first_note ne doit pas poser le signe sur un silence" do
+				sig = '\('
+			  res = LINote::post_first_note("r r r a b c", sig)
+				res.first.post.should_not == sig
+				res[3].post.should == sig
+			end
+
+			# :post_last_note
+			it "doit répondre à :post_last_note" do
+			  LINote.should respond_to :post_last_note
+			end
+			it ":post_last_note doit pouvoir recevoir un string" do
+			  expect{LINote::post_last_note("a b c", '\)')}.not_to raise_error
+			end
+			it ":post_last_note doit pouvoir recevoir une liste de LINotes" do
+				ary_ln = [LINote::new("a"), LINote::new("b")]
+			  expect{LINote::post_last_note(ary_ln, '\)')}.not_to raise_error
+			end
+			it ":post_last_note doit retourner une liste de LINotes" do
+			  res = LINote::post_last_note("a b c", '\)')
+				res.class.should == Array
+				res.first.class.should == LINote
+			end
+			it ":post_last_note doit poser le post de la dernière note" do
+			  res = LINote::post_last_note("a b c", '\)')
+				res.last.post.should == '\)'
+			end
+			it ":post_last_note doit ajouter au post existant" do
+			  ary = LINote::post_last_note("a b c", '\)')
+				res = LINote::post_last_note(ary, '\!')
+				res.last.post.should == '\)\!'
+			end
+			it ":post_last_note ne doit pas mettre le signe sur un silence" do
+			  res = LINote::post_last_note("a b c r", '\)')
+				res.last.post.should_not == '\)'
+				res[2].post.should == '\)'
+			end
 		end
 
 		it "doit répondre à :note_str_in_context" do

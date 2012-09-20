@@ -263,7 +263,7 @@ class LINote < NoteClass
               when "Motif"  then 
                 current_octave = some.octave
                 # puts "= Je mets current_octave à #{current_octave}"
-                some.to_llp.split(' ')
+                some.simple_notes.split(' ')
               else 
                 fatal_error(
                   :bad_type_for_args, :method => "LINote::explode",
@@ -405,22 +405,70 @@ class LINote < NoteClass
   # =>  Pose une marque de début (donc après la première note) et de fin
   #     (donc après la dernière note) sur les +notes+
   # 
-  # @return   +notes+ modifié
+  # @param  notes     SOIT un String des notes, SOIT une liste Array de
+  #                   LINotes
+  # @param  markin    La marque à mettre sur la 1ere note (p.e. « \( »)
+  # @param  markout   La marque à mettre sur la dern note (p.e. « \) »)
   # 
-  # @note: ne cherche que les notes, pas les silences
+  # @return   La liste des LINotes modifiées
   # 
-  def self.pose_first_and_last_note notes, markin, markout
-    dmotif = notes.split(' ') # => vers des notes mais aussi des marques
-    ifirst = 0
-    while dmotif[ifirst].match(/^[a-g]/).nil? do ifirst += 1 end
-    dmotif[ifirst] = "#{dmotif[ifirst]}#{markin}"
-    ilast = dmotif.count - 1
-    while dmotif[ilast].match(/^[a-g]/).nil? do ilast -= 1 end
-    dmotif[ilast] = "#{dmotif[ilast]}#{markout}"
-    dmotif.join(' ')
+  # @note:  ne peut déposer la marque +markin+ ou +markout+ QUE sur des
+  #         notes, pas des silences
+  # @todo:  Il faudrait un paramètre pour modifier la note ci-dessus : on
+  #         devrait pouvoir placer la marque sur un silence, exceptionnellement
+  # 
+  def self.post_first_and_last_note notes, markin, markout
+    res = post_first_note(notes, markin)  unless markin.nil?
+    res = post_last_note(res, markout)    unless markout.nil?
+    res
   end
 
-
+  # =>  Ajoute +sig+ au @post de la première note de +strorary+
+  # 
+  # @param  some    Un string (suite de notes) ou Array de LINote
+  # @param  sig     Le signe à ajouter (p.e. '\(')
+  # 
+  # @return La liste de linotes obtenues (juste pour convénience)
+  # 
+  # @note:  on ne retourne pas un string, car cette méthode s'insert
+  #         le plus souvent dans une suite de traitements où on a besoin
+  #         de la liste des LINotes.
+  # 
+  def self.post_first_note some, sig
+    some = as_array_of_linotes(some)
+    some.each do |ln|
+      ln.set(:post => "#{ln.post}#{sig}") and break unless ln.rest?
+    end
+    some
+  end
+  # (même chose que la précédente, mais pour poser la marque sur la
+  # dernière note — pas silence)
+  def self.post_last_note some, sig
+    some = as_array_of_linotes(some)
+    post_first_note(some.reverse, sig)
+    some
+  end
+  
+  # =>  Return une liste de linotes de +some+ (qui peut déjà en être 
+  #     une)
+  # 
+  # @param  some    Soit un String de notes LilyPond, soit une liste de
+  #                 LINotes
+  # @return Une liste des LINotes
+  #         Ou lève une erreur fatale en cas de mauvais arguments
+  # 
+  def self.as_array_of_linotes some, method = nil
+    return some if some.class == Array
+    ary = case some.class.to_s
+          when "String" then some.as_motif.exploded                           
+          when "Array"  then some                                             
+          end                                                                     
+    return ary if ary.class == Array && ary.first.class == LINote
+    fatal_error(:bad_type_for_args,
+                :method => caller[0][/`([^']*)'/, 1],
+                :good   => "Array de LINotes ou String",
+                :bad    => ary.class.to_s)
+  end
 
   # =>  Return la valeur string de la note en fonction du +context+
   #     soumis.

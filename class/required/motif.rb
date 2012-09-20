@@ -64,9 +64,13 @@ class Motif < NoteClass
     when "Hash"   then set_with_hash notes
     when "String" then set_with_string notes
     end
+    # puts "\n\n= Avant set properties : #{self.inspect}"
     set_properties params
+    # puts "\n= Avant any_notes_to_llp: #{self.inspect}"
     any_notes_to_llp
+    # puts "\n= Avant rationnalize_durees: #{self.inspect}"
     rationnalize_durees
+    # puts "\n= Avant implode: #{self.inspect}"
     implode # pour reconstituer @notes explodé avant
   end
   
@@ -129,14 +133,12 @@ class Motif < NoteClass
   def rationnalize_durees
     return if @notes.nil?
     # Exploder les notes, pour voir si une durée est définie en
-    # première note. Le cas échéant, la prendre
-    notes = LINote::explode @notes
-    # puts "Notes retournés de LINote::explode : #{notes.inspect}"
-    fatal_error(:invalid_motif, :bad => str) if notes.nil?
-    unless notes.first.nil? || notes.first.duration.nil?
-      @duration = notes.first.duration
+    # première note. Le cas échéant, la prendre et la retirer.
+    fatal_error(:invalid_motif, :bad => str) if exploded.nil?
+    unless exploded.first.nil? || exploded.first.duration.nil?
+      @duration = exploded.first.duration
       # Tant que la durée de la note est égale, on la supprime
-      notes.each do |note|
+      exploded.each do |note|
         break if note.duration != @duration
         note.set :duration => nil
       end
@@ -155,6 +157,20 @@ class Motif < NoteClass
       :clef     => @clef
     }
   end
+  
+  # =>  Return les notes, simples, sans durée, sans dynamique, sans
+  #     relative, etc.
+  def simple_notes
+    @notes
+  end
+  
+  # => Return le motif au format lilypond (MAIS sans la marque d'octave)
+  def to_llp
+    suite_llp = notes_with_duree
+    suite_llp = notes_with_liaison(suite_llp) if @slured || @legato
+    suite_llp
+  end
+  
   # =>  Return le motif en string prêt à être inscrit dans la partition
   # 
   # @note : @notes, ici, est soit un string de notes, soit une liste
@@ -207,8 +223,12 @@ class Motif < NoteClass
 
     # Changement des durées si nécessaire
     # ------------------------------------
-    notes_str = if duree.nil? then @notes 
-                else notes_with_duree duree end 
+    notes_str = if duree.nil?
+                  @notes 
+                else 
+                  notes_with_duree duree
+                end 
+    #
 
     # Liaisons ?
     # -----------
@@ -217,7 +237,6 @@ class Motif < NoteClass
     # Triolet ou plus ?
     # ------------------
     notes_str = notes_with_triolet notes_str
-
 
     # Finalisation
     return "#{mk_relative} { #{mark_clef}#{notes_str} }"
@@ -269,13 +288,6 @@ class Motif < NoteClass
   def mark_clef
     return "" if @clef.nil?
     return "\\clef \"#{@clef}\" "
-  end
-  
-  # => Return le motif au format lilypond (MAIS sans la marque d'octave)
-  def to_llp
-    suite_llp = notes_with_duree
-    suite_llp = notes_with_liaison(suite_llp) if @slured || @legato
-    suite_llp
   end
   
   # =>  Join le motif +motif2+ au motif courant (c'est-à-dire que le
@@ -527,11 +539,20 @@ class Motif < NoteClass
   # =>  Retourne les @notes du motif (ou les +notes+ passés en 
   #     paramètres) avec la marque de slur ou de legato
   def notes_with_liaison notes = nil
+    # puts "--> notes_with_liaison"
     notes ||= @notes
     return notes unless @slured || @legato
     markin  = @slured ? '(' : '\('
     markout = @slured ? ')' : '\)'
-    LINote::pose_first_and_last_note notes, markin, markout
+    LINote::post_first_and_last_note notes, markin, markout
+  end
+  
+  # => Retourne le motif agrémenté de sa dynamique
+  # 
+  # 
+  def notes_with_dynamique notes = nil
+    notes ||= @notes
+    
   end
   
   def notes_with_triolet notes = nil
@@ -724,7 +745,7 @@ class Motif < NoteClass
     start   = params.has_key?( :start ) ? "\\#{params[:start]} " : ''
     markin  = for_crescendo ? '\<' : '\>'
     markout = params.has_key?( :end   ) ? " \\#{params[:end]}" : '\!'
-    notes_str = LINote::pose_first_and_last_note @notes, markin, markout
+    notes_str = LINote::post_first_and_last_note @notes, markin, markout
     # @todo: fonctionner comme pour @slured et @legato ? en appliquant la marque seulement dans to_s
     motif_leg = "#{start}#{notes_str}"
     change_objet_ou_new_instance motif_leg, params, true

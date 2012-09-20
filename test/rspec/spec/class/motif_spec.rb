@@ -259,6 +259,34 @@ describe Motif do
 			mo.to_llp.should == "cis8 bes aisis"
 		end
 		
+		# :simple_notes
+		it "doit répondre à :simple_notes" do
+		  @m.should respond_to :simple_notes
+		end
+		it ":simple_notes doit retourner les notes simples" do
+		  mo = Motif::new "c d e", :slured => true, :duree => "8"
+			mo.simple_notes.should == "c d e"
+		end
+		
+		# Contrôle des trois méthodes de retour des notes
+		# 	simple_notes		
+		# 		Les notes simples, sans durée, liaison, dynamique, etc.
+		# 	to_llp					
+		# 		Notes avec durée, liaison, dynamique, etc. mais sans relative
+		# 	to_s		
+		# 		Notes complètes, avec durée, liaisons, dynamique, etc.
+		# 		et relative	=> égal à to_llp + relative
+		it ":simples_notes, :to_llp et :to_s doivent retourner la bonne valeur" do
+		  mo = Motif::new "c d e f", 
+											:slured 		=> true, 
+											:duree 			=> "8", 
+											:crescendo 	=> true,
+											:octave 		=> 1
+			mo.simple_notes.should == "c d e f"
+			mo.to_llp.			should == "c8(\\< d e f)\\<!"
+			mot.to_s.				should == "\\relative c,, { c8(\\< d e f)\\<! }"
+		end
+		
 		# :set_clef
 		it "doit répondre à :set_clef" do
 		  @m.should respond_to :set_clef
@@ -514,6 +542,28 @@ describe Motif do
 			mo.notes_with_liaison("b c").should == "b\\( c\\)"
 		end
 		
+		# :notes_with_dynamique
+		describe "Dynamique" do
+			it "doit répondre à :notes_with_dynamique" do
+			  @m.should respond_to :notes_with_dynamique
+			end
+			it ":notes_with_dynamique doit retourner la bonne valeur" do
+			  suite = "a b c d e"
+				mo = Motif::new suite
+				mo.notes_with_dynamique.should == suite
+				mo.crescendo
+				mo.notes.should == suite
+				mo.notes_with_dynamique.should == "a\\< b c d e\\!"
+				mo.slure
+				mo.notes.should == suite
+			end
+			it "un motif avec slure et dynamique doit retourner les bonnes notes" do
+			  mo = Motif::new "a b c d e"
+				mo.slure.crescendo
+				mo.to_llp.should == "a(\\< b c d e)\\!"
+			end
+		end
+		
 		# :notes_with_triolet
 		it "doit répondre à :notes_with_triolet" do
 		  @m.should respond_to :notes_with_triolet
@@ -664,6 +714,7 @@ describe Motif do
 			end
 			it "-d doit pouvoir être défini à l'instanciation" do
 			  mo = Motif::new(:notes => "a b c d", :slured => true)
+				puts "mo: #{mo.inspect}"
 				iv_get(mo, :slured).should be_true
 				mo.should be_slured
 				mo.to_s.should == "\\relative c' { a( b c d) }"
