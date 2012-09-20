@@ -112,6 +112,21 @@ class Motif < NoteClass
     @notes = str
   end
   
+  # => Définit une propriété quelconque du motif
+  # 
+  # @param  props     Hash de paires prop-valeur
+  # 
+  # @note:  Cette méthode n'utilise pas `set_params`, donc aucune 
+  #         transformation n'est opéré sur les valeurs (usage interne)
+  # 
+  def set props
+    props.each { |prop, value| instance_variable_set("@#{prop}", value) }
+  end
+  # => Retourne la valeur de la propriété +prop+
+  def get prop
+    instance_variable_get("@#{prop}")
+  end
+  
   # Corrige les notes pour qu'elles soient au format LilyPond
   # La suite de notes fournie à l'instanciation peut être dans n'importe
   # quel format, avec italiennes et altérations "#/b". Cette méthode
@@ -164,11 +179,33 @@ class Motif < NoteClass
     @notes
   end
   
-  # => Return le motif au format lilypond (MAIS sans la marque d'octave)
-  def to_llp
-    suite_llp = notes_with_duree
-    suite_llp = notes_with_liaison(suite_llp) if @slured || @legato
-    suite_llp
+  # => Return le motif au format lilypond (MAIS sans la marque relative)
+  # 
+  # @param  params    Quand la méthode est appelée par `to_s', c'est un
+  #                   Hash qui peut redéfinir certains paramètres
+  # 
+  # @note:  Due to format de retour des méthodes, on peut se retrouver
+  #         avec soit une liste de Linotes soit un string
+  #         Ne pas transformer, pour accélérer la méthode dans le cas
+  #         où le motif est simple (sans liaison, sans dynamique, etc.)
+  def to_llp params = nil
+    
+    duree =
+    case params.class.to_s
+    when "String" then params # @todo: il faudrait vérifier que ce soit une durée valide
+    when "Hash"
+      params[:duration] = params.delete(:duree) if params.has_key? :duree
+      duree = (params[:duration] || @duration).to_s
+    else 
+      nil
+    end
+ 
+    llp = notes_with_duree( duree )
+    llp = notes_with_liaison(llp) if @slured || @legato
+    llp = notes_with_dynamique(llp) unless @crescendo.nil?
+    llp = LINote::implode( llp ) if llp.class == Array
+    llp = notes_with_triolet llp
+    llp
   end
   
   # =>  Return le motif en string prêt à être inscrit dans la partition
@@ -196,50 +233,22 @@ class Motif < NoteClass
     
     # Analyse des paramètres transmis
     # --------------------------------
-    # Et principalement la durée
     params ||= {}
-    if [Fixnum, String].include? params.class
-      params = {:duration => params}
-    elsif params.has_key? :duree
-      params = params.merge(:duration => params.delete(:duree))
-    elsif !params.has_key? :duration
-      params = params.merge(:duration => @duration)
+    
+    add_octave = 
+    case params.class.to_s
+    when "String" then 0
+    when "Fixnum" then octave_from params
+    else
+      if params.has_key? :octave
+         octave_from( params[:octave] )
+       elsif params.has_key? :add_octave
+         params[:add_octave]
+       else 0 end
     end
-    
-    duree = params[:duration]
-    
-    # Définition de l'octave du motif
-    # --------------------------------
-    octaves_to_add =  if params.has_key? :octave
-                        octave_from( params[:octave] )
-                      elsif params.has_key? :add_octave
-                        params[:add_octave]
-                      else 0 end
-    
 
-    # Mark relative (\\relative c...) pour le motif
-    # ----------------------------------------------
-    mk_relative = mark_relative octaves_to_add
-
-    # Changement des durées si nécessaire
-    # ------------------------------------
-    notes_str = if duree.nil?
-                  @notes 
-                else 
-                  notes_with_duree duree
-                end 
-    #
-
-    # Liaisons ?
-    # -----------
-    notes_str = notes_with_liaison notes_str
-
-    # Triolet ou plus ?
-    # ------------------
-    notes_str = notes_with_triolet notes_str
-
-    # Finalisation
-    return "#{mk_relative} { #{mark_clef}#{notes_str} }"
+    # Complet
+    "#{mark_relative(ajout=add_octave)} { #{mark_clef}#{to_llp(params)} }"
 
   end
   
@@ -340,42 +349,13 @@ class Motif < NoteClass
   # 
   def real_last_note strict = false
     return nil if @notes.nil?
-    instance_variable_get("@real_last_note#{strict ? '_strict' : ''}") \
-    || lambda {
-      ex = strict ? "[a-g]" : "[a-gr]"
-      regexp = / <?((#{ex})(eses|isis|es|is)?([',]*))/
-      # On ne conserve que les notes, les altérations et les marques d'octaves
-      liste_notes = []
-      " #{@notes}".scan( regexp ){
-        tout, note, alter, mark_delta = [$1, $2, $3, $4]
-        liste_notes << {
-          :whole    => tout,
-          :note     => note, 
-          :alter    => alter, 
-          :delta    => LINote::delta_from_markdelta(mark_delta), 
-          :notealt  => "#{note}#{alter}"}
-      }
-       
-      octave_courant  = @octave || 4
-    
-      ln =  if liste_notes.count == 1
-              LINote::new liste_notes.first, :octave => octave_courant
-            else
-              previous_note   = nil
-              ln_closest      = nil
-              liste_notes.each do |dnote|
-                note_seule = dnote[:note]
-                unless previous_note.nil?
-                  ln_closest = previous_note[:whole].closest( 
-                                  dnote[:whole], octave_courant 
-                                  )
-                  octave_courant = ln_closest.octave
-                end
-                previous_note = dnote
-              end
-              ln_closest
-            end
-      instance_variable_set("@real_last_note#{strict ? '_strict' : ''}", ln)
+    get("real_last_note#{strict ? '_strict' : ''}") || lambda {
+      ln_found = nil
+      exploded.reverse.each do |ln|
+        ln_found = ln and break unless strict && ln.rest?
+      end
+      set "real_last_note#{strict ? '_strict' : ''}" => ln_found
+      return ln_found
     }.call
   end
   # =>  Return la dernière note du motif en objet
@@ -519,21 +499,29 @@ class Motif < NoteClass
     self
   end
   
-  # =>  Inscrit la durée +duree+ pour toutes les notes du motif
-  #     sauf si +duree+ est nil
-  # 
-  # Cf. LINote::fixe_notes_length pour le détail
+  # =>  Inscrit la durée +duree+ pour le motif
   # 
   # @param  duree   La durée à appliquer aux notes (la première
   #                 seulement, en général)
   #                 Si non fourni, prends la valeur de la propriété
   #                 @duration.
   # 
-  # @return la suite des notes (String), prêtes à inscription
+  # @return   La liste des LINotes du motif (puisque la méthode 
+  #           `exploded' est utilisée)
   # 
   def notes_with_duree duree = nil
+    # @todo: vérifier que la durée soit valide
     duree ||= @duration
-    return LINote::fixe_notes_length( self.notes, duree )
+    unless exploded.first.pre =~ /</
+      exploded.first.set( :duree => duree )
+    else
+      # La première note fait partie d'un accord, on cherche la
+      # dernière note de l'accord pour lui appliquer la durée
+      exploded.each do |ln|
+        ln.set( :duree_post => duree ) and break if ln.post =~ />/
+      end
+    end
+    exploded
   end
   
   # =>  Retourne les @notes du motif (ou les +notes+ passés en 
@@ -547,12 +535,32 @@ class Motif < NoteClass
     LINote::post_first_and_last_note notes, markin, markout
   end
   
-  # => Retourne le motif agrémenté de sa dynamique
+  # => Retourne le motif agrémenté de sa dynamique (if any)
   # 
+  # @rappel:  Une dynamique est définie si @crescendo n'est pas 
+  #           nil. Si non nil, elle contient :
+  #             :start_dyna   Éventuellement la dynamique de départ
+  #             :start        Le signe \< ou \> indiquant le sens
+  #             :end          Soit «\!» soit «\fff»
+  # 
+  # @return   La liste de LINotes agrémentées des marques de dynamique
+  #           (dans leur propriété :post et :pre pour la première si
+  #            une dynamique de départ est nécessaire)
   # 
   def notes_with_dynamique notes = nil
     notes ||= @notes
-    
+    return notes if @crescendo.nil?
+    start_dyna  = @crescendo[:start_dyna]
+    markin      = @crescendo[:start]
+    markout     = @crescendo[:end]
+    markout     = " #{markout}" unless markout == '\!'
+    ary_lns = LINote::post_first_and_last_note notes, markin, markout
+      # @rappel: le signe est ajouté APRÈS le @post déjà défini (if any)
+    unless start_dyna.nil?
+      ary_lns = LINote::pre_first_note(ary_lns, "#{start_dyna} ") 
+    end
+      # @rappel: le signe est ajouté AVANT le @pre déjà défini (if any)
+    ary_lns
   end
   
   def notes_with_triolet notes = nil
@@ -626,13 +634,14 @@ class Motif < NoteClass
   end
   
   
-  # => Retourne l'objet slured (liaisons simples)
+  # => Applique une liaison au motif courant
+  # 
+  # @return   Le motif courant
   # 
   # @note: si le motif contient déjà une marque de slured, on 
   # utilise le legato. S'il utilise déjà le sur-legato, on produit une
   # erreur
   def slure
-    
     if @legato === true
       fatal_error(:motif_legato_cant_be_slured)
     elsif legato?
@@ -731,24 +740,55 @@ class Motif < NoteClass
   end
   alias :set_triplet :set_triolet
   
-  # => Crée un crescendo à partir du motif
+  # Utiliser par `set_params' quand le motif est défini avec
+  # :crescendo => true
+  # 
+  # @todo: pouvoir utiliser :crescendo => {:start}
+  def set_crescendo pms
+    start_dyna  = nil
+    fin_dyna    = '\!'
+    if pms === true
+      for_crescendo = true
+    elsif pms === false
+      for_crescendo = false
+    elsif pms.class == Hash
+      start_dyna    = mark_dyna(pms[:start]) if pms.has_key?(:start)
+      fin_dyna      = mark_dyna(pms[:end])   if pms.has_key?(:end)
+      for_crescendo = pms[:for_crescendo]
+    end
+    @crescendo = {
+      :start_dyna => start_dyna,
+      :start      => for_crescendo ? '\<' : '\>',
+      :end        => fin_dyna
+      }
+  end
+  def set_decrescendo valeur
+    valeur = false if valeur === true # si si
+    set_crescendo valeur
+  end
+  # => Applique un crescendo/decrescendo au motif
   # 
   # @param  params  Options:
   #                   :start    La dynamique de départ (if any)
   #                   :end      La dynamique de fin (if any)
   #                   :new      Crée une nouvelle instance si true, sinon
-  #                             modifie l'objet courant
-  def crescendo params = nil;   cresc_or_decresc params, true   end
+  #                             modifie l'objet courant (false par défaut)
+  # 
+  # @return   Le motif courant ou le nouveau motif si :new => true
+  # 
+  def crescendo   params = nil; cresc_or_decresc params, true   end
   def decrescendo params = nil; cresc_or_decresc params, false  end
-  def cresc_or_decresc params, for_crescendo
-    params ||= {}
-    start   = params.has_key?( :start ) ? "\\#{params[:start]} " : ''
-    markin  = for_crescendo ? '\<' : '\>'
-    markout = params.has_key?( :end   ) ? " \\#{params[:end]}" : '\!'
-    notes_str = LINote::post_first_and_last_note @notes, markin, markout
-    # @todo: fonctionner comme pour @slured et @legato ? en appliquant la marque seulement dans to_s
-    motif_leg = "#{start}#{notes_str}"
-    change_objet_ou_new_instance motif_leg, params, true
+  def cresc_or_decresc pms, for_crescendo
+    pms ||= {}
+    new_instance = pms.delete( :new ) === true
+    pms = pms.merge( :for_crescendo => for_crescendo )
+    pms = { :crescendo => pms }
+    pms = pms.merge :new => new_instance
+    change_objet_ou_new_instance @notes, pms, false
+  end
+  def mark_dyna dyna
+    return dyna if dyna.start_with? "\\"
+    "\\#{dyna}"
   end
   
   # =>  Méthode appelée à la fin de toutes les méthodes, créant une
@@ -772,8 +812,8 @@ class Motif < NoteClass
 
     # Instance nouvelle ou courante modifiée
     if make_new_motif
-      params[:notes] = new_motif
-      params[:triolet] = @triolet
+      params[:notes]    = new_motif
+      params[:triolet]  = @triolet
       # On prend tous les paramètres du motif courant pour faire
       # une nouvelle instance
       # NON : SURTOUT PAS, CAR POUR UN MOTIF AVEC LEGATO, SON ADDITION

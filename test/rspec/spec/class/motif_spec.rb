@@ -43,7 +43,7 @@ describe Motif do
 		it "quand première note avec durée, on la prend" do
 		  suite = "r1 r r r"
 			mo = Motif::new suite
-			mo.notes.should == "r r r r" # FIXME: DEVRAIT ÊTRE COMME ICI (SANS DURÉE)
+			mo.notes.should == "r r r r"
 			mo.duration.should == "1"
 			mo.to_s.should == "\\relative c' { r1 r r r }"
 		end
@@ -162,7 +162,7 @@ describe Motif do
 			mo.implode
 			mo.notes.should == "cis"
 			mo.duration.should == "4."
-			mo.octave.should == 3
+			mo.octave.should == 4
 			
 			mo = Motif::new
 			mo.set_with_string "cbb( e4 g#) <c e g>8"
@@ -170,7 +170,7 @@ describe Motif do
 			mo.any_notes_to_llp
 			mo.notes.should == "ceses( e4 gis) <c e g>8"
 			mo.duration.should be_nil
-			mo.octave.should == 3
+			mo.octave.should == 4
 		end
 		
 		# :set_with_hash
@@ -203,6 +203,26 @@ describe Motif do
 				raise_error(SystemExit, err)
 		end
 		
+		# :set
+		it "doit répondre à :set" do
+		  @m.should respond_to :set
+		end
+		it ":set doit permettre de définir les valeurs" do
+		  motif = Motif::new "a b c"
+			motif.get(:slured).should be_false
+			motif.set :slured => true
+			motif.get(:slured).should be_true
+			motif.set :notes => "d e f"
+			motif.notes.should == "d e f"
+		end
+		
+		# :get
+		it "doit répondre à :get" do
+		  motif = Motif::new "a b c", :slured => true
+			motif.get( :notes ).should == "a b c"
+			motif.get(:slured).should be_true
+			motif.get(:legato).should be_false
+		end
 		
 		# :to_s
 	  it "doit répondre à :to_s" do repond_a :to_s end
@@ -216,7 +236,11 @@ describe Motif do
 		end
 		it ":to_s doit renvoyer le motif avec une durée si elle est définie" do
 		  iv_set(@m, :notes => "c d e")
-			@m.to_s(1).should == "\\relative c' { c1 d e }"
+			@m.to_s("1").should == "\\relative c' { c1 d e }"
+		end
+		it ":to_s doit modifier l'octave si l'argument est un nombre" do
+		  iv_set(@m, :notes => "c d e")
+			@m.to_s(2).should == "\\relative c, { c d e }"
 		end
 		it ":to_s doit renvoyer le motif à la bonne hauteur d'octave" do
 		  iv_set(@m, :notes => "c d e")
@@ -283,8 +307,8 @@ describe Motif do
 											:crescendo 	=> true,
 											:octave 		=> 1
 			mo.simple_notes.should == "c d e f"
-			mo.to_llp.			should == "c8(\\< d e f)\\<!"
-			mot.to_s.				should == "\\relative c,, { c8(\\< d e f)\\<! }"
+			mo.to_llp.			should == "c8(\\< d e f)\\!"
+			mo.to_s.				should == "\\relative c,, { c8(\\< d e f)\\! }"
 		end
 		
 		# :set_clef
@@ -522,7 +546,7 @@ describe Motif do
 		end
 		it ":notes_with_duree doit changer la durée des notes du motif" do
 		  @m = Motif::new "a b c des e4"
-			@m.notes_with_duree(2).should == "a2 b c des e4"
+			LINote::implode(@m.notes_with_duree(2)).should == "a2 b c des e4"
 		end
 		
 		# :notes_with_liaison
@@ -534,16 +558,40 @@ describe Motif do
 		  mo = Motif::new suite
 			mo.notes_with_liaison.should == suite
 			mo.slure
-			mo.notes_with_liaison.should == "a( b c d e)"
-			mo.notes_with_liaison("a b c").should == "a( b c)"
+			res = mo.notes_with_liaison
+			res.class.should 				== Array
+			res.first.class.should 	== LINote
+			res.first.post.should == '('
+			res.last.post.should  == ')'
 			
 			mo = Motif::new :notes => suite, :legato => true
-			mo.notes_with_liaison.should == "a\\( b c d e\\)"
-			mo.notes_with_liaison("b c").should == "b\\( c\\)"
+			LINote::implode(mo.notes_with_liaison).should == "a\\( b c d e\\)"
 		end
 		
 		# :notes_with_dynamique
 		describe "Dynamique" do
+			it "doit répondre à :set_crescendo" do
+			  @m.should respond_to :set_crescendo
+			end
+			it ":set_crescendo doit régler la dynamique" do
+			  motif = Motif::new "a b c"
+				motif.set_crescendo true
+				motif.get(:crescendo).should == {
+					:start => '\<',
+					:start_dyna => nil,
+					:end 		=> '\!'
+				}
+			end
+			it "doit répondre à :set_decrescendo" do
+			  @m.should respond_to :set_decrescendo
+			end
+			it ":set_decrescendo doit régler la dynamique" do
+			  motif = Motif::new "a b c"
+				motif.set_decrescendo( true )
+				motif.get(:crescendo).should == {
+					:start => '\>', :start_dyna => nil, :end => '\!'
+				}
+			end
 			it "doit répondre à :notes_with_dynamique" do
 			  @m.should respond_to :notes_with_dynamique
 			end
@@ -553,13 +601,15 @@ describe Motif do
 				mo.notes_with_dynamique.should == suite
 				mo.crescendo
 				mo.notes.should == suite
-				mo.notes_with_dynamique.should == "a\\< b c d e\\!"
-				mo.slure
+				res = mo.notes_with_dynamique
+				res.first.post.	should == '\<'
+				res.last.post.	should == '\!'
 				mo.notes.should == suite
 			end
 			it "un motif avec slure et dynamique doit retourner les bonnes notes" do
 			  mo = Motif::new "a b c d e"
 				mo.slure.crescendo
+				# puts "\n\nmotif: #{mo.inspect}"
 				mo.to_llp.should == "a(\\< b c d e)\\!"
 			end
 		end
@@ -714,7 +764,6 @@ describe Motif do
 			end
 			it "-d doit pouvoir être défini à l'instanciation" do
 			  mo = Motif::new(:notes => "a b c d", :slured => true)
-				puts "mo: #{mo.inspect}"
 				iv_get(mo, :slured).should be_true
 				mo.should be_slured
 				mo.to_s.should == "\\relative c' { a( b c d) }"
@@ -945,20 +994,20 @@ describe Motif do
 		end
 		it ":crescendo sans argument doit définir le motif simple" do
 		  @motif = Motif::new "a b c"
-			new_motif = @motif.crescendo
+			new_motif = @motif.crescendo(:new => true)
 			@motif.to_s.should == "\\relative c' { a b c }"
 			new_motif.to_s.should == "\\relative c' { a\\< b c\\! }"
-			new_motif = @motif.crescendo(:new => false)
+			new_motif = @motif.crescendo
 			@motif.to_s.should == "\\relative c' { a\\< b c\\! }"
 		end
 		it ":crescendo avec :start doit définir la dynamique de départ" do
 		  @motif = Motif::new "a b c"
-			@motif.crescendo(:new => false, :start => 'pp', :end => 'ff')
+			@motif.crescendo(:start => 'pp', :end => 'ff')
 			@motif.to_s.should == "\\relative c' { \\pp a\\< b c \\ff }"
 		end
 		it ":crescendo avec :end doit définir la dynamique de fin" do
 		  @motif = Motif::new "a b c"
-			@motif.crescendo(:new => false, :end => 'fff')
+			@motif.crescendo(:end => 'fff')
 			@motif.to_s.should == "\\relative c' { a\\< b c \\fff }"
 		end
 		
@@ -968,7 +1017,7 @@ describe Motif do
 		end
 		it ":decrescendo sans argument doit définir le motif simple" do
 		  @motif = Motif::new "a b c"
-			new_motif = @motif.decrescendo
+			new_motif = @motif.decrescendo(:new => true)
 			@motif.to_s.should == "\\relative c' { a b c }"
 			new_motif.to_s.should == "\\relative c' { a\\> b c\\! }"
 			@motif.decrescendo(:new => false)

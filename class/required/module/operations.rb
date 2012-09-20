@@ -48,10 +48,10 @@ module OperationsSurNotes
   
   # => Multiplication
   # 
-  # @param  nombre_fois   Membre droit de la multiplication
-  # @param  params        Paramètres optionnels. Par exemple :
-  #                         :new => false pour modifier le self, quand
-  #                         c'est un motif qui est multiplié.
+  # @param  fois      Membre droit de la multiplication
+  # @param  params    Paramètres optionnels. Par exemple :
+  #                       :new => false pour modifier le self, quand
+  #                       c'est un motif qui est multiplié.
   # @note   +self+ sera transformé en motif pour être multiplié
   # 
   # @principe : deux motifs sont issus de l'opération : le premier,
@@ -59,27 +59,22 @@ module OperationsSurNotes
   #             par rapport au premier, pour que :
   #             "c e g" * 3 donne "c e g c, e g c, e g"
   # 
-  def * nombre_fois, params = nil
+  def * fois, params = nil
     
-    motif = if self.class == Motif
-            as_new_motif = true
-            self
-          else
-            as_new_motif = false
-            self.as_motif
-          end
+    self_is_motif = self.class == Motif
+    motif = self_is_motif ? self : self.as_motif
     
-    # On fait un double motif pour voir comment sera altéré le second
-    double_motif = motif + motif
-    # La suite du motif
-    suite_motif = motif.to_llp
-    suite_double_motif = double_motif.to_llp
-    motif_suivant = suite_double_motif.sub(/#{suite_motif} /, '')
-    # On procède à la multiplication
-    motif_final = suite_motif.plus(" #{motif_suivant}".x(nombre_fois - 1))
+    # On regarde ce que donne la première note du motif lié à sa dernière
+    # Suite originale du motif
+    motif_normal = motif.to_llp
+    # Maintenant, on peut modifier le motif sans problème
+    explosion = motif.explode
+    explosion[0] = explosion.first.as_next_of explosion.last
+    suivants = LINote::implode explosion
+    motif_final = motif_normal.plus( " #{suivants}".x(fois - 1) )
+
     # On construit ou on modifie le motif
-    motif.change_objet_ou_new_instance(
-      motif_final, params, as_new_motif)
+    motif.change_objet_ou_new_instance(motif_final, params, self_is_motif)
     
   end
   

@@ -94,8 +94,8 @@ describe "Multiplication" do
 	  	it "Chord::«#{notes}#{duree}:oct-#{octave} * #{fois} doit donner : #{expected}" do
 	  	  acc = Chord::new notes, :octave => octave, :duree => duree
 				res = acc * fois
-				res.class.should == Motif
-				res.to_s.should == expected
+				res.class.should 	== Motif
+				res.to_s.should 	== expected
 			end
   	end
 	end

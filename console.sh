@@ -8,8 +8,16 @@ cd ~/Sites/cgi-bin/lilypond/test/rspec;pwd
 
 # rspec spec/class/motif_spec.rb -e "-d doit pouvoir être défini à l'instanciation"
 
+# rspec spec/class/motif_spec.rb
+
 # rspec spec/class/motif_spec.rb -e ":simples_notes, :to_llp et :to_s doivent retourner la bonne valeur"
 
-# rspec spec/class/motif_spec.rb -e "Dynamique"
 
-rspec spec/class/linote_spec.rb -e "Dépôt :post sur première ou dernière note"
+rspec spec/operation/addition_spec.rb spec/operation/multiplication_spec.rb spec/class/String_spec.rb spec/class/instrument_spec.rb
+
+# Les mêmes que ci-dessus, mais en séparé
+# ----------------------------------------
+# rspec spec/operation/addition_spec.rb
+# rspec spec/operation/multiplication_spec.rb
+# rspec spec/class/String_spec.rb
+# rspec spec/class/instrument_spec.rb

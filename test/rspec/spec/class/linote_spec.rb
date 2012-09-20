@@ -423,50 +423,41 @@ describe LINote do
 		it "doit définir REG_NOTE (motif pour trouver les notes)" do
 		  defined?(LINote::REG_NOTE).should be_true
 		end
-		# :fixe_notes_length
-		it "doit répondre à :fixe_notes_length" do
-		  LINote.should respond_to :fixe_notes_length
-		end
-		it ":fixe_notes_length lève erreur durée si durée invalide" do
-			err = Liby::ERRORS[:invalid_duree_notes]
-		  expect{LINote::fixe_notes_length('a b c', -2)}.to \
-				raise_error(SystemExit, err)
-		  expect{LINote::fixe_notes_length('a b c', 2001)}.to \
-				raise_error(SystemExit, err)
-		end
-		it ":fixe_notes_length lève erreur motif si motif invalide" do
-			err = detemp(Liby::ERRORS[:invalid_motif], :bad => nil.inspect)
-		  expect{LINote::fixe_notes_length(nil, 4)}.to \
-				raise_error(SystemExit, err)
-
-			mo = Motif::new "a a a"
-			err = detemp(Liby::ERRORS[:invalid_motif], :bad => mo.inspect)
-		  expect{LINote::fixe_notes_length(mo, 4)}.to \
-				raise_error(SystemExit, err)
-				
-			err = detemp(Liby::ERRORS[:invalid_motif], :bad => 4)
-		  expect{LINote::fixe_notes_length(4, 4)}.to \
-				raise_error(SystemExit, err)
-		end
-		it ":fixe_notes_length avec durée nil renvoie le motif" do
-		  mo = "a a a"
-			LINote::fixe_notes_length(mo, nil).should == mo
-		end
-		it ":fixe_notes_length avec bons arguments renvoie la bonne valeur" do
-		  mo = "a b c"
-			LINote::fixe_notes_length(mo, 4).should == "a4 b c"
-			LINote::fixe_notes_length(mo, "4.").should == "a4. b c"
-			LINote::fixe_notes_length("a b c d8 r f", "8.").should == "a8. b c d8 r f"
-			LINote::fixe_notes_length("ees c4", 2).should == "ees2 c4"
-		end
-		it ":fixe_notes_length renvoie la bonne valeur avec un premier accord" do
-		  LINote::fixe_notes_length("<a c e>", 8).should_not == "<a8 c e>"
-		  LINote::fixe_notes_length("<a c e>", 8).should == "<a c e>8"
-		end
 		
   end # / classe
 	describe "Méthodes de classe" do
-		describe "Dépôt :post sur première ou dernière note" do
+		describe "Dépôt :pre / :post sur première ou dernière note" do
+			# :pre_first_note
+			it "doit répondre à :pre_first_note" do
+			  LINote.should respond_to :pre_first_note
+			end
+			it ":pre_first_note doit pouvoir recevoir un string" do
+			  expect{LINote::pre_first_note("a b c", '<')}.not_to raise_error
+			end
+			it ":pre_first_note doit pouvoir recevoir une liste de LINotes" do
+				ary_ln = [LINote::new("a"), LINote::new("b")]
+			  expect{LINote::pre_first_note(ary_ln, '<')}.not_to raise_error
+			end
+			it ":pre_first_note doit retourner une liste de LINotes" do
+			  res = LINote::pre_first_note("a b c", '<')
+				res.class.should == Array
+				res.first.class.should == LINote
+			end
+			it ":pre_first_note doit ajouter un signe AVANT un pré existant" do
+			  ary = LINote::pre_first_note("a b c", '<')
+				res = LINote::pre_first_note( ary, '\fff ' )
+				res.class.should == Array
+				res.first.class.should == LINote
+				res.first.pre.should_not == '<\fff '
+				res.first.pre.should == '\fff <'
+			end
+			it ":pre_first_note ne doit pas poser le signe sur un silence" do
+				sig = '<'
+			  res = LINote::pre_first_note("r r r a b c", sig)
+				res.first.pre.should_not == sig
+				res[3].pre.should == sig
+			end
+			
 			# :post_first_and_last_note
 			it "doit répondre à :post_first_and_last_note" do
 			  LINote.should respond_to :post_first_and_last_note

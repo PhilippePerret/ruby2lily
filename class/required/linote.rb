@@ -390,16 +390,15 @@ class LINote < NoteClass
       #     Ce nombre d'octaves sera mis en delta dans le motif. Par ex.,
       #     si la différence est de 2, il faudra ajouter « '' » à la 
       #     première note du motif 2
-      motif2_exploded = explode motif2
+      motif2_exploded = motif2.explode
       i = -1
       while motif2_exploded[ i+=1 ].rest? do end
       motif2_exploded[i].set :delta => diff_octave
-      suite_motif2 = implode( motif2_exploded )
-    else
-      suite_motif2 = motif2.notes_with_duree
     end
+    suite_motif2 = implode( motif2.exploded )
     
-    return "#{motif1.to_llp} #{suite_motif2}"
+    # return "#{motif1.to_llp} #{suite_motif2}"
+    return "#{motif1.simple_notes} #{suite_motif2}"
   end
 
   # =>  Pose une marque de début (donc après la première note) et de fin
@@ -423,7 +422,38 @@ class LINote < NoteClass
     res
   end
 
-  # =>  Ajoute +sig+ au @post de la première note de +strorary+
+  # =>  Ajoute +sig+ au @pre de la première note de +some+
+  # 
+  # @param  some    Un string (suite de notes) ou Array de LINote
+  # @param  sig     Le signe à ajouter (p.e. '<')
+  # 
+  # @return La liste de linotes obtenues (juste pour convénience puisque
+  #         la modification se fait par référence)
+  # 
+  # @note:  Le signe ne peut être ajouté à un silence.
+  # @note:  on ne retourne pas un string, car cette méthode s'insert
+  #         le plus souvent dans une suite de traitements où on a besoin
+  #         de la liste des LINotes.
+  # @note:  Contrairement à post_first_note, le signe est ajouté AVANT
+  #         le signe qui peut déjà se trouver dans la linote
+  # 
+  def self.pre_first_note some, sig
+    some = as_array_of_linotes(some)
+    some.each do |ln|
+      unless ln.rest?
+        ln.set(:pre => sig) and break if ln.pre.nil?
+        # Si @pre contient déjà le signe, on ne fait rien
+        deja_le_sig = 
+              (ln.pre[0..sig.length - 1] == sig) \
+          ||  (ln.pre[-sig.length..-1]   == sig)
+        ln.set(:pre => "#{sig}#{ln.pre}") unless deja_le_sig
+        break 
+      end
+    end
+    some
+  end
+
+  # =>  Ajoute +sig+ au @post de la première note de +some+
   # 
   # @param  some    Un string (suite de notes) ou Array de LINote
   # @param  sig     Le signe à ajouter (p.e. '\(')
@@ -433,11 +463,21 @@ class LINote < NoteClass
   # @note:  on ne retourne pas un string, car cette méthode s'insert
   #         le plus souvent dans une suite de traitements où on a besoin
   #         de la liste des LINotes.
+  # @note:  Contrairement à pre_first_note, le signe est ajouté APRÈS
+  #         le post déjà défini.
   # 
   def self.post_first_note some, sig
     some = as_array_of_linotes(some)
     some.each do |ln|
-      ln.set(:post => "#{ln.post}#{sig}") and break unless ln.rest?
+      unless ln.rest?
+        ln.set(:post => sig) and break if ln.post.nil?
+        # Si @post contient déjà le signe, on ne fait rien
+        deja_le_sig = 
+              (ln.post[0..sig.length - 1] == sig) \
+          ||  (ln.post[-sig.length..-1]   == sig)
+        ln.set(:post => "#{ln.post}#{sig}") unless deja_le_sig
+        break
+      end
     end
     some
   end
@@ -521,52 +561,6 @@ class LINote < NoteClass
     return "" if delta == 0
     mk = delta > 0 ? "'" : ","
     mk.fois(delta.abs)
-  end
-
-  # =>  Retourne le motif +motif+ où toutes les notes auront leur
-  #     durée fixée à +duree+
-  # 
-  # @param  notes     Un string représentant la suite de notes à 
-  #                   "duréifier"
-  # @param  duree     La durée à appliquer, soit un nombre (p.e. 4) soit
-  #                   un string (p.e. "4."). Si nil, le motif est
-  #                   renvoyé tel quel.
-  # 
-  # @return Le motif corrigé ou raise une erreur fatale si un des
-  #         argument est non conforme.
-  # 
-  # @note : attention, pour le moment, la recherche des notes n'est
-  # pas forcément pleinement opérationnelle. @todo: je pourrai la mettre
-  # en place lorsque j'aurais fait le tour de toutes les syntaxes de 
-  # lilypond
-  # 
-  def self.fixe_notes_length notes, duree
-    
-    duree = duree.to_s
-    return notes if duree.blank?
-    
-    # Contrôle de la durée
-    # ---------------------
-    fatal_error(:invalid_duree_notes) if !NoteClass::duree_valide?(duree)
-    
-    # Contrôle du motif
-    # ------------------
-    fatal_error(:invalid_motif, :bad => notes.inspect) if notes.class != String
-    
-    # Affectation des durées
-    # -----------------------
-    # @note : contrairement à ce qui était fait avant, on n'applique
-    # la durée que sur la première note, sauf si c'est un accord, dans
-    # lequel cas il faut mettre la durée à la fin de l'accord.
-    unless notes.start_with? '<'
-      # puts "notes avant application de durée #{duree} : #{notes}"
-      notes = notes.sub(REG_NOTE_WITH_DUREE){ "#{$1}#{duree}" }
-      # puts "notes après : #{notes}"
-    else
-      # Accord en début de notes
-      notes = notes.sub(/^#{REG_CHORD_WITH_DUREE}/){"#{$1}#{duree}" }
-    end
-    notes
   end
   
   # -------------------------------------------------------------------
@@ -779,6 +773,7 @@ class LINote < NoteClass
   # =>  Définit le delta de +self+ pour que la linote suive +linote+ en
   #     fonction de leurs octaves respectives
   # 
+  # @return   self
   def as_next_of linote, params = nil
     fatal_error(:param_method_linote_should_be_linote, :ln => self, 
                 :method => "as_next_of") unless linote.class == LINote
@@ -790,7 +785,8 @@ class LINote < NoteClass
   
     # La différence d'octave pour savoir si un delta est nécessaire
     @delta = self.octave - self_natural_octave
-
+    
+    self
   end
   
   # =>  Retourne l'octave "naturelle" qu'aurait la linote +self+ si elle
