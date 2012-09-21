@@ -13,7 +13,8 @@ cd ~/Sites/cgi-bin/lilypond/test/rspec;pwd
 # rspec spec/class/motif_spec.rb -e ":simples_notes, :to_llp et :to_s doivent retourner la bonne valeur"
 
 
-rspec spec/operation/addition_spec.rb spec/operation/multiplication_spec.rb spec/class/String_spec.rb spec/class/instrument_spec.rb
+# CORRECTIONS À FAIRE SUR :
+# rspec spec/operation/addition_spec.rb spec/operation/multiplication_spec.rb spec/class/String_spec.rb spec/class/instrument_spec.rb
 
 # Les mêmes que ci-dessus, mais en séparé
 # ----------------------------------------
@@ -21,3 +22,5 @@ rspec spec/operation/addition_spec.rb spec/operation/multiplication_spec.rb spec
 # rspec spec/operation/multiplication_spec.rb
 # rspec spec/class/String_spec.rb
 # rspec spec/class/instrument_spec.rb
+
+rspec spec/class/linote_spec.rb
