@@ -567,7 +567,7 @@ class LINote < NoteClass
   #   Instance
   # -------------------------------------------------------------------
   attr_reader :note, :duration, :alter, :delta, :pre, :post,
-              :duree_post, :duree_in_chord
+              :duree_post, :duree_in_chord, :dyna
   
   @note_str = nil   # La note string (p.e. "g" ou "fis" ou "eb" ou "g#")
   @note_int = nil   # La note, exprimé par un entier
@@ -592,7 +592,10 @@ class LINote < NoteClass
   @finger     = nil   # Le doigté éventuel
   @dynamique  = nil   # Éventuellement la marque de dynamique (quelque
                       # chose comme « \\! » ou « \\< » ou « \\fff »)
-  
+                      # Doit devenir obsolète.
+  @dyna       = nil   # Hash gérant la dynamique de la linote. Nil ou 
+                      # la définition de :start, :start_intensite, :end
+                      # et :end_intensite.
   @octave     = nil   # Fixé par d'autre méthode ou à l'instanciation si
                       # dans les paramètres. Si on l'appelle par la
                       # méthode `octave', l'octave est compté à partir
@@ -620,12 +623,13 @@ class LINote < NoteClass
   #           cf. ci-dessus
   # 
   def initialize valeur = nil, params = nil
-    @note_str = nil
-    @note_int = nil
-    @note     = nil
-    @delta    = 0
-    @duration = nil
-    @octave   = nil
+    @note_str   = nil
+    @note_int   = nil
+    @note       = nil
+    @delta      = 0
+    @duration   = nil
+    @octave     = nil
+    @dyna       = nil
     case valeur.class.to_s
     when "Hash"
       set valeur
@@ -823,7 +827,7 @@ class LINote < NoteClass
   def to_hash
     hash = {}
     [:note, :alter, :delta, :duration, :pre, :post, :finger, :jeu,
-      :duree_post, :dynamique
+      :duree_post, :dyna
     ].each do |prop|
       hash = hash.merge( prop => instance_variable_get("@#{prop}") )
     end
@@ -864,6 +868,49 @@ class LINote < NoteClass
   def mark_delta
     LINote::mark_delta @delta
   end
+  
+  # -------------------------------------------------------------------
+  #   Méthodes pour la dynamique
+  def set_dyna params
+    if params.nil? then @dyna = nil
+    else
+      if @dyna.nil?
+        @dyna = { :crescendo => nil, :start => false, :end => false, 
+                  :start_intensite => nil, :end_intensite => nil }
+      end
+      params[:crescendo] = false if params.delete(:decrescendo) === true
+      params[:start] = true if params.has_key? :crescendo
+      [:crescendo, :start, :end, :start_intensite, :end_intensite
+      ].each do |att|
+        if params.has_key? att
+          @dyna = @dyna.merge( att => params[att] )
+        end
+      end
+    end
+  end
+  # Pose un début de crescendo sur la LINote
+  def start_crescendo
+    set_dyna :crescendo => true, :start => true
+  end
+  # Pose une fin de dynamique sur la LINote
+  def end_crescendo
+    set_dyna :crescendo => true, :end => true
+  end
+  alias :end_decrescendo :end_crescendo
+  # Pose un début de decrescendo sur la LINote
+  def start_decrescendo
+    set_dyna :crescendo => false, :start => true
+  end
+  # Pose une intensité de départ sur la note
+  def start_intensite intensite
+    set_dyna :start_intensite => intensite
+  end
+  # Pose une intensité de fin sur la LINote
+  def end_intensite intensite
+    set_dyna :end_intensite => intensite
+  end
+  #   / fin méthodes pour la dynamique
+  # -------------------------------------------------------------------
 
   # => Return true si la LINote est un silence
   def rest?

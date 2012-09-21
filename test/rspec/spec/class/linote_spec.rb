@@ -603,6 +603,105 @@ describe LINote do
 				ln.abs.should == expected
 		  end
 		end
+
+		# ---- Méthodes pour la dynamique de la note -----
+		describe "Dynamique" do
+			def dynaln 
+				iv_get(@ln, :dyna)
+			end
+			before(:each) do
+			  @ln = LINote::new "c"
+			end
+			# :dyna
+			it "doit posséder la propriété :dyna" do
+			  @ln.should respond_to :dyna
+				# Pour le reste, elle sera testée avec les autres méthodes
+				# ci-dessous
+			end
+			it "doit répondre à :set_dyna" do
+			  @ln.should respond_to :set_dyna
+			end
+			it ":set_dyna doit modifier la propriété @dyna" do
+				dynaln.should be_nil
+			  @ln.set_dyna :crescendo => true
+				dynaln.should == {:crescendo => true, :start_intensite => nil,
+					:end_intensite => nil, :start => true, :end => false }
+					# @note: bien que :start => true ne soit pas précisé, le
+					# fait de mettre :crescendo à true (ou false pour decrescendo)
+					# met automatiquement :start à true
+				@ln.set_dyna :start_intensite => 'ppp'
+				dynaln.should == {:crescendo => true, :start_intensite => 'ppp',
+					:end_intensite => nil, :start => true, :end => false}
+				@ln.set_dyna nil
+				dynaln.should == nil
+				@ln.set_dyna :decrescendo => true, :end_intensite => 'p'
+				dynaln.should == {:crescendo => false, :start_intensite => nil,
+					:end_intensite => 'p', :start => true, :end => false}
+				@ln.set_dyna :end => true
+				dynaln.should == {:crescendo => false, :start_intensite => nil,
+					:end_intensite => 'p', :start => true, :end => true}
+			end
+			it "doit répondre à :start_crescendo" do
+			  @ln.should respond_to :start_crescendo
+			end
+			it ":start_crescendo doit démarrer le crescendo" do
+				@ln.start_crescendo
+				dyna = dynaln
+				dyna[:crescendo].should be_true
+				dyna[:start].should be_true
+				dyna[:end].should be_false
+				dyna[:start_intensite].should be_nil
+			end
+			it "doit répondre à :start_decrescendo" do
+			  @ln.should respond_to :start_decrescendo
+			end
+			it ":start_decrescendo doit démarrer le decrescendo" do
+				@ln.start_decrescendo
+				dyna = dynaln
+				dyna[:crescendo].should be_false
+				dyna[:start].should be_true
+				dyna[:end].should be_false
+			end
+			it "doit répondre à :end_crescendo" do
+			  @ln.should respond_to :end_crescendo
+			end
+			it ":end_crescendo doit interrompre le crescendo" do
+			  @ln.end_crescendo
+				dynaln[:end].should be_true
+			end
+			it "doit répondre à :end_decrescendo" do
+			  @ln.should respond_to :end_decrescendo
+			end
+			it ":end_decrescendo doit interrompre le decrescendo" do
+				dynaln.should be_nil
+			  @ln.end_decrescendo
+				dynaln[:end].should be_true
+			end
+			it "doit répondre à :start_intensite" do
+			  @ln.should respond_to :start_intensite
+			end
+			it ":start_intensite doit définir l'intensité de départ" do
+			  @ln.start_intensite 'ppp'
+				dy = dynaln
+				dy[:start_intensite].should == 'ppp'
+			  @ln.start_intensite 'ff'
+				dy = dynaln
+				dy[:start_intensite].should == 'ff'
+			end
+			it "doit répondre à end_intensite" do
+			  @ln.should respond_to :end_intensite
+			end
+			it ":end_intensite doit définir l'intensité de fin" do
+			  @ln.end_intensite 'ppp'
+				dy = dynaln
+				dy[:end_intensite].should == 'ppp'
+			  @ln.end_intensite 'ff'
+				dy = dynaln
+				dy[:end_intensite].should == 'ff'
+			end
+			
+		end
+		
 		# :au_dessus_de? / above?
 		it "doit répondre à :au_dessus_de? / :above?" do
 		  ln = LINote::new "ces'"
