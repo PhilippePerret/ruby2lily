@@ -1147,6 +1147,45 @@ describe LINote do
 			@ln.should be_rest
 		end
 		
+		# :in_accord?
+		it "doit répondre à :in_accord?" do
+		  @ln.should respond_to :in_accord?
+		end
+		it ":in_accord? doit renvoyer la bonne valeur" do
+		  motif = Motif::new "a <b c d> e f"
+			exp = motif.exploded
+			exp.first.should_not be_in_accord
+			exp[1].should be_in_accord
+			exp[2].should be_in_accord
+			exp[3].should be_in_accord
+			exp[4].should_not be_in_accord
+			exp[5].should_not be_in_accord
+		end
+		# :fin_accord?
+		it "doit répondre à :fin_accord?" do
+		  @ln.should respond_to :fin_accord?
+		end
+		it ":fin_accord? doit retourner true si c'est la dernière d'un accord" do
+		  motif = Motif::new "<a b c>"
+			motif.exploded.last.should be_fin_accord
+		end
+		it ":fin_accord? doit retourner false si ce n'est pas la dernière d'un accord" do
+		  motif = Motif::new "<a b c> r c"
+			motif.exploded.last.should_not be_fin_accord
+		end
+		# :start_accord?
+		it "doit répondre à :start_accord?" do
+		  @ln.should respond_to :start_accord?
+		end
+		it ":start_accord? doit retourner true si c'est la première note d'un accord" do
+		  motif = Motif::new "<a b c>"
+			motif.exploded.first.should be_start_accord
+		end
+		it ":start_accord? doit retourner false si ce n'est pas la 1ère d'un accord" do
+		  motif = Motif::new "a b c"
+			motif.exploded.first.should_not be_start_accord
+		end
+		
 		# :diese?
 		it "doit répondre à :diese?" do
 		  @ln.should respond_to :diese?

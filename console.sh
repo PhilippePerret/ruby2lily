@@ -20,7 +20,7 @@ cd ~/Sites/cgi-bin/lilypond/test/rspec;pwd
 # ----------------------------------------
 # rspec spec/operation/addition_spec.rb
 # rspec spec/operation/multiplication_spec.rb
-# rspec spec/class/String_spec.rb
+rspec spec/class/String_spec.rb
 # rspec spec/class/instrument_spec.rb
 
-rspec spec/class/linote_spec.rb
+# rspec spec/class/linote_spec.rb

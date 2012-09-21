@@ -69,7 +69,7 @@ describe Instrument do
 				
 				ln = res[6]
 				ln.note.should == "g"
-				ln.octave.should == 6
+				ln.octave.should == 5
 				ln.duration.should == "8"
 				
 			end
@@ -109,7 +109,7 @@ describe Instrument do
 		# -------------------------------------------------------------------
 		describe "Définition de la partition" do
 			before(:each) do
-			  iv_set(@instru, :notes => "")
+			  iv_set(@instru, :notes => [])
 			end
 			# :add
 		  it "doit répondre à la méthode :add" do
@@ -123,7 +123,7 @@ describe Instrument do
 			end
 			it ":<< doit ajouter les notes" do
 			  @instru << "a b e"
-				@instru.notes_to_llp.should == "\\relative c' { a b e }"
+				@instru.notes_to_llp.should == "a b e"
 			end
 			
 			# :add_as_string
@@ -136,7 +136,7 @@ describe Instrument do
 			  @instru.add notes
 				@instru.notes_to_llp.should == notes
 				@instru.add "fb b##"
-				@instru.notes_to_llp.should == "#{notes} fes bisis"
+				@instru.notes_to_llp.should == "#{notes} fes, bisis"
 			end
 			
 			# :add_as_chord
@@ -146,9 +146,9 @@ describe Instrument do
 			it ":add_as_chord doit ajouter l'accord" do
 				accord = Chord::new ["c", "eb", "g"]
 			  @instru.add accord
-				@instru.notes_to_llp.should == "\\relative c' { <c ees g> }"
+				@instru.notes_to_llp.should == "<c ees g>"
 				@instru.add accord, :duree => 4
-				@instru.notes_to_llp.should == "\\relative c' { <c ees g> <c ees g>4 }"
+				@instru.notes_to_llp.should == "<c ees g> <c ees g>4"
 			end
 			
 			# :add_as_motif
@@ -158,9 +158,26 @@ describe Instrument do
 			it ":add_as_motif doit ajouter le motif" do
 				motif = Motif::new "a( b c b a)"
 			  @instru.add motif
-				@instru.notes_to_llp.should == "\\relative c' { a( b c b a) }"
+				@instru.notes_to_llp.should == "a( b c b a)"
 			end
 			
+			# :last_note_hors_accord
+			it "doit répondre à :last_note_hors_accord" do
+			  @instru.should respond_to :last_note_hors_accord
+			end
+			it ":last_note_hors_accord doit retourner la bonne valeur" do
+			  @instru << "a b c"
+				@instru.last_note_hors_accord.to_llp.should == "c"
+				@instru << "r r d r r"
+				@instru.last_note_hors_accord.to_llp.should == "r"
+				@instru.last_note_hors_accord(true).to_llp.should == "d"
+			  iv_set(@instru, :notes => [])
+				@instru << "<a b c>"
+				@instru.last_note_hors_accord.to_llp.should == "<a"
+				@instru << "r e r"
+				@instru.last_note_hors_accord.to_llp.should == "r"
+				@instru.last_note_hors_accord(true).to_llp.should == "e"
+			end
 		end
 
 		# -------------------------------------------------------------------

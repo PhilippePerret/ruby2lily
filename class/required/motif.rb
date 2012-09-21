@@ -108,8 +108,22 @@ class Motif < NoteClass
   # @param  str   Un string définissant les notes du motif.
   #               Cette suite de note peut être dans n'importe quel
   #               format, avec italiennes et altérations "#/b"
+  # 
+  # @note: une étude complète des notes est faite pour les décomposer
+  # @TODO:  faire une recherche sur les liaisons (première et dernière
+  #         notes)
+  # @TODO: faire une recherche sur les dynamiques (idem)
   def set_with_string str
-    @notes = str
+    return if str.to_s.blank?
+    linotes = LINote::explode(str)
+    prem = linotes.first
+    # puts "\n\nlinotes: #{linotes.inspect}"
+    # puts "Première : #{prem.inspect}"
+    
+    @octave = prem.octave + prem.delta
+    prem.set :delta => 0
+    
+    @notes = LINote::implode linotes
   end
   
   # => Définit une propriété quelconque du motif

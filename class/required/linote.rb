@@ -359,17 +359,21 @@ class LINote < NoteClass
         # On rentre dans un accord
         accord_start  = 0 + inote
         in_accord     = true
-      elsif in_accord && ln.post == ">"
-        # Dernière note d'un accord
-        # => Il faut prendre sa durée (if any) et la mettre à toutes
-        # les notes de l'accord
-        duree = ln.duration
-        unless duree.nil?
-          (accord_start..(inote - 1)).each do |i|
-            data[i].set :duree_in_chord => duree
+        ln.set :in_accord => true
+      elsif in_accord 
+        ln.set :in_accord => true
+        if ln.post == ">"
+          # Dernière note d'un accord
+          # => Il faut prendre sa durée (if any) et la mettre à toutes
+          # les notes de l'accord
+          duree = ln.duration
+          unless duree.nil?
+            (accord_start..(inote - 1)).each do |i|
+              data[i].set :duree_in_chord => duree
+            end
           end
+          in_accord = false
         end
-        in_accord = false
       end
       
       # Réglage de l'octave
@@ -663,6 +667,8 @@ class LINote < NoteClass
                       # dernière note : "<.... a>8.", "8." est la 
                       # duree_post (@note: ça sert pour :explode et
                       # :implode)
+  @in_accord  = nil   # Dans l'explosion, cette propriété est mise à 
+                      # true si on se trouve dans un accord
   @duree_in_chord=nil # Lors de l'explosion (explode), si la méthode
                       # rencontre un accord, elle affecte à toutes les
                       # notes la durée trouvée pour la dernière.
@@ -716,6 +722,7 @@ class LINote < NoteClass
     @octave     = nil
     @dyna       = nil
     @legato     = nil
+    @in_accord  = false
     case valeur.class.to_s
     when "Hash"
       set valeur
@@ -859,7 +866,9 @@ class LINote < NoteClass
     # Delta d'octave (sauf indication contraire)
     note_llp << mark_delta unless except[:mark_delta] === true
     # Durée de la note (sauf indication contraire)
-    note_llp << @duration.to_s  unless except[:duration] === true
+    unless except[:duration] === true || in_accord?
+      note_llp << @duration.to_s
+    end
     # Marque de jeu (sauf indication contraire)
     note_llp << (@jeu.nil? ? '' : "-#{@jeu}") unless except[:jeu] === true
     # Doigté
@@ -867,7 +876,7 @@ class LINote < NoteClass
     # Post-indications
     note_llp << @post.to_s
     # Durée post (par exemple pour un accord)
-    note_llp << @duree_post.to_s
+    note_llp << @duree_post.to_s || (fin_accord? && (@duree_in_chord || @duration))
     # Marque de liaison (if any)
     note_llp << mark_legato
     # Marque de début de dynamique (if any)
@@ -1117,6 +1126,18 @@ class LINote < NoteClass
   # => Return true si la LINote est un silence
   def rest?
     @note == "r"
+  end
+  # => Retourne true si la linote se trouve dans un accord
+  def in_accord?
+    @in_accord === true
+  end
+  # => Retourne true si c'est la première note d'un accord
+  def start_accord?
+    @pre =~ /</
+  end
+  # => Retourne true si la LINote est la fin d'un accord
+  def fin_accord?
+    @post =~ />/
   end
   # Return true si la linote contient des dièses
   def diese?

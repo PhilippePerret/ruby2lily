@@ -211,18 +211,18 @@ describe String do
 		it ":as_motif doit retourner un bon motif (avec octaves)" do
 		  mo = "a'".as_motif
 			mo.class.should == Motif
-			mo.notes.should == "a" # @fixme: L'APOSTROPHE DEVRAIT ÊTRE ENVELÉ
+			mo.simple_notes.should == "a" # @fixme: L'APOSTROPHE DEVRAIT ÊTRE ENVELÉ
 			mo.octave.should == 5
 			
 			mo = "c,,,".as_motif
 			mo.class.should == Motif
-			mo.notes.should == "c"
-			mo.octave.should == 0
+			mo.simple_notes.should == "c"
+			mo.octave.should == 1
 			
 			mo = "c,, d e'".as_motif
 			mo.class.should == Motif
-			mo.notes.should == "c d e'"
-			mo.octave.should == 1
+			mo.simple_notes.should == "c d e'"
+			mo.octave.should == 2
 			mo.duration.should be_nil
 		end
 		
@@ -466,7 +466,7 @@ describe String do
 		it ":+ et * doivent retourner la bonne valeur" do
 		  m = "c4" * 3 + "e g" + "c'" + "c" * 2
 			m.class.should == Motif
-			m.notes.should == "c4 c c e g c c, c" # ICI, ÇA RÉPÈTE ENCORE
+			m.to_llp.should == "c4 c c e g c c, c"
 		 	m = m * 2
 			m.class.should == Motif
 			m.to_s.should == "\\relative c' { c4 c c e g c c, c " \

@@ -112,7 +112,7 @@ class Instrument
       duree_absolue_last_note = duree_note
     end
     linotes_expected = LINote::implode linotes_expected
-    puts "linotes_expected: #{linotes_expected.inspect}"
+    # puts "linotes_expected: #{linotes_expected.inspect}"
     linotes_expected
   end
   alias :measures :mesures
@@ -170,6 +170,11 @@ class Instrument
     
     return if aryormot.nil? || (aryormot.class == Array && aryormot.empty?)
     
+    # @FIXME: ici, @notes peut être un string vide, alors qu'il est
+    # initialisé à [] à l'instanciation. NOTE: ÇA DOIT ÊTRE SEULEMENT
+    # PENDANT LES TESTS
+    # @notes = [] if @notes.class != Array
+    
     # Les nouvelles linotes
     linotes = case aryormot.class.to_s
               when "Array" then aryormot
@@ -179,13 +184,28 @@ class Instrument
                                 :params     => aryormot)
               end
 
+    # puts "linote: #{linotes.inspect}:#{linotes.class}"
+    
     # Traitement des paramètres
     # -------------------------
     # @rappel:  les paramètres peuvent tout modifier dans une donnée,
     #           comme l'octave, la durée, etc.
     # @note:    on les ajoute seulement à la première note (peut-être
     #           que ça sera différent plus tard) 
-    params.each { |p, v| linotes.first[p] = v } unless params.nil?
+    params.each do |p, v| 
+      p = p.to_sym
+      if p == :duree && ! NoteClass::duree_valide?( v.to_s )
+        fatal_error(:bad_value_duree, :bad => v.to_s)
+      end
+      linotes.first.set p => v
+      # Cas spécial de la durée avec un accord
+      if p == :duree && linotes.first.start_accord?
+        linotes.each do |ln|
+          next unless ln.fin_accord?
+          ln.set :duree_post => v
+        end
+      end
+    end unless params.nil?
     
     # Gestion du raccord avec note précédente
     # ----------------------------------------
@@ -193,13 +213,40 @@ class Instrument
     #               pas la même octave que la première note des nouvelles
     #               notes, il faut modifier le delta de la première des
     #               nouvelles notes.
-    linotes.first.as_next_of @notes.last unless @notes.empty?
+    # @FIXME: une erreur ici, sur deux accords : c'est la première note
+    # de l'accord qu'il faut prendre en référence.
+    linotes.first.as_next_of(last_note_hors_accord(true)) unless @notes.empty?
     
     # Ajout à la liste des notes
     # ---------------------------
-    @notes = @notes + linotes
+    # puts "\n\n@notes: #{@notes.inspect}"
+    # puts "linotes: #{linotes.inspect}"
+    @notes =  @notes.nil? ? linotes : (@notes + linotes)
+    # puts "Nouvelle liste @notes: #{@notes.inspect}"
+    
+    @notes
   end
   
+  # =>  Retourne la dernière note de @notes, hors accord. C'est-à-dire
+  #     que si @notes se termine par "<a c e>", la méthode renverra
+  #     la LINote "a"
+  def last_note_hors_accord not_a_rest = false
+    return nil if @notes.nil? || @notes.empty?
+    the_last = @notes.last
+    if not_a_rest
+      # Si on accepte pas un silence
+      return the_last unless the_last.fin_accord? || the_last.rest?
+    else
+      # Si on accepte un silence
+      return the_last if the_last.rest?
+    end
+    @notes.reverse.each do |ln|
+      next if not_a_rest && ln.rest? # passer les silence
+      next if ln.in_accord? && !ln.start_accord?
+      # Dans tous les autres cas, on renvoie la LINote
+      return ln
+    end
+  end
   # => Ajoute la chose comme liste de notes
   # 
   # La méthode transforme le string +str+ en liste de LINotes pour pouvoir
