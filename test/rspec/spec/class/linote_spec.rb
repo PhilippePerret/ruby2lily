@@ -641,6 +641,11 @@ describe LINote do
 				dynaln.should == {:crescendo => false, :start_intensite => nil,
 					:end_intensite => 'p', :start => true, :end => true}
 			end
+			it ":set_dyna doit retourner la LINote" do
+			  res = @ln.set_dyna :crescendo => true
+				res.class.should == LINote
+				res.should == @ln
+			end
 			it "doit répondre à :start_crescendo" do
 			  @ln.should respond_to :start_crescendo
 			end
@@ -699,7 +704,48 @@ describe LINote do
 				dy = dynaln
 				dy[:end_intensite].should == 'ff'
 			end
-			
+			it "doit répondre à :mark_dyna_start" do
+			  @ln.should respond_to :mark_dyna_start
+			end
+			it ":mark_dyna_start doit retourner une chaine vide qd pas de dynamique" do
+			  @ln.mark_dyna_start.should == ""
+			end
+			it ":mark_dyna_start doit retourner la marque de crescendo if any" do
+			  @ln.start_crescendo
+				@ln.mark_dyna_start.should == "\\<"
+			end
+			it ":mark_dyna_start doit retourner la marque de decrescendo if any" do
+			  @ln.start_decrescendo
+				@ln.mark_dyna_start.should == "\\>"
+			end
+			it ":mark_dyna_start doit retourner l'intensité de départ (if any)" do
+			  @ln.start_crescendo
+				@ln.start_intensite 'ppp'
+			end
+			it "doit répondre à :mark_dyna_end" do
+			  @ln.should respond_to :mark_dyna_end
+			end
+			it ":mark_dyna_end doit retourner une chaine vide si pas de dynamique" do
+			  @ln.mark_dyna_end.should == ""
+			end
+			it ":mark_dyna_end doit retourner la marque de fin de crescendo/decrescendo (if any)" do
+			  @ln.end_crescendo
+				@ln.mark_dyna_end.should == "\\!"
+			end
+			it ":mark_dyna_end doit retourne la marque de fin par une intensité (if any)" do
+			  @ln.end_intensite 'pp'
+				@ln.mark_dyna_end.should == "\\pp"
+			end
+			it "doit répondre à :mark_intensite_start" do
+			  @ln.should respond_to :mark_intensite_start
+			end
+			it ":mark_intensite_start doit retourner une chaine vide si pas d'intensité de départ" do
+			  @ln.mark_intensite_start.should == ""
+			end
+			it ":mark_intensite_start doit retourner l'intensité de départ (if any)" do
+			  @ln.start_intensite 'fff'
+				@ln.mark_intensite_start.should == "\\fff"
+			end
 		end
 		
 		# :au_dessus_de? / above?

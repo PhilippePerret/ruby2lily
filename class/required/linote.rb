@@ -887,6 +887,7 @@ class LINote < NoteClass
         end
       end
     end
+    return self
   end
   # Pose un début de crescendo sur la LINote
   def start_crescendo
@@ -903,12 +904,36 @@ class LINote < NoteClass
   end
   # Pose une intensité de départ sur la note
   def start_intensite intensite
-    set_dyna :start_intensite => intensite
+    set_dyna :start_intensite => intensite, :start => true
   end
   # Pose une intensité de fin sur la LINote
   def end_intensite intensite
-    set_dyna :end_intensite => intensite
+    set_dyna :end_intensite => intensite, :end => true
   end
+  
+  # =>  Retourne la marque de début de crescendo/decrescendo si
+  #     nécessaire. Une chaine vide otherwise
+  def mark_dyna_start
+    return "" if @dyna.nil? || @dyna[:start] == false
+    return @dyna[:crescendo] ? "\\<" : "\\>"
+  end
+  # =>  Retourne la marque de fin de crescendo/decrescendo si nécessaire
+  #     Ou une chaine vide
+  def mark_dyna_end
+    return "" if @dyna.nil? || @dyna[:end] == false
+    if @dyna[:end_intensite].nil?
+      "\\!"
+    else
+      "\\#{@dyna[:end_intensite]}"
+    end
+  end
+  # =>  Retourne l'intensité de départ de la note si nécessaire
+  #     Ou une chaine vide
+  def mark_intensite_start
+    return "" if @dyna.nil? || @dyna[:start_intensite].nil?
+    "\\#{@dyna[:start_intensite]}"
+  end
+  
   #   / fin méthodes pour la dynamique
   # -------------------------------------------------------------------
 
