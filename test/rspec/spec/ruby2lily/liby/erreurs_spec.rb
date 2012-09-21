@@ -48,7 +48,20 @@ describe Liby do
 			:bad_args_for_chord,
 			:type_ajout_unknown,
 			:param_method_linote_should_be_linote,
-			:bad_params_in_add_notes_instrument
+			:bad_params_in_add_notes_instrument,
+			:slure_unable_if_end_slure,
+			:slure_unable_if_start_legato,
+			:slure_unable_if_end_legato,
+			:end_slure_unable_if_start_slure,
+			:end_slure_unable_if_start_legato,
+			:end_slure_unable_if_end_legato,
+			:legato_unable_if_start_slure,
+			:legato_unable_if_end_slure,
+			:legato_unable_if_end_legato,
+			:end_legato_unable_if_start_slure,
+			:end_legato_unable_if_end_slure,
+			:end_legato_unable_if_start_legato,
+			:bad_value_post_for_linote
 		].each do |cle_erreur|
 			it "l'erreur :#{cle_erreur} doit exister" do
 				Liby::ERRORS.should have_key cle_erreur

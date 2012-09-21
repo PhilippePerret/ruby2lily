@@ -23,6 +23,8 @@ RSpec.configure do |config|
   require File.join(BASE_RUBY2LILY, 'module', 'handy_methods.rb')
   require File.join(BASE_RUBY2LILY, 'module', 'note_methods.rb')
 
+  $MODE_TEST = true
+  
   config.before(:all){
     # À faire avant chaque describe
   }

@@ -25,7 +25,8 @@ end
 # @note: trouver un autre nom plus explicite et aussi court
 def detemp texte, params
   params.each do |var, val|
-    texte = texte.gsub(/\#\{#{Regexp.escape(var.to_s)}\}/, val.to_s)
+    val = val.inspect unless val.class == String
+    texte = texte.gsub(/\#\{#{Regexp.escape(var.to_s)}\}/, val)
   end unless params.nil?
   texte
 end

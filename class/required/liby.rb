@@ -86,6 +86,20 @@ class Liby
       :not_note_llp               => "« \#{note} » n'est pas une note LiLyPond correcte",
       :param_method_linote_should_be_linote  => 
           "Le paramètre pour LINote#\#{method} doit être une instance LINote… (pour \#{ln.inspect})",
+      :bad_value_post_for_linote => "Mauvaise value :post (\#{bad}) pour la linote \#{linote}",
+      :slure_unable_if_end_slure => "Un début de slure (liaison) est impossible sur une note qui contient déjà une fin de slure (\#{linote})",
+      :slure_unable_if_start_legato => "Un début de slure (liaison) est impossible sur une note qui contient déjà un départ de légato (\#{linote})",
+      :slure_unable_if_end_legato => "Un début de slure (liaison) est impossible sur une note qui contient déjà une fin de légato (\#{linote})",
+      :end_slure_unable_if_start_slure => "Un fin de slure (liaison) est impossible sur une note qui contient déjà un début de slure (\#{linote})",
+      :end_slure_unable_if_start_legato => "Un fin de slure (liaison) est impossible sur une note qui contient déjà un début de legato (\#{linote})",
+      :end_slure_unable_if_end_legato => "Un fin de slure (liaison) est impossible sur une note qui contient déjà une fin de legato (\#{linote})",
+      :legato_unable_if_start_slure => "Un début de legato est impossible sur une note qui contient déjà un départ de slure (\#{linote})",
+      :legato_unable_if_end_slure => "Un début de legato est impossible sur une note qui contient déjà une fin de slure (\#{linote})",
+      :legato_unable_if_end_legato => "Un début de legato est impossible sur une note qui contient déjà une fin de legato (\#{linote})",
+      :end_legato_unable_if_start_slure => "Une fin de legato est impossible sur une note qui contient déjà un départ de slure (\#{linote})",
+      :end_legato_unable_if_end_slure => "Une fin de legato est impossible sur une note qui contient déjà une fin de slure (\#{linote})",
+      :end_legato_unable_if_start_legato => "Une fin de legato est impossible sur une note qui contient déjà un début de legato (\#{linote})",
+
       # === Chord === #
       :bad_args_for_chord         => "Les arguments de l'accord «\#{chord}» sont invalides : \#{error}",
       # ==== Note ==== #

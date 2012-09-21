@@ -150,6 +150,17 @@ class LINote < NoteClass
     # commence toujours par : "\\"
     REG_DYNAMIQUE = /\\(?:>|<|\!|f+|p+)/
 
+    # Expressions régulières pour capter les liaisons (if any)
+    REG_START_LEGATO  = /\\\(/
+    REG_END_LEGATO    = /\\\)/
+    REG_START_SLURE   = /\(/
+    REG_END_SLURE     = /\)/
+    
+    # Expressions régulières pour capter les crescendo/decrescendo (if any)
+    REG_START_CRESCENDO   = /\\</
+    REG_START_DECRESCENDO = /\\>/
+    REG_END_CRESCENDO     = /\\\!/
+
     # Expression régulière permettant d'exploder les notes
     # de la suite de notes LilyPond fournie
     REG_NOTE_COMPLEXE = %r{
@@ -213,6 +224,11 @@ class LINote < NoteClass
   #                     cas une seule.
   # 
   # @return Une Linote contenant toutes les données
+  # 
+  # @note:  C'est une des méthodes les plus importantes du programme,
+  #         puisque les LINotes sont utilisées intensivement comme
+  #         atome de base à beaucoup d'opérations.
+  # 
   def self.llp_to_linote note_llp
     # String requis
     fatal_error(:bad_type_for_args, 
@@ -232,18 +248,80 @@ class LINote < NoteClass
       jeu     = jeu[1..-1]    unless jeu.to_s.blank?
       finger  = finger[1..-1] unless finger.to_s.blank?
 
+      # Étude de la valeur :post
+      # ------------------------
+      # (qui peut contenir les marques de 
+      #  dynamique et de liaison — legato et slure, transformées en
+      #  propriétés @legato et @dyna)
+      unless post.nil? || post.blank?
+        legato, dyna, post = extract_post_values post
+      else
+        legato, dyna = [nil, nil]
+      end
+      
       # Composition de la linote
       # ------------------------
       return LINote::new(
         :note => note, :duration => duree, :duree_post => duree_post, 
         :delta => delta_from_markdelta(mark_delta),
         :pre  => pre,  :alter => alter, :jeu => jeu, :post => post,
-        :dynamique => mark_dyna, :finger => finger
+        :legato => legato, :dyna => dyna,
+        :dynamique => mark_dyna, # @FIXME: valeur obsolète
+        :finger => finger
         )
     }
     # Si on passe ici, c'est que le motif n'a pas été trouvé, que
     # +note_llp+ n'était donc pas au bon format
     fatal_error(:not_note_llp, :note => note_llp)
+  end
+  
+  # =>  Extrait de la valeur 'post' de la note analysée les liaisons et
+  #     la dynamique éventuelle et renvoie :
+  #     [value @legato, value @dyna, value post restante]
+  def self.extract_post_values post
+    return [nil, nil, post] if post.nil? || post.blank?
+    
+    # Une liaison ?
+    legato = nil
+    rest = post.sub(REG_START_LEGATO, '')
+    unless post == rest
+      legato = 3; post = rest
+    else
+      rest = post.sub(REG_END_LEGATO, '')
+      unless post == rest
+        legato = 4; post = rest
+      else
+        rest = post.sub(REG_START_SLURE, '')
+        unless post == rest
+          legato = 1; post = rest
+        else
+          rest = post.sub(REG_END_SLURE, '')
+          unless post == rest
+            legato = 2; post = rest
+          end
+        end
+      end
+    end
+    
+    # Une marque de dynamique ?
+    dyna = nil
+    rest = post.sub(REG_START_CRESCENDO, '')
+    unless rest == post
+      dyna = {:start => true, :crescendo => true}; post = rest
+    else
+      rest = post.sub(REG_END_CRESCENDO, '')
+      unless rest == post
+        dyna = {:end => true }; post = rest
+      else
+        rest = post.sub(REG_START_DECRESCENDO, '')
+        unless post == rest
+          dyna = {:start => true, :crescendo => false}; post = rest
+        end
+      end
+    end
+    
+    # La liste renvoyée
+    [legato, dyna, rest]
   end
   
   # => Return les données notes du motif +str+ (motif LilyPond)
@@ -434,8 +512,8 @@ class LINote < NoteClass
   # @note:  on ne retourne pas un string, car cette méthode s'insert
   #         le plus souvent dans une suite de traitements où on a besoin
   #         de la liste des LINotes.
-  # @note:  Contrairement à post_first_note, le signe est ajouté AVANT
-  #         le signe qui peut déjà se trouver dans la linote
+  # @note:  Le signe est ajouté AVANT le signe qui peut déjà se trouver 
+  #         dans la linote
   # 
   def self.pre_first_note some, sig
     some = as_array_of_linotes(some)
@@ -463,19 +541,23 @@ class LINote < NoteClass
   # @note:  on ne retourne pas un string, car cette méthode s'insert
   #         le plus souvent dans une suite de traitements où on a besoin
   #         de la liste des LINotes.
-  # @note:  Contrairement à pre_first_note, le signe est ajouté APRÈS
-  #         le post déjà défini.
   # 
   def self.post_first_note some, sig
     some = as_array_of_linotes(some)
     some.each do |ln|
       unless ln.rest?
-        ln.set(:post => sig) and break if ln.post.nil?
-        # Si @post contient déjà le signe, on ne fait rien
-        deja_le_sig = 
-              (ln.post[0..sig.length - 1] == sig) \
-          ||  (ln.post[-sig.length..-1]   == sig)
-        ln.set(:post => "#{ln.post}#{sig}") unless deja_le_sig
+        case sig
+        when '('  then ln.start_slure
+        when ')'  then ln.end_slure
+        when '\(' then ln.start_legato
+        when '\)' then ln.end_legato
+        when '\!' then ln.end_crescendo
+        when '\<' then ln.start_crescendo
+        when '\>' then ln.start_decrescendo
+        else
+          fatal_error(:bad_value_post_for_linote, 
+                      :linote => self, :bad => sig)
+        end
         break
       end
     end
@@ -567,7 +649,7 @@ class LINote < NoteClass
   #   Instance
   # -------------------------------------------------------------------
   attr_reader :note, :duration, :alter, :delta, :pre, :post,
-              :duree_post, :duree_in_chord, :dyna
+              :duree_post, :duree_in_chord, :dyna, :legato
   
   @note_str = nil   # La note string (p.e. "g" ou "fis" ou "eb" ou "g#")
   @note_int = nil   # La note, exprimé par un entier
@@ -603,6 +685,9 @@ class LINote < NoteClass
                       # le delta
   @delta      = nil   # Delta d'octave (un Fixnum, 0 par défaut ou quand
                       # la linote suit naturellement la précédente)
+  @legato     = nil   # Valeur du légato (if any). Nil si pas de légato,
+                      # 1: début de slure, 2: fin de slure, 3: début de
+                      # légato, 4: fin de légato.
                       
   # Instanciation
   # --------------
@@ -630,6 +715,7 @@ class LINote < NoteClass
     @duration   = nil
     @octave     = nil
     @dyna       = nil
+    @legato     = nil
     case valeur.class.to_s
     when "Hash"
       set valeur
@@ -751,24 +837,60 @@ class LINote < NoteClass
   #
   # @note:  Cette méthode est utilisée pour l'instrument, en méthode
   #         finale pour composer le code pour LilyPond.
+  #         Elle est également utilisée dans LINote::implode pour 
+  #         recomposer une suite.
   # 
   def to_llp params = nil
     params ||= {}
     except = params[:except] || {}
-    
-    note_llp = "#{@pre}#{@note}#{@alter}"
-    note_llp << "#{mark_delta}" unless except[:mark_delta]  === true
-    note_llp << "#{@duration}"  unless except[:duration]    === true
-    unless except[:jeu] === true
-      jeu = @jeu.nil? ? "" : "-#{@jeu}"
-      note_llp << jeu
-    end
-    note_llp << "#{@finger}#{@post}#{@duree_post}#{@dynamique}"
+
+    note_llp = ""
+    # Intensité de départ (if any)
+    note_llp << mark_intensite_start
+    # Marque d'accord
+    # @TODO: je le laisse en 'pre' pour le moment, mais à l'avenir,
+    # on pourra le supprimer si ce pre ne contient plus que la marque
+    # de départ d'accord (le reste est géré par ailleurs)
+    note_llp << @pre.to_s
+    # Note simple
+    note_llp << @note
+    # Altération de la note
+    note_llp << @alter.to_s
+    # Delta d'octave (sauf indication contraire)
+    note_llp << mark_delta unless except[:mark_delta] === true
+    # Durée de la note (sauf indication contraire)
+    note_llp << @duration.to_s  unless except[:duration] === true
+    # Marque de jeu (sauf indication contraire)
+    note_llp << (@jeu.nil? ? '' : "-#{@jeu}") unless except[:jeu] === true
+    # Doigté
+    note_llp << @finger.to_s
+    # Post-indications
+    note_llp << @post.to_s
+    # Durée post (par exemple pour un accord)
+    note_llp << @duree_post.to_s
+    # Marque de liaison (if any)
+    note_llp << mark_legato
+    # Marque de début de dynamique (if any)
+    note_llp << mark_dyna_start 
+    # Marque de fin de dynamique (if any)
+    note_llp << mark_dyna_end
+
+    # ANCIENNE FORMULE (PRÉ-DYNAMIQUE)
+    # note_llp = "#{@pre}#{@note}#{@alter}"
+    # note_llp << "#{mark_delta}" unless except[:mark_delta]  === true
+    # note_llp << "#{@duration}"  unless except[:duration]    === true
+    # unless except[:jeu] === true
+    #   jeu = @jeu.nil? ? "" : "-#{@jeu}"
+    #   note_llp << jeu
+    # end
+    # note_llp << "#{@finger}#{@post}#{@duree_post}#{@dynamique}"
     return note_llp
   end
   
   # =>  Return la linote comme texte final lilypond
   #     P.e. "\relative c' { dis }"
+  # @FIXME: cette méthode doit être mauvaise (trop simple, ne tient
+  #         compte que de la note)
   def to_s
     note = to_llp( :except => { :octave => true } )
     "#{Score::mark_relative(@octave)} { #{note} }"
@@ -895,7 +1017,7 @@ class LINote < NoteClass
   end
   # Pose une fin de dynamique sur la LINote
   def end_crescendo
-    set_dyna :crescendo => true, :end => true
+    set_dyna :crescendo => nil, :end => true
   end
   alias :end_decrescendo :end_crescendo
   # Pose un début de decrescendo sur la LINote
@@ -915,7 +1037,11 @@ class LINote < NoteClass
   #     nécessaire. Une chaine vide otherwise
   def mark_dyna_start
     return "" if @dyna.nil? || @dyna[:start] == false
-    return @dyna[:crescendo] ? "\\<" : "\\>"
+    case @dyna[:crescendo]
+    when nil then ""
+    when true then "\\<"
+    when false then "\\>"
+    end
   end
   # =>  Retourne la marque de fin de crescendo/decrescendo si nécessaire
   #     Ou une chaine vide
@@ -924,19 +1050,70 @@ class LINote < NoteClass
     if @dyna[:end_intensite].nil?
       "\\!"
     else
-      "\\#{@dyna[:end_intensite]}"
+      " \\#{@dyna[:end_intensite]}"
     end
   end
   # =>  Retourne l'intensité de départ de la note si nécessaire
   #     Ou une chaine vide
   def mark_intensite_start
     return "" if @dyna.nil? || @dyna[:start_intensite].nil?
-    "\\#{@dyna[:start_intensite]}"
+    "\\#{@dyna[:start_intensite]} "
   end
   
   #   / fin méthodes pour la dynamique
   # -------------------------------------------------------------------
 
+  # -------------------------------------------------------------------
+  #   Méthodes de liaisons
+  
+  # =>  Méthode qui checke si la liaison est possible. Lève une erreur
+  #     fatale dans le cas contraire.
+  # 
+  # @param  lk_str    Le nom string de la liaison, pour le message d'erreur
+  # @param  value     La valeur de légato (donc celle qui n'est pas à
+  #                   checker) et celle qui sera donnée à @legato si
+  #                   tout passe
+  # @produit  Définit @legato si OK
+  # 
+  def checkif_legato_enable lk_str, value
+    begin
+      raise "#{lk_str}_unable_if_start_slure"   if value!=1 && @legato==1
+      raise "#{lk_str}_unable_if_end_slure"     if value!=2 && @legato==2
+      raise "#{lk_str}_unable_if_start_legato"  if value!=3 && @legato==3
+      raise "#{lk_str}_unable_if_end_legato"    if value!=4 && @legato==4
+    rescue Exception => e
+      fatal_error(e.message, :linote => self.inspect)
+    else
+      @legato = value
+    end
+  end
+  
+  # => Place un début de slure sur la note (si c'est possible)
+  def start_slure
+    checkif_legato_enable 'slure', 1
+  end
+  # => Place une fin de slure sur la note (si c'est possible)
+  def end_slure
+    checkif_legato_enable 'end_slure', 2
+  end
+  # => Place un début de légato sur la note (si c'est possible)
+  def start_legato
+    checkif_legato_enable 'legato', 3
+  end
+  # => Place une fin de legato sur la note (si c'est possible)
+  def end_legato
+    checkif_legato_enable 'end_legato', 4
+  end
+  
+  # =>  Retourne la marque de legato (ou slure) éventuelle à poser sur
+  #     la note
+  def mark_legato
+    ["", "(", ")", "\\(", "\\)"][@legato.to_i]
+  end
+  
+  #   / Fin des méthodes de liaison
+  # -------------------------------------------------------------------
+  
   # => Return true si la LINote est un silence
   def rest?
     @note == "r"

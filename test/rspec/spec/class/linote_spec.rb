@@ -293,6 +293,25 @@ describe LINote do
 			end
 		end
 		
+		it "doit répondre à :extract_post_values" do
+		  LINote.should respond_to :extract_post_values
+		end
+		[
+			["(",  [1, nil, ""]], [")",  [2, nil, ""]], ["\\(",  [3, nil, ""]],
+			["\\)",  			[4, nil, ""]],
+			["(\\!", 			[1, {:end 	=> true}, ""]],
+			[")\\<", 			[2, {:start => true, :crescendo => true}, ""]],
+			["\\<)", 			[2, {:start => true, :crescendo => true}, ""]],
+			["\\)\\>--", 	[4, {:start => true, :crescendo => false}, "--"]],
+			["\\>--\\)", 	[4, {:start => true, :crescendo => false}, "--"]]
+		].each do |d|
+			post, expected = d
+			it ":extract_post_values('#{post}') doit renvoyer #{expected.inspect}" do
+				# Rappel : la valeur renvoyée est un array qui contient :
+				# 	[value pour @legato, value pour @dyna, new value pour @post]
+			  LINote::extract_post_values(post).should == expected
+			end
+		end
 		
 		
 		# :to_llp
@@ -464,8 +483,7 @@ describe LINote do
 			end
 			previous_suite = nil
 			[
-				["a b c d", 'IN', 'OUT', "aIN b c dOUT"],
-				[nil, '(', ')', "a( b c d)"],
+				["a b c d", '(', ')', "a( b c d)"],
 				[nil, '\(', '\)', "a\\( b c d\\)"],
 				[nil, '\<', '\!', "a\\< b c d\\!"],
 				["aeses,8-^ b c disis''-.", '(', ')', "aeses,-^( b c disis''-.)"]
@@ -496,6 +514,10 @@ describe LINote do
 				ary_ln = [LINote::new("a"), LINote::new("b")]
 			  expect{LINote::post_first_note(ary_ln, '\)')}.not_to raise_error
 			end
+			it ":post_first_note doit lever une erreur si le signe est inconnu" do
+				ary_ln = [LINote::new("a"), LINote::new("b")]
+			  expect{LINote::post_first_note(ary_ln, '++')}.to raise_error
+			end
 			it ":post_first_note doit retourner une liste de LINotes" do
 			  res = LINote::post_first_note("a b c", '\)')
 				res.class.should == Array
@@ -503,16 +525,17 @@ describe LINote do
 			end
 			it ":post_first_note doit ajouter un signe à un post existant" do
 			  ary = LINote::post_first_note("a b c", '\(')
+				ary.first.to_llp.should == 'a\('
 				res = LINote::post_first_note( ary, '\<' )
 				res.class.should == Array
 				res.first.class.should == LINote
-				res.first.post.should == '\(\<'
+				res.first.to_llp.should == 'a\(\<'
 			end
 			it ":post_first_note ne doit pas poser le signe sur un silence" do
 				sig = '\('
 			  res = LINote::post_first_note("r r r a b c", sig)
 				res.first.post.should_not == sig
-				res[3].post.should == sig
+				res[3].to_llp.should == "a#{sig}"
 			end
 
 			# :post_last_note
@@ -521,6 +544,9 @@ describe LINote do
 			end
 			it ":post_last_note doit pouvoir recevoir un string" do
 			  expect{LINote::post_last_note("a b c", '\)')}.not_to raise_error
+			end
+			it ":post_last_note doit lever une erreur si le signe est inconnu" do
+			  expect{LINote::post_last_note("a b c", '+')}.to raise_error
 			end
 			it ":post_last_note doit pouvoir recevoir une liste de LINotes" do
 				ary_ln = [LINote::new("a"), LINote::new("b")]
@@ -533,17 +559,17 @@ describe LINote do
 			end
 			it ":post_last_note doit poser le post de la dernière note" do
 			  res = LINote::post_last_note("a b c", '\)')
-				res.last.post.should == '\)'
+				res.last.to_llp.should == 'c\)'
 			end
 			it ":post_last_note doit ajouter au post existant" do
 			  ary = LINote::post_last_note("a b c", '\)')
+				ary.last.to_llp.should == 'c\)'
 				res = LINote::post_last_note(ary, '\!')
-				res.last.post.should == '\)\!'
+				res.last.to_llp.should == 'c\)\!'
 			end
 			it ":post_last_note ne doit pas mettre le signe sur un silence" do
 			  res = LINote::post_last_note("a b c r", '\)')
-				res.last.post.should_not == '\)'
-				res[2].post.should == '\)'
+				res[2].to_llp.should == 'c\)'
 			end
 		end
 
@@ -718,9 +744,10 @@ describe LINote do
 			  @ln.start_decrescendo
 				@ln.mark_dyna_start.should == "\\>"
 			end
-			it ":mark_dyna_start doit retourner l'intensité de départ (if any)" do
+			it ":mark_dyna_start doit retourner le signe de crescendo même si l'intensité est définie" do
 			  @ln.start_crescendo
 				@ln.start_intensite 'ppp'
+				@ln.mark_dyna_start.should == "\\<"
 			end
 			it "doit répondre à :mark_dyna_end" do
 			  @ln.should respond_to :mark_dyna_end
@@ -734,7 +761,7 @@ describe LINote do
 			end
 			it ":mark_dyna_end doit retourne la marque de fin par une intensité (if any)" do
 			  @ln.end_intensite 'pp'
-				@ln.mark_dyna_end.should == "\\pp"
+				@ln.mark_dyna_end.should == " \\pp"
 			end
 			it "doit répondre à :mark_intensite_start" do
 			  @ln.should respond_to :mark_intensite_start
@@ -744,9 +771,109 @@ describe LINote do
 			end
 			it ":mark_intensite_start doit retourner l'intensité de départ (if any)" do
 			  @ln.start_intensite 'fff'
-				@ln.mark_intensite_start.should == "\\fff"
+				@ln.mark_intensite_start.should == "\\fff "
 			end
-		end
+		end # / fin de describe Dynamique
+		
+		describe "Légato" do
+		  before(:each) do
+		    @ln = LINote::new "c"
+		  end
+			it "doit répondre à :legato" do
+			  @ln.should respond_to :legato
+			end
+			it "@legato doit être nil par défaut" do
+			  @ln.legato.should be_nil
+			end
+			it "doit répondre à :checkif_legato_enable" do
+			  @ln.should respond_to :checkif_legato_enable
+				# est testée par la force des choses ci-dessous
+			end
+			it "doit répondre à :start_slure" do
+			  @ln.should respond_to :start_slure
+			end
+			it ":start_slure doit régler la valeur de @legato" do
+				@ln.legato.should be_nil
+			  @ln.start_slure
+				@ln.legato.should == 1
+			end
+			it ":start_slure doit lever une erreur s'il y a déjà une liaison quelconque" do
+				iv_set(@ln, :legato => 2)
+				err = detemp(Liby::ERRORS[:slure_unable_if_end_slure], :linote => @ln)
+				expect{@ln.start_slure}.to raise_error(SystemExit, err)
+				iv_set(@ln, :legato => 3)
+				err = detemp(Liby::ERRORS[:slure_unable_if_start_legato], :linote => @ln)
+				expect{@ln.start_slure}.to raise_error(SystemExit, err)
+				iv_set(@ln, :legato => 4)
+				err = detemp(Liby::ERRORS[:slure_unable_if_end_legato], :linote => @ln)
+				expect{@ln.start_slure}.to raise_error(SystemExit, err)
+			end
+			it "doit répondre à :end_slure" do
+			  @ln.legato.should be_nil
+				@ln.end_slure
+				@ln.legato.should == 2
+			end
+			it ":end_slure doit lever une erreur s'il y a déjà une liaison quelconque" do
+				iv_set(@ln, :legato => 1)
+				err = detemp(Liby::ERRORS[:end_slure_unable_if_start_slure], :linote => @ln)
+				expect{@ln.end_slure}.to raise_error(SystemExit, err)
+				iv_set(@ln, :legato => 3)
+				err = detemp(Liby::ERRORS[:end_slure_unable_if_start_legato], :linote => @ln)
+				expect{@ln.end_slure}.to raise_error(SystemExit, err)
+				iv_set(@ln, :legato => 4)
+				err = detemp(Liby::ERRORS[:end_slure_unable_if_end_legato], :linote => @ln)
+				expect{@ln.end_slure}.to raise_error(SystemExit, err)
+			end
+			it "doit répondre à :start_legato" do
+			  @ln.should respond_to :start_legato
+			end
+			it ":start_legato doit régler la valeur de @legato" do
+			  @ln.start_legato
+				@ln.legato.should == 3
+			end
+			it ":start_legato doit lever une erreur s'il y a déjà une liaison quelconque" do
+				iv_set(@ln, :legato => 1)
+				err = detemp(Liby::ERRORS[:legato_unable_if_start_slure], :linote => @ln)
+				expect{@ln.start_legato}.to raise_error(SystemExit, err)
+				iv_set(@ln, :legato => 2)
+				err = detemp(Liby::ERRORS[:legato_unable_if_end_slure], :linote => @ln)
+				expect{@ln.start_legato}.to raise_error(SystemExit, err)
+				iv_set(@ln, :legato => 4)
+				err = detemp(Liby::ERRORS[:legato_unable_if_end_legato], :linote => @ln)
+				expect{@ln.start_legato}.to raise_error(SystemExit, err)
+			end
+			it "doit répondre à :end_legato" do
+				@ln.should respond_to :end_legato
+			end
+			it ":end_legato doit régler le legato" do
+			  @ln.legato.should be_nil
+				@ln.end_legato
+				@ln.legato.should == 4
+			end
+			it ":end_legato doit lever une erreur s'il y a déjà une liaison quelconque" do
+				iv_set(@ln, :legato => 1)
+				err = detemp(Liby::ERRORS[:end_legato_unable_if_start_slure], :linote => @ln)
+				expect{@ln.end_legato}.to raise_error(SystemExit, err)
+				iv_set(@ln, :legato => 2)
+				err = detemp(Liby::ERRORS[:end_legato_unable_if_end_slure], :linote => @ln)
+				expect{@ln.end_legato}.to raise_error(SystemExit, err)
+				iv_set(@ln, :legato => 3)
+				err = detemp(Liby::ERRORS[:end_legato_unable_if_start_legato], :linote => @ln)
+				expect{@ln.end_legato}.to raise_error(SystemExit, err)
+			end
+			it "doit répondre à :mark_legato" do
+			  @ln.should respond_to :mark_legato
+			end
+			[
+				[nil, ""], [1, "("], [2, ")"], [3, "\\("], [4, "\\)"]
+			].each do |d|
+				legato, expected = d
+				it ":mark_legato doit renvoyer #{expected} si legato = #{legato}" do
+					iv_set(@ln, :legato => legato)
+					@ln.mark_legato.should == expected
+			  end
+			end
+		end # / fin de describe Légato
 		
 		# :au_dessus_de? / above?
 		it "doit répondre à :au_dessus_de? / :above?" do
@@ -846,6 +973,17 @@ describe LINote do
 		data_test = data_test.to_array
 		data_test.each do |dlinote|
 			res = dlinote.delete(:res)
+			dynamique = dlinote.delete(:dynamique)
+			dyna = 	unless dynamique.nil?
+				case dynamique
+				when "\\!" then {:end => true}
+				when "\\<" then {:start => true, :crescendo => true}
+				when "\\>" then {:start => true, :crescendo => false}
+				else nil
+				end
+			else nil end
+			dlinote[:dyna] = dyna
+			
 			data_displayed = {}
 			dlinote.each do |k, v| 
 				next if v.nil? 
