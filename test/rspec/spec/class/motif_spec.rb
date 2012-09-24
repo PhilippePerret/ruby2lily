@@ -151,56 +151,15 @@ describe Motif do
 			mo.octave.should == 4
 
 			# Une suite "complète" de traitement de la note
-			mo = Motif::new
-			mo.set_with_string "do#4."
-			mo.notes.should == "do#4."
-			mo.duration.should == nil
-			mo.any_notes_to_llp
-			mo.notes.should == "cis4."
-			mo.duration.should be_nil
-			mo.rationnalize_durees
-			mo.implode
+			mo = Motif::new "do#4."
 			mo.notes.should == "cis"
 			mo.duration.should == "4."
 			mo.octave.should == 4
 			
-			mo = Motif::new
-			mo.set_with_string "cbb( e4 g#) <c e g>8"
-			mo.notes.should == "cbb( e4 g#) <c e g>8"
-			mo.any_notes_to_llp
+			mo = Motif::new "cbb( e4 g#) <c e g>8"
 			mo.notes.should == "ceses( e4 gis) <c e g>8"
 			mo.duration.should be_nil
 			mo.octave.should == 4
-		end
-		
-		# :set_with_hash
-		it "doit répondre à :set_with_hash" do
-		  @m.should respond_to :set_with_hash
-		end
-		it ":set_with_hash doit définir correctement le motif" do
-		  @m.set_with_hash(:notes => "g e c", :duration => 8, :octave => -1)
-			@m.notes.should == "g e c"
-			@m.duration.should == "8"
-			@m.octave.should == -1
-		end
-		it ":set_with_hash doit lever une erreur en cas de mauvais arguments" do
-			def expected_error_with args, raison
-				err = detemp(Liby::ERRORS[
-					:invalid_arguments_pour_motif], 
-					:args 	=> args.inspect,
-					:raison => raison)
-				expect{@m.set_with_hash(args)}.to raise_error(SystemExit, err)
-			end
-			# Pas un hash mais un string
-			expected_error_with "string", Liby::ERRORS[:hash_required]
-			# Hash vide
-			expected_error_with( {}, Motif::ERRORS[:notes_undefined] )
-			# Note invalide
-			expected_error_with( {:notes => "h-^"}, Motif::ERRORS[:notes_non_lilypond] )
-			# Mauvaise durée
-			err = detemp(Liby::ERRORS[:bad_value_duree], :bad => 15 )
-			expect{@m.set_with_hash(:notes => "c d e", :duration => 15)}.to \
-				raise_error(SystemExit, err)
 		end
 		
 		# :set
@@ -261,6 +220,8 @@ describe Motif do
 			@m2 = Motif::new :notes => "c c c", :octave => 3
 			(@m1 + @m2).to_s(:octave => 1, :duree => 8).should ==
 				"\\relative c,, { a8 a a c,,, c c }"
+			puts "\n@m2 : #{@m2.inspect}"
+			puts "\n@m1: #{@m1.inspect}"
 			(@m2 + @m1).to_s(:octave => 1, :duree => 8).should ==
 				"\\relative c,, { c8 c c a''' a a }"
 		end
@@ -347,47 +308,95 @@ describe Motif do
 			@m.mark_clef.should == "\\clef \"treble\" "
 			@m.set_clef nil
 		end
+
+		# -------------------------------------------------------------------
+		# Opérations sur première note
+		# -------------------------------------------------------------------
+		describe "Opérations sur la première note" do
+			# :first_note
+			it "doit répondre à :first_note" do
+			  @m.should respond_to :first_note
+			end
+			it ":first_note doit renvoyer un objet de class LINote" do
+				mo = Motif::new "c e g"
+				mo.first_note.class.should == LINote
+			end
+			it ":first_note (non strict) doit retourner la première note ou le silence" do
+				[
+					["c", 3, "c", 3],
+					["<a c e>", 2, "a", 2],
+					["r <b d fis>4 r c c", 1, "r", 1]
+					# @todo: peut-être d'autres tests ici
+				].each do |d|
+					suite, octave_motif, first, octave_note = d
+					mot = Motif::new(:notes => suite, :octave => octave_motif)
+					first_note = mot.first_note
+					first_note.with_alter.should == first
+					first_note.octave.should == octave_note
+					first_note.duration.should be_nil
+				end
+			end
+			it ":first_note (strict) doit renvoyer la première note" do
+				[
+					["a ees c", 3, "a", 3],
+					["a b c", 3, "a", 3],
+					["r r aes b c", 3, "aes", 3],
+					["<a c e>", 2, "a", 2],
+					["r8 <b d fis>4 r c c", 1, "b", 1]
+					# @todo: peut-être d'autres tests ici
+				].each do |d|
+					suite, octave_motif, first, octave_note = d
+					mot = Motif::new(:notes => suite, :octave => octave_motif)
+					first_note = mot.first_note(strict=true)
+					first_note.with_alter.should == first
+					first_note.octave.should == octave_note
+					first_note.duration.should be_nil
+				end
+			end
+			# :set_first_note
+			it "doit répondre à :set_first_note" do
+			  @m.should respond_to :set_first_note
+			end
+			it ":set_first_note doit recevoir une linote ou un string" do
+				motif = Motif::new "c"
+				ln 		= LINote::new "d"
+			  expect{motif.set_first_note(ln)}.not_to raise_error
+				expect{motif.set_first_note("d")}.not_to raise_error
+				expect{motif.set_first_note(:duration => "4")}.to raise_error
+			end
+			it ":set_first_note ne doit rien faire si aucune note" do
+			  motif = Motif::new ""
+				ln = LINote::new "c"
+				motif.set_first_note ln
+				motif.to_llp.should == ""
+			end
+			it ":set_first_note(strict=false) doit définir la première note ou silence" do
+			  mo = Motif::new "r c d e", :duration => 1
+				ln = LINote::new "a", :duration => 4
+				mo.set_first_note ln
+				mo.to_llp.should == "a4 c1 d e"
+			end
+			it ":set_first_note(strict=true) doit définir la vraie note" do
+			  mo = Motif::new "r c d e"
+				ln = LINote::new "a", :duration => 4
+				mo.set_first_note ln, strict = true
+				mo.to_llp.should == "r4 a d e"
+			end
+			it ":set_first_note gère les durées (défini pour linote mais pas motif)" do
+			  mo = Motif::new "r c d e"
+				ln = LINote::new "a", :duration => 4
+				mo.set_first_note ln, strict = true
+				mo.to_llp.should == "r4 a d e"
+			end
+			it ":set_first_note gère les durées (défini pour linote et motif)" do
+				mo = Motif::new "r c d e", :duration => 1
+				ln = LINote::new "a", :duration => 4
+				mo.set_first_note ln, strict = true
+				mo.to_llp.should == "r1 a4 d1 e"
+			end
+		end # / fin describe opérations sur première note
 		
-		# :first_note
-		it "doit répondre à :first_note" do
-		  @m.should respond_to :first_note
-		end
-		it ":first_note doit renvoyer un objet de class LINote" do
-			mo = Motif::new "c e g"
-			mo.first_note.class.should == LINote
-		end
-		it ":first_note (non strict) doit retourner la première note ou le silence" do
-			[
-				["c", 3, "c", 3],
-				["<a c e>", 2, "a", 2],
-				["r <b d fis>4 r c c", 1, "r", 1]
-				# @todo: peut-être d'autres tests ici
-			].each do |d|
-				suite, octave_motif, first, octave_note = d
-				mot = Motif::new(:notes => suite, :octave => octave_motif)
-				first_note = mot.first_note
-				first_note.with_alter.should == first
-				first_note.octave.should == octave_note
-				first_note.duration.should be_nil
-			end
-		end
-		it ":first_note (strict) doit renvoyer la première note" do
-			[
-				["a ees c", 3, "a", 3],
-				["a b c", 3, "a", 3],
-				["r r aes b c", 3, "aes", 3],
-				["<a c e>", 2, "a", 2],
-				["r8 <b d fis>4 r c c", 1, "b", 1]
-				# @todo: peut-être d'autres tests ici
-			].each do |d|
-				suite, octave_motif, first, octave_note = d
-				mot = Motif::new(:notes => suite, :octave => octave_motif)
-				first_note = mot.first_note(strict=true)
-				first_note.with_alter.should == first
-				first_note.octave.should == octave_note
-				first_note.duration.should be_nil
-			end
-		end
+		
 		# :last_note et :real_last_note
 		it "doit répondre à :last_note" do
 		  @m.should respond_to :last_note
@@ -561,8 +570,8 @@ describe Motif do
 			res = mo.notes_with_liaison
 			res.class.should 				== Array
 			res.first.class.should 	== LINote
-			res.first.post.should == '('
-			res.last.post.should  == ')'
+			res.first.legato.should == 1
+			res.last.legato.should  == 2
 			
 			mo = Motif::new :notes => suite, :legato => true
 			LINote::implode(mo.notes_with_liaison).should == "a\\( b c d e\\)"
@@ -602,8 +611,14 @@ describe Motif do
 				mo.crescendo
 				mo.notes.should == suite
 				res = mo.notes_with_dynamique
-				res.first.post.	should == '\<'
-				res.last.post.	should == '\!'
+				prem = res.first
+				prem.dyna.should_not be_nil
+				prem.dyna[:start].should be_true
+				prem.dyna[:end].should be_false
+				prem.dyna[:crescendo].should be_true
+				last = res.last
+				last.dyna[:end].should be_true
+				last.dyna[:start].should be_false
 				mo.notes.should == suite
 			end
 			it "un motif avec slure et dynamique doit retourner les bonnes notes" do
@@ -791,11 +806,11 @@ describe Motif do
 				mo.should be_slured
 				mo.to_s.should == "\\relative c' { a b( c) d( e) }"
 				mo.slure
-				mo.to_s.should == "\\relative c' { a\\( b( c) d( e)\\) }"
 				iv_get(mo, :legato).should === true
 				iv_get(mo, :slured).should == false
 				mo.should be_slured
 				mo.should be_legato
+				mo.to_s.should == "\\relative c' { a\\( b( c) d( e)\\) }"
 			end
 			it "doit ajouter un « sur-slur » si le motif est marqué slured" do
 			  mo = Motif::new "a b c d e"
@@ -1003,6 +1018,7 @@ describe Motif do
 		it ":crescendo avec :start doit définir la dynamique de départ" do
 		  @motif = Motif::new "a b c"
 			@motif.crescendo(:start => 'pp', :end => 'ff')
+			# puts "\n@motif: #{@motif.inspect}"
 			@motif.to_s.should == "\\relative c' { \\pp a\\< b c \\ff }"
 		end
 		it ":crescendo avec :end doit définir la dynamique de fin" do

@@ -22,9 +22,9 @@ class Motif < NoteClass
   @octave   = nil   # L'octave du motif (par défaut, c'est 2)
   @duration = nil   # Durée du motif (optionnel)
   
-  @first_note = nil   # La première note (class Note). Calculé au besoin
+  @first_note = nil   # La première note (LINote). Calculé au besoin
                       # en utilisant <motif>.first_note
-  @last_note  = nil   # La dernière note (class Note). Calculé au besoin,
+  @last_note  = nil   # La dernière note (LINote). Calculé au besoin,
                       # en utilisant <motif>.last_note
   @exploded   = nil   # Le motif "explodé", c'est-à-dire un array de 
                       # toutes les notes (class LINote) telles que
@@ -53,43 +53,28 @@ class Motif < NoteClass
   #         - un hash contenant :notes et :octave pour définir
   #           précisément la hauteur du motif.
   def initialize notes = nil, params = nil
+    params ||= {}
     @notes    = nil
-    @octave   = 4
+    @octave   = params[:octave] || 4
     @duration = nil
     @slured   = false
     @legato   = false
     @triolet  = nil
     @clef     = nil
-    case notes.class.to_s
-    when "Hash"   then set_with_hash notes
-    when "String" then set_with_string notes
+    if notes.class == Hash
+      params  = notes
+      notes   = params.delete(:notes)
+      @octave = params[:octave] || @octave
     end
+    set_with_string  notes  unless notes.nil?
     # puts "\n\n= Avant set properties : #{self.inspect}"
     set_properties params
-    # puts "\n= Avant any_notes_to_llp: #{self.inspect}"
-    any_notes_to_llp
     # puts "\n= Avant rationnalize_durees: #{self.inspect}"
     rationnalize_durees
     # puts "\n= Avant implode: #{self.inspect}"
     implode # pour reconstituer @notes explodé avant
   end
-  
-  # => Définit l'instance Motif à partir d'un Hash de données
-  # 
-  # @todo: Test de validité du hash transmis à la méthode
-  def set_with_hash hash
-    begin
-      raise Liby::ERRORS[:hash_required]        if hash.class != Hash
-      raise Motif::ERRORS[:notes_undefined]     unless hash.has_key?( :notes )
-      raise Motif::ERRORS[:notes_non_lilypond]  unless hash[:notes].is_lilypond?
-    rescue Exception => e
-      fatal_error(:invalid_arguments_pour_motif, 
-        :args   => hash.inspect, 
-        :raison => e.message)
-    end
-    set_properties hash
-  end
-  
+    
   # => Définir les propriétés du motif
   def set_properties hash
     return if hash.nil?
@@ -113,17 +98,14 @@ class Motif < NoteClass
   # @TODO:  faire une recherche sur les liaisons (première et dernière
   #         notes)
   # @TODO: faire une recherche sur les dynamiques (idem)
-  def set_with_string str
-    return if str.to_s.blank?
-    linotes = LINote::explode(str)
-    prem = linotes.first
-    # puts "\n\nlinotes: #{linotes.inspect}"
-    # puts "Première : #{prem.inspect}"
-    
-    @octave = prem.octave + prem.delta
+  def set_with_string notes
+    return if notes.to_s.blank?
+    notes     = LINote::to_llp notes
+    @exploded = LINote::explode(notes, @octave)
+    prem      = @exploded.first
+    @octave   = prem.octave + prem.delta
     prem.set :delta => 0
-    
-    @notes = LINote::implode linotes
+    @notes    = LINote::implode @exploded
   end
   
   # => Définit une propriété quelconque du motif
@@ -145,9 +127,10 @@ class Motif < NoteClass
   # La suite de notes fournie à l'instanciation peut être dans n'importe
   # quel format, avec italiennes et altérations "#/b". Cette méthode
   # les transforme en notes lilypond (# => is, b => es, etc.)
-  def any_notes_to_llp
-    return if @notes.nil?
-    @notes = LINote::to_llp @notes
+  def any_notes_to_llp notes = nil
+    notes ||= @notes
+    return if notes.nil?
+    @notes = LINote::to_llp( notes )
   end
   
   # => Rationnalise les durées
@@ -157,6 +140,8 @@ class Motif < NoteClass
   # de supprimer les durées similaires ("d1 c1 r1" => "d c r" avec 
   # duration mis à "1")
   # 
+  # @note: pour les accords, la durée est consignée dans @duree_chord
+  # 
   # @produit    Définit éventuellement la propriété @duration du motif
   # @produit    Supprime les durées inutiles
   def rationnalize_durees
@@ -164,17 +149,26 @@ class Motif < NoteClass
     # Exploder les notes, pour voir si une durée est définie en
     # première note. Le cas échéant, la prendre et la retirer.
     fatal_error(:invalid_motif, :bad => str) if exploded.nil?
-    unless exploded.first.nil? || exploded.first.duration.nil?
+    return if exploded.first.nil?
+    if exploded.first.duration != nil
       @duration = exploded.first.duration
       # Tant que la durée de la note est égale, on la supprime
-      exploded.each do |note|
-        break if note.duration != @duration
-        note.set :duration => nil
+      # @note: pour le moment, on ne le fait pas avec les accords
+      exploded.each do |ln|
+        break if ln.duration != @duration
+        ln.set :duration => nil
       end
+    elsif explode.first.duree_chord != nil
+      @duration = exploded.first.duree_chord
     end
   end
 
   # => Retourne le motif (ses propriétés) sous forme de Hash
+  # 
+  # @note:  Permet de faire un clone
+  # @note:  Doit être tenu à jour avec les propriétés qui seront 
+  #         ajoutées.
+  # 
   def to_hash
     {
       :notes    => @notes,
@@ -206,7 +200,9 @@ class Motif < NoteClass
     
     duree =
     case params.class.to_s
-    when "String" then params # @todo: il faudrait vérifier que ce soit une durée valide
+    when "String" then
+      NoteClass::duree_valide?(params, fatal = true)
+        # @rappel: la méthode retourne la valeur en string
     when "Hash"
       params[:duration] = params.delete(:duree) if params.has_key? :duree
       duree = (params[:duration] || @duration).to_s
@@ -217,8 +213,10 @@ class Motif < NoteClass
     llp = notes_with_duree( duree )
     llp = notes_with_liaison(llp) if @slured || @legato
     llp = notes_with_dynamique(llp) unless @crescendo.nil?
+    # puts "LLP avant implode : #{llp.inspect}"
     llp = LINote::implode( llp ) if llp.class == Array
     llp = notes_with_triolet llp
+    
     llp
   end
   
@@ -262,7 +260,8 @@ class Motif < NoteClass
     end
 
     # Complet
-    "#{mark_relative(ajout=add_octave)} { #{mark_clef}#{to_llp(params)} }"
+    # "#{mark_relative(ajout=add_octave)} { #{mark_clef}#{to_llp(params)} }"
+    "#{mark_relative(ajout=add_octave)} { #{mark_clef}#{to_llp} }"
 
   end
   
@@ -277,19 +276,10 @@ class Motif < NoteClass
       @count_for_real ||= @notes.split(' ').count
     else
       @count ||= lambda {
-        count     = 0
-        in_accord = false
-        @notes.split(' ').each do |whole_note|
-          whole_note.scan(/^(<)?([a-gr])(eses|isis|es|is)?([',]*)?([^>]*)?(>)?(.*)?$/){
-            tout, acc_start, note, alter, mark_delta, rien, acc_end, fin = 
-              [$&, $1, $2, $3, $4, $5, $6, $7]
-            if in_accord
-              in_accord = ( acc_end != ">" )
-            else
-              count += 1
-              in_accord = ( acc_start == "<" )
-            end
-          }
+        count = 0
+        exploded.each do |ln|
+          next if ln.in_accord? && !ln.start_accord?
+          count += 1
         end
         count
       }.call
@@ -313,13 +303,25 @@ class Motif < NoteClass
     return "\\clef \"#{@clef}\" "
   end
   
+  # =>  Overwriting de la méthode clone, pour faire une vrai clone
+  #     du motif courant
+  def clone
+    Motif::new self.to_hash
+  end
   # =>  Join le motif +motif2+ au motif courant (c'est-à-dire que le
   #     motif courant va changer de @notes — ça n'est pas une nouvelle
   #     instance Motif qui est créée, sauf si +params+ contient 
   #     new => :true)
   # cf. la méthode statique LINote::join pour le détail
   def join motif2, params = nil
-    motif_final = LINote::join( self, motif2 )
+    if params.has_key?(:new) && params[:new] === true
+      # Il faut faire des clones des deux motifs
+      this_motif  = self.clone
+      motif2      = motif2.clone
+    else
+      this_motif  = self
+    end
+    motif_final = LINote::join( this_motif, motif2 )
     change_objet_ou_new_instance motif_final, params, false
   end
   
@@ -337,20 +339,17 @@ class Motif < NoteClass
   #                   sinon, un silence peut être retourné
   def first_note strict = false
     return nil if @notes.nil?
-    instance_variable_get("@first_note#{strict ? '_strict' : ''}") \
+    instance_variable_get("@first#{strict ? '_strict' : ''}") \
     || lambda {
-      reg = strict ? "[a-g]" : "[a-gr]"
-      note = nil
-      @notes.split(' ').each do |n|
-        if n.match(/^<?#{reg}/) != nil
-          note = n
-          break
-        end
+      prem_ln = nil
+      exploded.each do |ln|
+        next if strict && ln.rest?
+        prem_ln = ln
+        break
       end
-      instance_variable_set(
-        "@first_note#{strict ? '_strict' : ''}",
-        note.nil? ? nil : LINote::new(:note => note, :octave => @octave)
-      )
+      variable_name = "first#{strict ? '_strict' : ''}"
+      instance_variable_set("@#{variable_name}", prem_ln)
+      return prem_ln
     }.call
   end
   
@@ -372,125 +371,94 @@ class Motif < NoteClass
       return ln_found
     }.call
   end
-  # =>  Return la dernière note du motif en objet
-  #     LINote
+  
+  # =>  Return la dernière LINote du motif, en tenant compte des
+  #     accord si +strict+ est true
+  # 
   #     ATTENTION : il ne s'agit pas de la toute dernière note du motif,
   #     mais de la dernière note qui servira de référence pour le delta
   #     d'octave en cas de liaison (dans un accord, seule la première
   #     note importe). Pour la "vraie" toute dernière note du motif,
   #     utiliser la méthode 'real_last_note' ci-dessus
   # 
-  # @note: la difficulté par rapport à first_note est qu'il faut calculer
-  # ici, suivant la suite de notes, la hauteur réelle de la dernière :
-  # Car dans :
-  #   "c c"   La 1ère et la dernière sont à la même octave
-  # tandis que dans :
-  #   "c e g c" La dernière ("c") est une octave au-dessus de la 1ère
-  # et pire encore :
-  #   "c e g <c e g> c" : on pourrait croire que le dernier do est
-  # deux octaves plus haut que le premier, mais comme il y a un accord,
-  # c'est le do de l'accord qui est pris en référence pour connaitre la
-  # position du dernier.
-  # 
-  # @note: on en profite pour définir aussi le nombre de notes réelles
-  # et relative (accord => 1 seule note) => @count / @count_for_real
-  # NON : car les silences ne sont pas pris en compte ici
-  # 
   def last_note strict = false
     return nil if @notes.nil?
-    instance_variable_get("@last_note#{strict ? '_strict' : ''}") \
+    instance_variable_get("@last#{strict ? '_strict' : ''}") \
     || lambda {
-      # Pour le comptage des notes (sauf si strict et true)
-      unless strict
-        @count_for_real = 0
-        @count          = 0
+      # puts "SELF MOTIF AVANT DE RECHERCHER LAST_NOTE: #{self.inspect}"
+      ln_found = nil
+      exploded.reverse.each do |ln|
+        if strict
+          next if ln.rest?
+          next if ln.in_accord? && !ln.start_accord?
+        end
+        ln_found = ln and break
       end
-      # Expression régulière à utiliser
-      ex = strict ? "[a-g]" : "[a-gr]"
-      regexp = /^(<)?(#{ex})(eses|isis|es|is)?([',]*)?([^>]*)?(>)?(.*)?$/
-      # On ne conserve que les notes, les altérations et les marques d'octaves
-      liste_notes = []
-      # Pour savoir si on se trouve dans un accord
-      # Tant qu'on est dans un accord, seule la première note importe
-      in_accord = false
-      # La note précédente
-      # On garde sa note (avec altération) et son octave pour savoir où
-      # se trouver la note suivante.
-      h_previous = nil
-      # Le hash qui contiendra les données de la dernière note
-      h_current = nil
-      @notes.split(' ').each do |whole_note|
-        @count_for_real += 1 unless strict
-        whole_note.scan( regexp ){
-          tout, acc_start, note, alter, mark_delta, rien, acc_end, fin = 
-            [$&, $1, $2, $3, $4, $5, $6, $7]
-          delta = LINote::delta_from_markdelta(mark_delta)
-          if in_accord
-            in_accord = ( acc_end != ">" )
-            next # dans un accord, on ne prend rien
-          else
-            # C'est une note qu'on doit étudier
-            @count += 1 unless strict
-            unless h_previous.nil?
-              result = note.au_dessus_de?( h_previous[:note], franchissement = true )
-              au_dessus     = (result & 1) > 0
-              new_octave    = (result & 2) > 0
-              add_octave    = new_octave ? (au_dessus ? 1 : -1) : 0
-              # L'octave de la note sera :
-              #   - l'octave courant (note précédente)
-              #   + le changement d'octave s'il y en a un
-              #   + le delta d'octave s'il y en a un
-              octave = h_previous[:octave] + add_octave + delta
-            
-              # # = débug =
-              # puts "* note: #{note}#{alter}#{mark_delta}"
-              # puts "*       Au-dessus de #{h_previous[:note]} ? #{au_dessus ? 'oui' : 'NON'}"
-              # puts "*       Nouvelle octave ? #{new_octave ? 'oui' : 'NON'}"
-              # puts "*       Ajout d'octave de positionnement : #{add_octave}"
-              # puts "*       Ajout d'octave de delta : #{delta}"
-              # puts "*       => octave final: #{octave}"
-              # # = /débug =
-            
-              # On mémorise cette note
-              h_current = {:note => note, :octave => octave, :alter => alter}
-            else
-              # octave suivant delta
-              # @note: normalement, la première note d'un motif n'a pas de
-              # delta, mais on ne sait jamais
-              # @todo: à l'avenir, il faudrait prévenir le fait de mettre
-              # un delta sur la première note, on le transformant 
-              # automatiquement en octave.
-              octave = (@octave || 4) + delta
-            end
-            h_previous = {
-              :note => note, 
-              :alter => alter, 
-              :delta => delta, 
-              :octave => octave
-              }
-            # Est-ce qu'on rentre dans un accord ?
-            in_accord = ( acc_start == "<" )
-          end
-        }
+      set "last#{strict ? '_strict' : ''}" => ln_found
+      return ln_found
+      }.call  
+  end
+  
+  # =>  Redéfinit la première note en la mettant à +some+
+  # 
+  # @param  some    Une LINote ou un string de note
+  # @param  strict  Si true, c'est la vraie première note qui est 
+  #                 remplacée, sinon, ça peut être un silence
+  # 
+  # @note:  Lève une erreur fatale en cas de mauvais argument
+  # 
+  # @return   Le motif (self)
+  # 
+  def set_first_note some, strict = false
+    clas = some.class
+    fatal_error(:bad_type_for_args, :method => "Motif#set_first_note", 
+      :good => "LINote ou String", :bad => clas
+    ) unless clas == LINote || clas == String
+    
+    # Toujours une LINote
+    some = LINote::new( some ) if clas == String
+    
+    # Durée initiale du motif
+    duree_motif = @duration
+    
+    # La durée de +some+ peut modifier la duration du motif
+    if some.duration != nil
+      if strict == false || duree_motif.nil?
+        # SI  On n'est pas en +strict+, on l'applique toujours au motif
+        # OU  Si la durée du motif n'est pas défini,
+        #     on l'applique toujours, même si on est en strict
+        @duration = some.duration 
+        some.set :duration => nil
       end
+    end
     
-      octave_courant  = @octave || 4
+    # Quand on n'est pas +strict+, si la durée de la linote est définie,
+    # on l'applique toujours au motif 
+    # Et si la durée du motif est définie, on l'applique à la suivante
+    # de la première
+    # NOTE: quels que soient les cas, on n'applique TOUJOURS la durée
+    # à la suivante si elle est définie
+    (explode.count).times do |iln|
+      next if strict && @exploded[iln].rest?
+      @exploded[iln] = some
+      unless @exploded[iln+1].nil? || duree_motif.nil?
+        # Quels que soient les cas, si la durée du motif est défini,
+        # et qu'une note/silence suit la première, on lui applique la
+        # durée initiale du motif. Sauf, bien sûr, si cette durée est
+        # déjà définie
+        prev_ln = @exploded[iln+1]
+        prev_ln.set( :duration => duree_motif ) if prev_ln.duration.nil?
+      end
+      break
+    end
     
-      # S'il n'y a qu'une note (ou qu'un accord), on prend la première,
-      # (qui peut être nil en cas de recherche strict — pas de silence —
-      # sinon, on fait de la dernière note trouvée une linote
-      instance_variable_set(
-        "@last_note#{strict ? '_strict' : ''}", 
-        h_current.nil? ? first_note(strict) : LINote::new( h_current )
-        )
-    }.call
-    
+    self
   end
   
   # => Return (et définit) les notes du motif en array explodé
   # Cf. LINote::explode
   def exploded
-    return nil if @notes.nil?
+    return [] if @notes.nil?
     @exploded ||= LINote::explode self
   end
   alias :explode :exploded
@@ -498,13 +466,13 @@ class Motif < NoteClass
   # => Recompose les notes à partir de leur explosion
   # 
   # @explication: à l'instanciation, les @notes sont explodées en leurs
-  # linote afin de faire certains traitement (durée prise de la première
+  # linote afin de faire certains traitements (durée prise de la première
   # note, octave défini par delta de première note, etc.). On termine
   # la procédure d'instanciation par cette méthode pour reconstituer
   # @notes.
   # 
   def implode
-    return nil if @notes.nil? || exploded.nil?
+    return nil if @notes.nil? || exploded.empty?
     @notes = LINote::implode exploded
   end
   
@@ -524,15 +492,16 @@ class Motif < NoteClass
   #           `exploded' est utilisée)
   # 
   def notes_with_duree duree = nil
-    # @todo: vérifier que la durée soit valide
+    return exploded if exploded.empty?
     duree ||= @duration
-    unless exploded.first.pre =~ /</
+    NoteClass::duree_valide?( duree, fatal = true )
+    unless exploded.first.start_accord?
       exploded.first.set( :duree => duree )
     else
       # La première note fait partie d'un accord, on cherche la
       # dernière note de l'accord pour lui appliquer la durée
       exploded.each do |ln|
-        ln.set( :duree_post => duree ) and break if ln.post =~ />/
+        ln.set( :duree_post => duree ) and break if ln.end_accord?
       end
     end
     exploded
@@ -541,7 +510,6 @@ class Motif < NoteClass
   # =>  Retourne les @notes du motif (ou les +notes+ passés en 
   #     paramètres) avec la marque de slur ou de legato
   def notes_with_liaison notes = nil
-    # puts "--> notes_with_liaison"
     notes ||= @notes
     return notes unless @slured || @legato
     markin  = @slured ? '(' : '\('
@@ -572,8 +540,8 @@ class Motif < NoteClass
       # @rappel: le signe est ajouté APRÈS le @post déjà défini (if any)
     unless start_dyna.nil?
       ary_lns = LINote::pre_first_note(ary_lns, "#{start_dyna} ") 
-    end
       # @rappel: le signe est ajouté AVANT le @pre déjà défini (if any)
+    end
     ary_lns
   end
   
@@ -754,10 +722,19 @@ class Motif < NoteClass
   end
   alias :set_triplet :set_triolet
   
-  # Utiliser par `set_params' quand le motif est défini avec
-  # :crescendo => true
+  # Utilisé par `set_params' quand le motif est défini avec
+  # :crescendo => {...}
   # 
   # @todo: pouvoir utiliser :crescendo => {:start}
+  # 
+  # @param  pms   Paramètres du crescendo/decrescendo. Peut contenir:
+  #               :start    La dynamique de départ  (p.e. "ppp")
+  #               :end      La dynamique de fin     (p.e. "fff")
+  #               :for_crescendo  true si cresc., false si decresc.
+  # 
+  # @produit et retourne :
+  #   la propriété @crescendo du motif
+  # 
   def set_crescendo pms
     start_dyna  = nil
     fin_dyna    = '\!'
@@ -775,6 +752,8 @@ class Motif < NoteClass
       :start      => for_crescendo ? '\<' : '\>',
       :end        => fin_dyna
       }
+    puts "\n\nFIN SET_CRESCENDO: @crescendo=#{@crescendo.inspect}"
+    @crescendo
   end
   def set_decrescendo valeur
     valeur = false if valeur === true # si si
@@ -828,15 +807,15 @@ class Motif < NoteClass
     if make_new_motif
       params[:notes]    = new_motif
       params[:triolet]  = @triolet
-      # On prend tous les paramètres du motif courant pour faire
-      # une nouvelle instance
-      # NON : SURTOUT PAS, CAR POUR UN MOTIF AVEC LEGATO, SON ADDITION
-      # AVEC AUTRE CHOSE ALLONGERAIT SON LEGATO
-      # params = to_hash.merge params
-      Motif::new params
+      new_motif = Motif::new params
+      # new_motif.set :exploded => nil
+      # new_motif.explode
+      new_motif
     else
-      @notes  = new_motif
+      @notes      = new_motif
       set_params params
+      @exploded   = nil
+      self.explode
       self
     end
   end

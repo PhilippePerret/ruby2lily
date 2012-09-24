@@ -152,23 +152,26 @@ describe LINote do
 		describe ":explode et :implode" do
 			def compare_notes_et_data notes, data_comp
 				liste_linotes = LINote::explode notes
+				puts "\n\n=== liste_linotes: #{liste_linotes.inspect}"
 				nombre_linotes = liste_linotes.count
 				(0..nombre_linotes-1).each do |i_linote|
 					linote 	= liste_linotes[i_linote]
 					comp		= data_comp[i_linote]
 					comp.each do |prop, val|
-						prop_value = linote.instance_variable_get("@#{prop}")
-						# if prop_value != val
-						# 	puts "Comparaison Linote et données ne matche pas (sur la propriété #{prop}):"
-						# 	puts "Suite : #{notes}"
-						# 	puts "Note d'indice : #{i_linote}"
-						# 	puts "Linote: #{linote.inspect}"
-						# 	puts "Data comparées : #{comp.inspect}"
-						# 	prop_value.should == val
-						# end
+						val = "" if prop == :post && val.nil?
+						prop_value = linote.get prop.to_sym
+						if prop_value != val
+							puts "\n# COMPARAISON LINOTE ET DONNÉES NE MATCHE PAS (sur la propriété #{prop}):"
+							puts "linote.#{prop}: #{prop_value}:#{prop_value.class}"
+							puts "expected: #{val}:#{val.class}"
+							puts "Suite : #{notes}"
+							puts "Note d'indice : #{i_linote}"
+							puts "Linote: #{linote.inspect}"
+							puts "Data comparées : #{comp.inspect}"
+							prop_value.should == val
+						end
 					end
 				end
-				LINote::implode(liste_linotes).should == notes
 			end
 		
 			liste_tests = []
@@ -188,13 +191,13 @@ describe LINote do
 			# Notes simples avec liaison
 			notes = "c( disis e8. fes)"
 			comp_str = <<-DEFA
-				note	pre		post	jeu		duration		alter		duree_post
-			--------------------------------------------------------
-				c			-			(			-			-				-				-
-				d			-			-			-			-				isis		-
-				e			-			-			-			8.			-				-
-				f			-			)			-			-				es			-
-			--------------------------------------------------------
+				note	pre		jeu		duration		alter		duree_post
+			--------------------------------------------------
+				c			-			-			-				-				-
+				d			-			-			-				isis		-
+				e			-			-			8.			-				-
+				f			-			-			-				es			-
+			--------------------------------------------------
 			DEFA
 			comp = comp_str.to_array
 			liste_tests << [notes, comp]
@@ -204,17 +207,17 @@ describe LINote do
 			dpo = "duree_post"
 			ollp = "delta/N"
 			comp_str = <<-DEFA
-				note	pre		post	jeu		duration		alter		#{dpo} #{ollp}
-				--------------------------------------------------------			
-				c			-			-			-			-		 		 		es			-				-
-				a			<			-			-			-		 		 		-				-				-
-				c			-			-			-			-		 		 		-				-				2
-				e			-			>			-			-		 		 		eses		8				-2
-				e			-			-			-			-		 		 		-				-				-
-				g			<			-			-			-		 		 		is			-				-
-				b			-			>			-			-		 		 		es			156.		-
-				r 		-			-			-			4.	 		 		-				-				-
-			--------------------------------------------------------			
+				note	pre		jeu		duration		alter		#{dpo} #{ollp}
+				--------------------------------------------------			
+				c			-			-			-		 		 		es			-				-
+				a			<			-			-		 		 		-				-				-
+				c			-			-			-		 		 		-				-				2
+				e			-			-			-		 		 		eses		8				-2
+				e			-			-			-		 		 		-				-				-
+				g			<			-			-		 		 		is			-				-
+				b			-			-			-		 		 		es			156.		-
+				r 		-			-			4.	 		 		-				-				-
+			--------------------------------------------------			
 			DEFA
 			comp = comp_str.to_array
 			liste_tests << [notes, comp]
@@ -222,6 +225,57 @@ describe LINote do
 			liste_tests.each do |donne|
 				it "doivent fonctionner pour #{donne[0]}" do
 					compare_notes_et_data donne[0], donne[1]
+				end
+			end
+		end
+		
+		# Test des propriétés d'octaves affectés par :explode
+		[
+			# suite				liste des notes obtenues
+			# 						note, octave, delta, real_octave
+			["c",					[ 'c 4 0 4' ] ],
+			["a c",				[ 'a 4 0 4', 'c 5 0 5'] 		],
+			# Deltas
+			["c,",				['c 3 0 3']									],
+			["cis'",			['c 5 0 5']									],
+			["a c,",			[ 'a 4 0 4', 'c 5 -1 4'] 		],
+			["a c'' g,",	[ 'a 4 0 4', 'c 5 2 7', 'g 6 -1 5'] ],
+			["c, g'",			['c 3 0 3', 'g 2 1 3']			],
+			# Accords
+			["a b, c, <g'' bis,>", 
+					['a 4 0 4', 'b 4 -1 3', 'c 4 -1 3', 'g 2 2 4', 'b 4 -1 3']],
+			["<a b c> e",	['a 4 0 4', 'b 4 0 4', 'c 5 0 5', 'e 4 0 4']],
+			["<a b> <c, d> <g' f> a,,", ['a 4 0 4', 'b 4 0 4', 'c 5 -1 4', 'd 4 0 4', 'g 3 1 4', 'f 4 0 4', 'a 4 -2 2']],
+
+			# Dernier (pour la virgule)
+			["c", ['c 4 0 4']]
+		].each do |d|
+			suite, expected = d
+			it ":explode doit affecter les bons octaves pour la suite «#{suite}»" do
+			  linotes = LINote::explode suite
+				linotes.count.times do |i|
+					linote		= linotes[i]
+					note, oct, delta, real_oct = expected[i].split(' ')
+					errors = []
+					errors << "= La note #{linote.note} devrait être #{note}" \
+						unless linote.note == note
+					errors << "= L'octave attendu est #{oct}, linote.octave est : #{linote.octave}" \
+						unless linote.octave == oct.to_i
+					errors << "= Le delta attendu est #{delta}, linote.delta est : #{linote.delta}" \
+						unless linote.delta == delta.to_i
+					errors << "= L'octave réelle attendue est #{real_oct}, linote.real_octave est : #{linote.real_octave}" \
+						unless linote.real_octave == real_oct.to_i
+					unless errors.empty?
+						puts "\n\nERREUR AFFECTATION OCTAVES (#{__FILE__}:#{__LINE__})"
+						puts "= Suite : #{suite}"
+						puts "= Liste des linotes : #{linotes.inspect}"
+						puts "= Linote courante (index #{i}) : #{linote.inspect}"
+						puts errors.join("\n")
+						linote.note.should 				== note
+						linote.octave.should 			== oct.to_i
+						linote.delta.should 			== delta.to_i
+						linote.real_octave.should	== real_oct.to_i
+					end
 				end
 			end
 		end
@@ -297,13 +351,17 @@ describe LINote do
 		  LINote.should respond_to :extract_post_values
 		end
 		[
-			["(",  [1, nil, ""]], [")",  [2, nil, ""]], ["\\(",  [3, nil, ""]],
-			["\\)",  			[4, nil, ""]],
-			["(\\!", 			[1, {:end 	=> true}, ""]],
-			[")\\<", 			[2, {:start => true, :crescendo => true}, ""]],
-			["\\<)", 			[2, {:start => true, :crescendo => true}, ""]],
-			["\\)\\>--", 	[4, {:start => true, :crescendo => false}, "--"]],
-			["\\>--\\)", 	[4, {:start => true, :crescendo => false}, "--"]]
+			["(",  				[LINote::BIT_START_SLURE, nil, ""]], 
+			[")",  				[LINote::BIT_END_SLURE, nil, ""]], 
+			["\\(",  			[LINote::BIT_START_LEGATO, nil, ""]],
+			["\\)",  			[LINote::BIT_END_LEGATO, nil, ""]],
+			["\\((",			[LINote::BIT_START_SLURE|LINote::BIT_START_LEGATO, nil, ""]],
+			[")\\)",			[LINote::BIT_END_SLURE|LINote::BIT_END_LEGATO, nil, ""]],
+			["(\\!", 			[LINote::BIT_START_SLURE, {:end 	=> true}, ""]],
+			[")\\<", 			[LINote::BIT_END_SLURE, {:start => true, :crescendo => true}, ""]],
+			["\\<)", 			[LINote::BIT_END_SLURE, {:start => true, :crescendo => true}, ""]],
+			["\\)\\>--", 	[LINote::BIT_END_LEGATO, {:start => true, :crescendo => false}, "--"]],
+			["\\>--\\)", 	[LINote::BIT_END_LEGATO, {:start => true, :crescendo => false}, "--"]]
 		].each do |d|
 			post, expected = d
 			it ":extract_post_values('#{post}') doit renvoyer #{expected.inspect}" do
@@ -371,16 +429,7 @@ describe LINote do
 			["ces( ees ges) r", 3, "c e g", 3, "ces( ees ges) r c, e g"],
 			["ces( ees ges) r", 3, "c e g", 4, "ces( ees ges) r c e g"],
 			["ces( ees ges) r", 3, "c e g", 2, "ces( ees ges) r c,, e g"],
-			["ces( ees ges) r", 3, "c e g", 1, "ces( ees ges) r c,,, e g"],
-			
-					# @todo: ICI, DANS LE TRAITEMENT, LE LEGATO NE DEVRAIT PAS
-					# ÊTRE ENREGISTRÉ DANS LE TEXTE DU MOTIF. ÇA DEVRAIT ÊTRE PLUTÔT
-					# UNE PROPRIÉTÉ @legato.
-					# MAIS DANS CE CAS, QUE FAIRE ? LORSQU'ON JOIN, ON GARDE LE
-					# LÉGATO SUR TOUT LE MOTIF, OU ON L'ÉCRIT ALORS DANS LE TEXTE ?
-					# POUR LE MOMENT, J'OPTE POUR LE FAIT QUE LE LÉGATO DOIT ÊTRE
-					# ÉCRIT EN DUR DANS LE @notes DU MOTIF
-					
+			["ces( ees ges) r", 3, "c e g", 1, "ces( ees ges) r c,,, e g"],					
 		].each do |data|
 			notes1, oct_1, notes2, oct_2, expected = data
 			mo1 = Motif::new(:notes => notes1, :octave => oct_1)
@@ -395,8 +444,8 @@ describe LINote do
 					puts "\n\n### PROBLÈME DANS LINote::join :"
 					puts "= Motif 1: #{mo1.inspect}"
 					puts "= Motif 2: #{mo2.inspect}"
-					puts "= Last note Motif 1: #{mo1.last_note.inspect}"
-					puts "= First note Motif 2: #{mo2.first_note.inspect}"
+					puts "= Last note Motif 1: #{mo1.last_note(true).inspect}"
+					puts "= First note Motif 2: #{mo2.first_note(true).inspect}"
 					puts "= Notes attendues : #{expected}"
 					puts "= Résultat obtenu: #{res.inspect}"
 					# = / débug =
@@ -486,7 +535,7 @@ describe LINote do
 				["a b c d", '(', ')', "a( b c d)"],
 				[nil, '\(', '\)', "a\\( b c d\\)"],
 				[nil, '\<', '\!', "a\\< b c d\\!"],
-				["aeses,8-^ b c disis''-.", '(', ')', "aeses,-^( b c disis''-.)"]
+				["aeses,8-^ b c disis''-.", '(', ')', "aeses-^( b c disis''-.)"]
 						# @note: dans ce dernier cas, la durée "8" disparait puisque
 						# le string, dans l'opération, est transformé en motif. Donc,
 						# puisque cette durée est placée sur la première note, elle
@@ -616,15 +665,16 @@ describe LINote do
 			ln.should respond_to :to_midi
 		end
 		[
-			["c", 4, 60],
-			["a", 4, 69],
-			["a", 0, 21],
-			["c", 8, 108],
-			["ces", 4, 59],
-			["bisis", 4, 73]
+			["c", 		4, 		60],
+			["a", 		4, 		69],
+			["a", 		0, 		21],
+			["c", 		8, 		108],
+			["ces", 	4, 		59],
+			["bisis", 4, 		73]
 		].each do |d|
 			notes, octave, expected = d
-			it ":abs doit renvoyer #{expected} pour #{notes}:#{octave}" do
+			# it ":abs doit renvoyer #{expected} pour #{notes}:#{octave}" do
+			it "SEULEMENT CE TEST-LÀ" do
 				ln = LINote::new notes, :octave => octave
 				ln.abs.should == expected
 		  end
@@ -662,10 +712,10 @@ describe LINote do
 				dynaln.should == nil
 				@ln.set_dyna :decrescendo => true, :end_intensite => 'p'
 				dynaln.should == {:crescendo => false, :start_intensite => nil,
-					:end_intensite => 'p', :start => true, :end => false}
+					:end_intensite => 'p', :start => false, :end => false}
 				@ln.set_dyna :end => true
 				dynaln.should == {:crescendo => false, :start_intensite => nil,
-					:end_intensite => 'p', :start => true, :end => true}
+					:end_intensite => 'p', :start => false, :end => true}
 			end
 			it ":set_dyna doit retourner la LINote" do
 			  res = @ln.set_dyna :crescendo => true
@@ -760,7 +810,7 @@ describe LINote do
 				@ln.mark_dyna_end.should == "\\!"
 			end
 			it ":mark_dyna_end doit retourne la marque de fin par une intensité (if any)" do
-			  @ln.end_intensite 'pp'
+			  @ln.end_intensite ' \\pp'
 				@ln.mark_dyna_end.should == " \\pp"
 			end
 			it "doit répondre à :mark_intensite_start" do
@@ -795,50 +845,48 @@ describe LINote do
 			it ":start_slure doit régler la valeur de @legato" do
 				@ln.legato.should be_nil
 			  @ln.start_slure
-				@ln.legato.should == 1
+				@ln.legato.should == LINote::BIT_START_SLURE
 			end
 			it ":start_slure doit lever une erreur s'il y a déjà une liaison quelconque" do
-				iv_set(@ln, :legato => 2)
+				iv_set(@ln, :legato => LINote::BIT_END_SLURE)
 				err = detemp(Liby::ERRORS[:slure_unable_if_end_slure], :linote => @ln)
 				expect{@ln.start_slure}.to raise_error(SystemExit, err)
-				iv_set(@ln, :legato => 3)
-				err = detemp(Liby::ERRORS[:slure_unable_if_start_legato], :linote => @ln)
-				expect{@ln.start_slure}.to raise_error(SystemExit, err)
-				iv_set(@ln, :legato => 4)
+				iv_set(@ln, :legato => LINote::BIT_START_LEGATO)
+				expect{@ln.start_slure}.not_to raise_error
+				iv_set(@ln, :legato => LINote::BIT_END_LEGATO)
 				err = detemp(Liby::ERRORS[:slure_unable_if_end_legato], :linote => @ln)
 				expect{@ln.start_slure}.to raise_error(SystemExit, err)
 			end
 			it "doit répondre à :end_slure" do
 			  @ln.legato.should be_nil
 				@ln.end_slure
-				@ln.legato.should == 2
+				@ln.legato.should == LINote::BIT_END_SLURE
 			end
 			it ":end_slure doit lever une erreur s'il y a déjà une liaison quelconque" do
-				iv_set(@ln, :legato => 1)
+				iv_set(@ln, :legato => LINote::BIT_START_SLURE)
 				err = detemp(Liby::ERRORS[:end_slure_unable_if_start_slure], :linote => @ln)
 				expect{@ln.end_slure}.to raise_error(SystemExit, err)
-				iv_set(@ln, :legato => 3)
+				iv_set(@ln, :legato => LINote::BIT_START_LEGATO)
 				err = detemp(Liby::ERRORS[:end_slure_unable_if_start_legato], :linote => @ln)
 				expect{@ln.end_slure}.to raise_error(SystemExit, err)
-				iv_set(@ln, :legato => 4)
-				err = detemp(Liby::ERRORS[:end_slure_unable_if_end_legato], :linote => @ln)
-				expect{@ln.end_slure}.to raise_error(SystemExit, err)
+				iv_set(@ln, :legato => LINote::BIT_END_LEGATO)
+				expect{@ln.end_slure}.not_to raise_error
 			end
 			it "doit répondre à :start_legato" do
 			  @ln.should respond_to :start_legato
 			end
 			it ":start_legato doit régler la valeur de @legato" do
 			  @ln.start_legato
-				@ln.legato.should == 3
+				@ln.legato.should == LINote::BIT_START_LEGATO
 			end
 			it ":start_legato doit lever une erreur s'il y a déjà une liaison quelconque" do
-				iv_set(@ln, :legato => 1)
+				iv_set(@ln, :legato => LINote::BIT_START_SLURE)
 				err = detemp(Liby::ERRORS[:legato_unable_if_start_slure], :linote => @ln)
-				expect{@ln.start_legato}.to raise_error(SystemExit, err)
-				iv_set(@ln, :legato => 2)
+				expect{@ln.start_legato}.not_to raise_error
+				iv_set(@ln, :legato => LINote::BIT_END_SLURE)
 				err = detemp(Liby::ERRORS[:legato_unable_if_end_slure], :linote => @ln)
 				expect{@ln.start_legato}.to raise_error(SystemExit, err)
-				iv_set(@ln, :legato => 4)
+				iv_set(@ln, :legato => LINote::BIT_END_LEGATO)
 				err = detemp(Liby::ERRORS[:legato_unable_if_end_legato], :linote => @ln)
 				expect{@ln.start_legato}.to raise_error(SystemExit, err)
 			end
@@ -848,16 +896,15 @@ describe LINote do
 			it ":end_legato doit régler le legato" do
 			  @ln.legato.should be_nil
 				@ln.end_legato
-				@ln.legato.should == 4
+				@ln.legato.should == LINote::BIT_END_LEGATO
 			end
 			it ":end_legato doit lever une erreur s'il y a déjà une liaison quelconque" do
-				iv_set(@ln, :legato => 1)
+				iv_set(@ln, :legato => LINote::BIT_START_SLURE)
 				err = detemp(Liby::ERRORS[:end_legato_unable_if_start_slure], :linote => @ln)
 				expect{@ln.end_legato}.to raise_error(SystemExit, err)
-				iv_set(@ln, :legato => 2)
-				err = detemp(Liby::ERRORS[:end_legato_unable_if_end_slure], :linote => @ln)
-				expect{@ln.end_legato}.to raise_error(SystemExit, err)
-				iv_set(@ln, :legato => 3)
+				iv_set(@ln, :legato => LINote::BIT_END_SLURE)
+				expect{@ln.end_legato}.not_to raise_error
+				iv_set(@ln, :legato => LINote::BIT_START_LEGATO)
 				err = detemp(Liby::ERRORS[:end_legato_unable_if_start_legato], :linote => @ln)
 				expect{@ln.end_legato}.to raise_error(SystemExit, err)
 			end
@@ -865,13 +912,55 @@ describe LINote do
 			  @ln.should respond_to :mark_legato
 			end
 			[
-				[nil, ""], [1, "("], [2, ")"], [3, "\\("], [4, "\\)"]
+				[nil, ""], 
+				[LINote::BIT_START_SLURE, "("], 
+				[LINote::BIT_END_SLURE, ")"], 
+				[LINote::BIT_START_LEGATO, "\\("], 
+				[LINote::BIT_END_LEGATO, "\\)"],
+				[LINote::BIT_START_SLURE|LINote::BIT_START_LEGATO, "\\(("],
+				[LINote::BIT_END_LEGATO|LINote::BIT_END_SLURE, ")\\)"]
 			].each do |d|
 				legato, expected = d
 				it ":mark_legato doit renvoyer #{expected} si legato = #{legato}" do
 					iv_set(@ln, :legato => legato)
 					@ln.mark_legato.should == expected
 			  end
+			end
+			it "doit répondre à :start_slure?" do
+			  @ln.should respond_to :start_slure?
+			end
+			it ":start_slure? doit retourner la bonne valeur" do
+				iv_set(@ln, :legato => nil)
+			  @ln.should_not be_start_slure
+				iv_set(@ln, :legato => LINote::BIT_START_SLURE | LINote::BIT_START_LEGATO)
+				@ln.should be_start_slure
+			end
+			it "doit répondre à :start_legato?" do
+			  @ln.should respond_to :start_legato?
+			end
+			it ":start_legato? doit retourner la bonne valeur" do
+				iv_set(@ln, :legato => nil)
+				@ln.should_not be_start_legato
+			  iv_set(@ln, :legato => LINote::BIT_START_SLURE | LINote::BIT_START_LEGATO)
+				@ln.should be_start_legato
+			end
+			it "doit répondre à :end_slure?" do
+			  @ln.should respond_to :end_slure?
+			end
+			it ":end_slure? doit retourner la bonne valeur" do
+				iv_set(@ln, :legato => nil)
+				@ln.should_not be_end_slure
+			  iv_set(@ln, :legato => LINote::BIT_END_SLURE | LINote::BIT_END_LEGATO)
+				@ln.should be_end_slure
+			end
+			it "doit répondre à :end_legato?" do
+			  @ln.should respond_to :end_legato?
+			end
+			it ":end_legato? doit retourner la bonne valeur" do
+				iv_set(@ln, :legato => nil)
+				@ln.should_not be_end_legato
+			  iv_set(@ln, :legato => LINote::BIT_END_SLURE | LINote::BIT_END_LEGATO)
+				@ln.should be_end_legato
 			end
 		end # / fin de describe Légato
 		
@@ -970,6 +1059,10 @@ describe LINote do
 			c					<     -			8			-				-2		isis	^		-			\\!		<cisis,,8-^\\!
 		-------------------------------------------------------------------
 		DEFH
+		# @TODO: trouver une autre méthode, car celle-ci n'est vraiment
+		# pas bonne. Par exemple, dans un traitement réel, la durée de la
+		# dernière note ne serait pas appliquée à la note courante mais à
+		# la fin de l'accord. Le motif `<cisis,,8' est donc faux.
 		data_test = data_test.to_array
 		data_test.each do |dlinote|
 			res = dlinote.delete(:res)
@@ -1011,7 +1104,8 @@ describe LINote do
 			hash_ln[:duration].should == "8"
 			hash_ln[:alter].should 		== "isis"
 			hash_ln[:delta].should 		== 2
-			hash_ln[:octave].should 	== 6
+			hash_ln[:octave].should 	== 4
+			hash_ln[:real_octave].should == 6
 		end
 		
 		# :as_note
@@ -1045,25 +1139,42 @@ describe LINote do
 			iv_get(@ln, :finger).should == "5"
 		end
 		
+		# :get
+		it "doit répondre à :get" do
+		  @ln.should respond_to :get
+		end
+		it ":get doit renvoyer les bonnes valeurs" do
+		  ln = LINote::new 'cis', :octave => 2, :duration => "4~"
+			ln.get(:note).should == "c"
+			ln.get(:alter).should == "is"
+			ln.get(:octave).should == 2
+			ln.get(:duration).should == "4~"
+		end
+		
 		# :octave
 		it "doit répondre à :octave" do
 		  @ln.should respond_to :octave
+			# @note: c'est une méthode et une propriété
 		end
 	  [
-			["c", nil, 0, 4],
-			["c", 1, 0, 1],
-			["c", -2, 0, -2],
-			["c", nil, 1, 5],
-			["c", nil, -2, 2]
+			#note, octave, delta, real_oct, instrument, expected
+			["c",  nil,    0,     4,        nil,         4],
+			["c",  1,      0,     1,        nil,         1],
+			["c",  -2,     0,     -2,       nil,         -2],
+			["c",  nil,    1,     nil,      nil,          4],
+			["c",  nil,    -2,    nil,      nil,          4],
+			["c",  nil,    -2,    4,      	nil,          6]
+			# @TODO: des tests doivent être ajoutés ici avec un instrument
 		].each do |d|
-			note, octave, delta, octave_expected = d
+			note, oct, delta, real_oct, instrument, oct_expected = d
 			texte = ":octave de #{note} "
-			texte << (octave.nil? ? "sans octave" : "d'octave #{octave}")
+			texte << (oct.nil? ? "sans octave" : "d'octave #{oct}")
 			texte << (delta == 0 ? "" : " avec delta « #{delta} »")
-			texte << " doit renvoyer #{octave_expected}"
+			texte << " doit renvoyer #{oct_expected}"
 			it texte do
-				ln = LINote::new :note => note, :octave => octave, :delta => delta
-				ln.octave.should == octave_expected
+				ln = LINote::new note
+				ln.set :octave => oct, :real_octave => real_oct, :delta => delta
+				ln.octave(instrument).should == oct_expected
 			end
 		end
 		
@@ -1090,8 +1201,8 @@ describe LINote do
 		---------------------------------------
 		DEFA
 		ary.to_array.each do |d|
-			ln1 = LINote::new( d[:note1], :octave => d[:o1])
-			ln2 = LINote::new( d[:note2], :octave => 0)
+			ln1 = LINote::new( d[:note1], :real_octave => d[:o1])
+			ln2 = LINote::new( d[:note2], :real_octave => 0)
 			octave_expected = d[:expected]
 			message = "#{ln2.note}-#{ln2.octave}.natural_octave_after" \
 								<< "(#{ln1.note}-#{ln1.octave}) doit retourner " \
@@ -1127,8 +1238,8 @@ describe LINote do
 		DEFA
 		ary.to_array.each do |d|
 			delta_expected = d[:delta] || 0
-			ln1 = LINote::new(d[:note1], :octave => d[:o1])
-			ln2 = LINote::new(d[:note2], :octave => d[:o2])
+			ln1 = LINote::new(d[:note1], :real_octave => d[:o1])
+			ln2 = LINote::new(d[:note2], :real_octave => d[:o2])
 			texte = "#{d[:note2]}-#{d[:o2]}:as_next_of" \
 							<< "(#{d[:note1]}-#{d[:o1]})" \
 							<< " doit mettre le delta à #{delta_expected}"
@@ -1161,17 +1272,17 @@ describe LINote do
 			exp[4].should_not be_in_accord
 			exp[5].should_not be_in_accord
 		end
-		# :fin_accord?
-		it "doit répondre à :fin_accord?" do
-		  @ln.should respond_to :fin_accord?
+		# :end_accord?
+		it "doit répondre à :end_accord?" do
+		  @ln.should respond_to :end_accord?
 		end
-		it ":fin_accord? doit retourner true si c'est la dernière d'un accord" do
+		it ":end_accord? doit retourner true si c'est la dernière d'un accord" do
 		  motif = Motif::new "<a b c>"
-			motif.exploded.last.should be_fin_accord
+			motif.exploded.last.should be_end_accord
 		end
-		it ":fin_accord? doit retourner false si ce n'est pas la dernière d'un accord" do
+		it ":end_accord? doit retourner false si ce n'est pas la dernière d'un accord" do
 		  motif = Motif::new "<a b c> r c"
-			motif.exploded.last.should_not be_fin_accord
+			motif.exploded.last.should_not be_end_accord
 		end
 		# :start_accord?
 		it "doit répondre à :start_accord?" do
@@ -1265,54 +1376,77 @@ describe LINote do
 		  end
 		end
 		
-		# :duration
-		it "doit répondre à :duration" do
-		  @ln.should respond_to :duration
-		end
-		it ":duration doit renvoyer la bonne valeur" do
-		  motif = Motif::new "<a c e>8."
-			ary_linotes = motif.explode
-			ln = ary_linotes.last
-			ln.duration.should == "8."
-		end
-		it ":duration doit retourner la durée d'une note d'accord" do
-		  motif = Motif::new "<a c e>8."
-			ary_linotes = motif.explode
-			ln = ary_linotes[1]
-			ln.duration.should be_nil
-			ln.duration(true).should == "8."
-		end
-		
-		# :duree_absolue
-		it "doit répondre à duree_absolue" do
-		  @ln.should respond_to :duree_absolue
-		end
-		{
-			"1"  => 4.0, "2" => 2.0, "4" => 1.0, "8" => 0.5, "16" => 0.25,
-			"32" => 0.125,
-			"1." => 6.0, "2." => 3.0, "4." => 1.5, "8." => 0.75, "16." => 0.375,
-			"1.." => 7.0, "2.." => 3.5, "4.." => 1.75
-		}.each do |duree, expected|
-			it "La durée absolue pour une durée LilyPond de '#{duree}' doit être #{expected}" do
-			  ln = LINote::new "c", :duree => duree
-				ln.duree_absolue.should == expected
+		describe "Méthodes pour la durée" do
+			
+			# :mark_duration
+			it "doit répondre à :mark_duration" do
+			  @ln.should respond_to :mark_duration
 			end
-		end
+			it ":mark_duration doit retourner la bonne valeur (cas simples)" do
+			  ln = LINote::new "c", :duree => "4"
+				ln.mark_duration.should == "4"
+				ln.set :duration => nil
+				ln.mark_duration.should == ""
+				ln.set :duration => '~'
+				ln.mark_duration.should == "~"
+				ln.set :duration => "2."
+				ln.mark_duration.should == "2."
+			end
+			it ":mark_duration doit retourner la bonne valeur (cas complexe)" do
+			  # Un cas complexe, c'est un cas où la LINote est la première
+				# d'un motif, mais qu'elle fait partie d'un accord. Dans ce 
+				# cas-là, la durée doit être appliquée à la dernière note de
+				# l'accord.
+				# Ce cas est géré dans les motifs
+			end
+			
+			# :duration
+			it "doit répondre à :duration" do
+			  @ln.should respond_to :duration
+			end
+			it ":duration doit renvoyer la bonne valeur" do
+			  motif = Motif::new "<a c e>8."
+				ary_linotes = motif.explode
+				ln = ary_linotes.last
+				ln.duree_chord.should == "8."
+			end
+			it ":duration doit retourner la durée d'une note d'accord" do
+			  motif = Motif::new "<a c e>8."
+				ary_linotes = motif.explode
+				prem_ln = ary_linotes[1]
+				prem_ln.duration.should be_nil
+				prem_ln.duration(true).should == "8."
+			end
+
+			# :duree_absolue
+			it "doit répondre à duree_absolue" do
+			  @ln.should respond_to :duree_absolue
+			end
+			{
+				"1"  => 4.0, "2" => 2.0, "4" => 1.0, "8" => 0.5, "16" => 0.25,
+				"32" => 0.125,
+				"1." => 6.0, "2." => 3.0, "4." => 1.5, "8." => 0.75, "16." => 0.375,
+				"1.." => 7.0, "2.." => 3.5, "4.." => 1.75
+			}.each do |duree, expected|
+				it "La durée absolue pour une durée LilyPond de '#{duree}' doit être #{expected}" do
+				  ln = LINote::new "c", :duree => duree
+					ln.duree_absolue.should == expected
+				end
+			end
+		end # / fin describe méthodes pour la durée
 		
 		# :str_in_context
 		it "doit répondre à :str_in_context" do
 		  @ln.should respond_to :str_in_context
 		end
 		it ":str_in_context doit renvoyer la bonne valeur" do
-			iv_set(@ln, :note_int => 3)
-		  @ln.str_in_context(:tonalite => 'G').should 	== "dis"
-		  @ln.str_in_context(:tonalite => 'Eb').should == "ees"
+			pending "Méthode à ré-implémenter complètement"
 		end
 		it "doit répondre à :moins" do
 		  @ln.should respond_to :moins
 		end
 		it ":moins doit renvoyer la bonne valeur" do
-			iv_set(@ln, :note_int => 0)
+			iv_set(@ln, :note => "c")
 		  {
 				1 => "b", 2 => "bes", 3 => "a", 4 => "aes",
 				5 => "g", 6 => "fis", 7 => "f", 8 => "e",

@@ -150,6 +150,11 @@ class LINote < NoteClass
     # commence toujours par : "\\"
     REG_DYNAMIQUE = /\\(?:>|<|\!|f+|p+)/
 
+    BIT_START_SLURE   = 1
+    BIT_START_LEGATO  = 2
+    BIT_END_SLURE     = 4
+    BIT_END_LEGATO    = 8
+    
     # Expressions régulières pour capter les liaisons (if any)
     REG_START_LEGATO  = /\\\(/
     REG_END_LEGATO    = /\\\)/
@@ -193,6 +198,7 @@ class LINote < NoteClass
   # -------------------------------------------------------------------
   #   Classe
   # -------------------------------------------------------------------
+  @@duration = nil
   
   # =>  Définit et retourne les altérations des notes dans la tonalité
   #     +key+ fournie
@@ -264,9 +270,8 @@ class LINote < NoteClass
       return LINote::new(
         :note => note, :duration => duree, :duree_post => duree_post, 
         :delta => delta_from_markdelta(mark_delta),
-        :pre  => pre,  :alter => alter, :jeu => jeu, :post => post,
+        :pre  => pre,  :alter => alter, :jeu => jeu, :post => post.to_s,
         :legato => legato, :dyna => dyna,
-        :dynamique => mark_dyna, # @FIXME: valeur obsolète
         :finger => finger
         )
     }
@@ -282,26 +287,28 @@ class LINote < NoteClass
     return [nil, nil, post] if post.nil? || post.blank?
     
     # Une liaison ?
-    legato = nil
+    legato = 0
     rest = post.sub(REG_START_LEGATO, '')
-    unless post == rest
-      legato = 3; post = rest
-    else
-      rest = post.sub(REG_END_LEGATO, '')
-      unless post == rest
-        legato = 4; post = rest
-      else
-        rest = post.sub(REG_START_SLURE, '')
-        unless post == rest
-          legato = 1; post = rest
-        else
-          rest = post.sub(REG_END_SLURE, '')
-          unless post == rest
-            legato = 2; post = rest
-          end
-        end
-      end
+    if post != rest # => il y a une marque de début de legato
+      legato = BIT_START_LEGATO; post = rest
     end
+    rest = post.sub(REG_START_SLURE, '')
+    if post != rest # => il y a une marque de début de slure
+      legato += BIT_START_SLURE; post = rest
+    end
+    rest = post.sub(REG_END_LEGATO, '')
+      # @note: il faut le mettre avant le test suivant, sinon, '('
+      # serait repéré avant '\('
+    if rest != post # => il y a une marque de fin de legato
+      legato = BIT_END_LEGATO ; post = rest
+      # Noter que s'il y a une erreur de fin en même temps qu'un
+      # début, elle sera effacé ici (mais pas ci-dessous)
+    end
+    rest = post.sub(REG_END_SLURE, '')
+    if post != rest # => il y a une marque de fin de slure
+      legato += BIT_END_SLURE; post = rest
+    end
+    legato = nil if legato == 0
     
     # Une marque de dynamique ?
     dyna = nil
@@ -332,7 +339,8 @@ class LINote < NoteClass
   # @return Une liste d'instance LINote : cf. l'instance pour le 
   #         détail des propriétés
   # 
-  def self.explode some
+  def self.explode some, current_octave = nil
+    # puts "\n\n--> explode '#{some}' avec some de classe #{some.class} / octave : #{current_octave}"
     data = []
     # puts "\n\n-->LINote::explode"
     # puts "= Class de some: #{some.class}"
@@ -340,7 +348,8 @@ class LINote < NoteClass
               when "String" then some.split(' ')
               when "Motif"  then 
                 current_octave = some.octave
-                # puts "= Je mets current_octave à #{current_octave}"
+                # Le motif a-t-il déjà été explodé ?
+                return some.exploded unless instance_variable_get("@exploded").nil?
                 some.simple_notes.split(' ')
               else 
                 fatal_error(
@@ -353,23 +362,32 @@ class LINote < NoteClass
     in_accord       = false
     current_octave  ||= 4
     accord_start    = nil # indice de la première note de l'accord trouvé
+
     ary_str.each do |membre|
       ln = llp_to_linote( membre )
-      if ln.pre == "<"
-        # On rentre dans un accord
-        accord_start  = 0 + inote
-        in_accord     = true
+      # puts "\n= «#{membre}» après llp_to_linote: #{ln.inspect}"
+      if ln.start_accord?
+        # @note: il ne faut pas calculer `accord_start' ici, car dans
+        # le cas où deux accords se suivrait, la première note du 
+        # second ne pourrait pas prendre en référence la première du
+        # précédent pour le calcul de son octave
+        # DONC : `accord_start  = 0 + inote' est calculé en bout de
+        # boucle.
+        in_accord = true
         ln.set :in_accord => true
       elsif in_accord 
         ln.set :in_accord => true
-        if ln.post == ">"
+        if ln.end_accord?
           # Dernière note d'un accord
           # => Il faut prendre sa durée (if any) et la mettre à toutes
           # les notes de l'accord
-          duree = ln.duration
-          unless duree.nil?
-            (accord_start..(inote - 1)).each do |i|
-              data[i].set :duree_in_chord => duree
+          duree = ln.get( :duree_post )
+          ln.set( :duree_chord => duree )
+          unless duree.to_s.blank?
+            (accord_start..(inote-1)).each do |i|
+              data[i].set :duree_chord => duree
+              # Note: on ne peut pas modifier la note courante par ce
+              # biais puisqu'elle n'est pas encore dans data
             end
           end
           in_accord = false
@@ -378,16 +396,63 @@ class LINote < NoteClass
       
       # Réglage de l'octave
       # --------------------
-      # On doit calculer l'octave courante sauf si c'est la première
-      # linote et sauf si c'est la note d'un accord hors première
-      unless inote == 0 || (in_accord && inote != accord_start)
-        current_octave = ln.natural_octave_after(data[inote - 1])
+      # @note:  `current_octave' contient la valeur courante de l'octave
+      #         en tenant compte des accords, sachant qu'en Lilypond,
+      #         c'est seulement la première note de l'accord qui décide
+      #         de la hauteur de référence de la note suivante.
+      #         En conséquence, l'octave courante ne change pas quand
+      #         on est à l'intérieur d'un accord et que ce n'est pas la
+      #         première note de l'accord.
+      #         Dans tous les autres cas, l'octave courante change si
+      #         on franchit un do.
+      # 
+      octave_for_ln = nil
+      
+      if inote > 0
+        prev_ln = data[ inote - 1 ]
+        # La linote de référence (pour comparaison d'octave) est 
+        # soit la note précédente soit la première note de l'accord
+        # précédent (if any)
+        # puts "\n\n= Étude octave de linote[#{inote}] #{ln.inspect}"
+        # puts "= accord_start: #{accord_start}" if prev_ln.end_accord?
+        ln_ref  = prev_ln.end_accord? ? data[accord_start] : prev_ln
+        if ln.in_accord?
+          # --- Intérieur d'un accord ---
+          if ln.start_accord?
+            # puts "\n\nNatural octave after appelé avec ln_ref:#{ln_ref.inspect}"
+            current_octave  = ln.natural_octave_after( ln_ref )
+            # puts "current_octave mis à : #{current_octave} pour #{ln.inspect}"
+          else
+            # À l'intérieur d'un accord (sauf première note), on définit
+            # l'octave pour la linote, mais on ne touche pas à l'octave
+            # courante.
+            # puts "\n\nNatural octave after appelé avec prev_ln:#{prev_ln.inspect}"
+            octave_for_ln = ln.natural_octave_after( prev_ln )
+            # puts "octave_for_ln mis à #{octave_for_ln}"
+          end
+        else
+          # --- Extérieur d'un accord ---
+          # 
+          # => Modification de l'octave si nécessaire
+          # puts "\n\nNatural octave after (extérieur accord) appelé avec ln_ref:#{ln_ref.inspect}"
+          current_octave = ln.natural_octave_after ln_ref
+          # puts "current_octave mis à : #{current_octave}"
+        end
+      else
+        # --- Toute première note ---
+        # L'octave courante est calculée d'après son delta, lequel delta
+        # doit être toujours mis à zéro
+        current_octave = current_octave + ln.delta
+        ln.set :delta => 0
+        # puts "\ncurrent_octave mis à #{current_octave} par la toute première note"
       end
-      ln.set :octave => current_octave
+      ln.set :octave      => (octave_for_ln ||= current_octave) 
+      ln.set :real_octave => octave_for_ln + ln.delta
       
       # Ajout à la liste des linotes
       # -----------------------------
       data << ln
+      accord_start = (0 + inote) if ln.start_accord?
       inote += 1
     end
     data
@@ -399,15 +464,22 @@ class LINote < NoteClass
     liste_linotes.collect { |linote| linote.to_llp }.join(' ')
   end
   
+  # =>  Mémorise la durée qui devra être appliquée plus tard (à la fin
+  #     de l'accord if any) au cours de l'implode d'une liste de 
+  #     LINotes
+  def self.duration_pour_implode duree
+    if duree === true
+      return @@duration || ""
+    else
+      @@duration = duree
+    end
+  end
+  
   # =>  Return +notes+ avec '#' et 'b' pour dièse et bémol en 'is' et
   #     'es' et les notes italiennes remplacées par leur valeur
   #     anglosaxonne.
   # @param  notes   Un string de note
-  # @todo: on devrait traiter ici les octaves peut-être ajoutés au
-  # string envoyé (p.e. "c'"). Mais comment s'en sortir sachant que 
-  # apostrope et virgule ne sont que des delta d'octaves ? et que
-  # cette méthodes statique ne renvoie que la note ?
-  # => C'est la méthode appelant cette méthode qui doit s'en charger.
+  # 
   def self.to_llp notes
     is_array = notes.class == Array
     notes = notes.join(' • ') if is_array
@@ -421,6 +493,18 @@ class LINote < NoteClass
     }
     notes = notes.split(' • ') if is_array
     return notes
+  end
+  
+  # => Vérifie que +some+ soit bien un motif dans la méthode +method+
+  # 
+  # @return true si c'est un motif, lève une erreur fatale ou renvoie
+  #         false si +fatal+ est false.
+  # 
+  def self.should_be_motif_in method, some, fatal = true
+    return true if some.class == Motif
+    return false unless fatal
+    fatal_error(:bad_type_for_args, :good => "Motif", 
+      :bad => some.class, :method => method)
   end
   
   # =>  Join la suite de note +motif1+ à la suite +motif2+
@@ -442,45 +526,44 @@ class LINote < NoteClass
   def self.join motif1, motif2
 
     # Il faut impérativement deux motifs
-    fatal_error(:bad_type_for_args, 
-		  :good => "Motif", :bad => motif1.class.to_s, 
-		  :method => "LINote::join") if motif1.class != Motif
-    fatal_error(:bad_type_for_args, 
-		  :good => "Motif", :bad => motif2.class.to_s, 
-		  :method => "LINote::join") if motif2.class != Motif
-			
+    should_be_motif_in 'LINote::join', motif1
+    should_be_motif_in 'LINote::join', motif2
+    			
     # On prend la première et la dernière note
     # -----------------------------------------
     # @note: dans le cas où le motif ne contiendrait que des silences,
     # la linote renvoyée sera nulle. Dans ce cas, on doit quand même
     # prendre son octave.
     # 
-    ln_avant = motif1.last_note( strict = true )
+    ln_avant = motif1.last_note(  strict = true )
     ln_apres = motif2.first_note( strict = true )
     
-    diff_octave = 
-      if ln_avant.nil? && ln_apres.nil? then 0
-      elsif ln_avant.nil? || ln_apres.nil?
-        motif2.octave - motif1.octave
-      else
-        ln_apres.octave - ln_apres.natural_octave_after( ln_avant )
+    if ln_avant.nil? || ln_apres.nil?
+      # Un des deux motifs n'est composé que de silences
+      # Si c'est le deuxième, il n'y a rien à faire. En revanche, si
+      # c'est le premier, il faut peut-être mettre un delta d'octave
+      # sur le second motif
+      if ln_avant.nil?
+        ln_apres.set :delta => motif2.octave - motif1.octave
       end
-    
-    unless diff_octave == 0
-      # =>  On doit ajouter diff_octave à la note après (diff_octave peut
-      #     être négatif)
-      #     Ce nombre d'octaves sera mis en delta dans le motif. Par ex.,
-      #     si la différence est de 2, il faudra ajouter « '' » à la 
-      #     première note du motif 2
-      motif2_exploded = motif2.explode
-      i = -1
-      while motif2_exploded[ i+=1 ].rest? do end
-      motif2_exploded[i].set :delta => diff_octave
+    else
+      # Les deux motifs ont au moins une note
+      # puts "\n\n= ln_avant : #{ln_avant.inspect}"
+      # puts "= ln_apres (AVANT as_next_of): #{ln_apres}"
+      ln_apres.as_next_of ln_avant
+      # puts "= ln_apres (APRES as_next_of): #{ln_apres}"
+      # puts "= motif2 AVANT set_first_note: #{motif2.inspect}"
+      motif2.set_first_note( ln_apres, strict = true )
+      # puts "= motif2 APRÈS set_first_note: #{motif2.inspect}"
     end
-    suite_motif2 = implode( motif2.exploded )
     
-    # return "#{motif1.to_llp} #{suite_motif2}"
-    return "#{motif1.simple_notes} #{suite_motif2}"
+    # puts "\nmotif1.to_llp: #{motif1.to_llp}"
+    # puts "\nmotif2: #{motif2.inspect}" # ICI, le motif est déjà mauvais (2e note avec duration à 8)
+    # puts "\nmotif2.to_llp: #{motif2.to_llp}"
+    # puts "---"
+    # On compose les notes du motif
+    "#{motif1.to_llp} #{motif2.to_llp}"
+    
   end
 
   # =>  Pose une marque de début (donc après la première note) et de fin
@@ -495,10 +578,11 @@ class LINote < NoteClass
   # 
   # @note:  ne peut déposer la marque +markin+ ou +markout+ QUE sur des
   #         notes, pas des silences
-  # @todo:  Il faudrait un paramètre pour modifier la note ci-dessus : on
-  #         devrait pouvoir placer la marque sur un silence, exceptionnellement
   # 
   def self.post_first_and_last_note notes, markin, markout
+    # puts "\n--> post_first_and_last_note"
+    # puts "= markin: '#{markin}'"
+    # puts "= markout: '#{markout}'"
     res = post_first_note(notes, markin)  unless markin.nil?
     res = post_last_note(res, markout)    unless markout.nil?
     res
@@ -559,8 +643,13 @@ class LINote < NoteClass
         when '\<' then ln.start_crescendo
         when '\>' then ln.start_decrescendo
         else
-          fatal_error(:bad_value_post_for_linote, 
-                      :linote => self, :bad => sig)
+          unless sig.match(/^ \\[pfm]/).nil?
+            # Une marque post pour une dynamique
+            ln.end_intensite sig
+          else
+            fatal_error(:bad_value_post_for_linote, 
+                      :linote => self, :bad => "`#{sig}'")
+          end
         end
         break
       end
@@ -653,10 +742,7 @@ class LINote < NoteClass
   #   Instance
   # -------------------------------------------------------------------
   attr_reader :note, :duration, :alter, :delta, :pre, :post,
-              :duree_post, :duree_in_chord, :dyna, :legato
-  
-  @note_str = nil   # La note string (p.e. "g" ou "fis" ou "eb" ou "g#")
-  @note_int = nil   # La note, exprimé par un entier
+              :duree_post, :duree_chord, :dyna, :legato
   
   @note       = nil   # La note simple (SEULEMENT a-g / r)
   @alter      = nil   # Altération de la note (p.e. "eses" ou "is")
@@ -669,7 +755,7 @@ class LINote < NoteClass
                       # :implode)
   @in_accord  = nil   # Dans l'explosion, cette propriété est mise à 
                       # true si on se trouve dans un accord
-  @duree_in_chord=nil # Lors de l'explosion (explode), si la méthode
+  @duree_chord=nil # Lors de l'explosion (explode), si la méthode
                       # rencontre un accord, elle affecte à toutes les
                       # notes la durée trouvée pour la dernière.
                       # Cette propriété n'existe donc que pour les
@@ -678,12 +764,14 @@ class LINote < NoteClass
                       # Calculée d'après @delta par la méthode éponyme
   @jeu        = nil   # Jeu string de la note (le texte après le tiret)
   @finger     = nil   # Le doigté éventuel
-  @dynamique  = nil   # Éventuellement la marque de dynamique (quelque
-                      # chose comme « \\! » ou « \\< » ou « \\fff »)
-                      # Doit devenir obsolète.
   @dyna       = nil   # Hash gérant la dynamique de la linote. Nil ou 
                       # la définition de :start, :start_intensite, :end
                       # et :end_intensite.
+  @real_octave = nil  # L'octave réelle de la note, quelle que soit son
+                      # delta. C'est en fait la somme de @octave et de
+                      # @delta. La note "a'" par exemple obtiendra comme
+                      # valeurs : 
+                      # note:"a", delta:-1 octave:4 real_octave:3
   @octave     = nil   # Fixé par d'autre méthode ou à l'instanciation si
                       # dans les paramètres. Si on l'appelle par la
                       # méthode `octave', l'octave est compté à partir
@@ -714,30 +802,40 @@ class LINote < NoteClass
   #           cf. ci-dessus
   # 
   def initialize valeur = nil, params = nil
-    @note_str   = nil
-    @note_int   = nil
-    @note       = nil
-    @delta      = 0
-    @duration   = nil
-    @octave     = nil
-    @dyna       = nil
-    @legato     = nil
-    @in_accord  = false
+    @note         = nil
+    @delta        = 0
+    @duration     = nil
+    @dyna         = nil
+    @legato       = nil
+    @in_accord    = false
+    get_from_valeur_or_params valeur, params
     case valeur.class.to_s
     when "Hash"
       set valeur
     when "String"
-      @note_str = valeur
-      params ||= {}
-      params  = LINote::llp_to_linote(@note_str).to_hash.merge( params )
+      ln = LINote::llp_to_linote(valeur)
+      ln.set( params ) unless params.nil?
+      params = ln.to_hash
     when "Fixnum"
-      @note_int = valeur
-      @note_str = str_in_context params
-      @note     = @note_str[0..0]
+      @note   = NOTE_INT_TO_STR[valeur][:natural] 
     end
     set params
   end
   
+  # 
+  def get_from_valeur_or_params valeur, params
+    unless params.nil?
+      @octave       = params[:octave]       if params.has_key? :octave
+      @real_octave  = params[:real_octave]  if params.has_key? :real_octave
+    end
+    unless valeur.class != Hash
+      @octave       = valeur[:octave]       if valeur.has_key? :octave
+      @real_octave  = valeur[:real_octave]  if valeur.has_key? :real_octave
+    end
+    # puts "\n\nAPRÈS get_from_valeur_or_params:"
+    # puts "= @octave: #{@octave}"
+    # puts "= @real_octave: #{@real_octave}"
+  end
   # => Permet de définir les valeurs
   # @usage      <linote>.set <hash_paires_prop_value>
   # 
@@ -750,8 +848,12 @@ class LINote < NoteClass
         @alter    = hash[:alter]
         @duration = hash[:duration] unless hash[:duration].nil?
       end
-      @note_int = NOTE_STR_TO_INT["#{@note}#{@alter}"]
     end
+  end
+
+  # => Return la valeur d'une propriété
+  def get prop
+    instance_variable_get("@#{prop}")
   end
   
   # =>  Retourne la valeur absolue de la note, en fonction de ses
@@ -765,13 +867,15 @@ class LINote < NoteClass
   def abs
     return nil if self.note == "r"
     begin
-      valeur = self.index + (self.octave + 1) * 12
+      # puts "\nself.index: #{self.index}"
+      # puts "self.real_octave: #{self.real_octave}"
+      valeur = self.index + (self.real_octave + 1) * 12
     rescue Exception => e
       puts "\n\nIMPOSSIBLE D'OBTENIR LA VALEUR ABSOLU DE :"
       puts "= Erreur: #{e.message}"
       puts "= #{self.inspect}"
       puts "= self.index: #{self.index}"
-      puts "= self.octave: #{self.octave}"
+      puts "= self.real_octave: #{self.real_octave}"
       raise
     end
     # Traitement spécial pour le franchissement d'obstacle
@@ -789,7 +893,7 @@ class LINote < NoteClass
   # @note: cette durée se trouve dans :duration pour une note normale
   # et dans :duree_post pour la dernière note d'un accord. Pour les 
   # autres notes de l'accord, s'il y a eu explosion (explode), elles se
-  # trouvent dans la propriété @duree_in_chord. Pour l'obtenir, il faut
+  # trouvent dans la propriété @duree_chord. Pour l'obtenir, il faut
   # mettre la valeur de +absolue+ à true.
   # 
   # @param  absolue   Si true, la durée d'une note d'un accord est
@@ -798,12 +902,12 @@ class LINote < NoteClass
   #                   la note "f" a une durée (@duree_post) définie. Mais
   #                   si la LINote a été obtenue par un explode de motif,
   #                   les autres notes contiennent dans leur propriété
-  #                   @duree_in_chord leur durée (même la dernière)
+  #                   @duree_chord leur durée (même la dernière)
   # 
   def duration absolue = false
     return @duration    unless @duration.nil?
     return @duree_post  unless @duree_post.nil? && absolue == true
-    return @duree_in_chord
+    return @duree_chord
   end
   
   # =>  Retourne la valeur absolue de la durée de la note (pour calcul
@@ -851,6 +955,9 @@ class LINote < NoteClass
     params ||= {}
     except = params[:except] || {}
 
+    # puts "\n\nLINote à to_llp: #{self.inspect}"
+    # puts "except: #{except.inspect}"
+    
     note_llp = ""
     # Intensité de départ (if any)
     note_llp << mark_intensite_start
@@ -866,9 +973,7 @@ class LINote < NoteClass
     # Delta d'octave (sauf indication contraire)
     note_llp << mark_delta unless except[:mark_delta] === true
     # Durée de la note (sauf indication contraire)
-    unless except[:duration] === true || in_accord?
-      note_llp << @duration.to_s
-    end
+    note_llp << mark_duration unless except[:duration] === true
     # Marque de jeu (sauf indication contraire)
     note_llp << (@jeu.nil? ? '' : "-#{@jeu}") unless except[:jeu] === true
     # Doigté
@@ -876,7 +981,7 @@ class LINote < NoteClass
     # Post-indications
     note_llp << @post.to_s
     # Durée post (par exemple pour un accord)
-    note_llp << @duree_post.to_s || (fin_accord? && (@duree_in_chord || @duration))
+    note_llp << mark_duree_post unless except[:duree_post] === true
     # Marque de liaison (if any)
     note_llp << mark_legato
     # Marque de début de dynamique (if any)
@@ -884,17 +989,13 @@ class LINote < NoteClass
     # Marque de fin de dynamique (if any)
     note_llp << mark_dyna_end
 
-    # ANCIENNE FORMULE (PRÉ-DYNAMIQUE)
-    # note_llp = "#{@pre}#{@note}#{@alter}"
-    # note_llp << "#{mark_delta}" unless except[:mark_delta]  === true
-    # note_llp << "#{@duration}"  unless except[:duration]    === true
-    # unless except[:jeu] === true
-    #   jeu = @jeu.nil? ? "" : "-#{@jeu}"
-    #   note_llp << jeu
-    # end
-    # note_llp << "#{@finger}#{@post}#{@duree_post}#{@dynamique}"
+    # = débug =
+    # puts "note_llp:#{note_llp}"
+    # = / débug =
+    
     return note_llp
   end
+  
   
   # =>  Return la linote comme texte final lilypond
   #     P.e. "\relative c' { dis }"
@@ -919,7 +1020,7 @@ class LINote < NoteClass
     self_natural_octave = natural_octave_after linote, instrument
   
     # La différence d'octave pour savoir si un delta est nécessaire
-    @delta = self.octave - self_natural_octave
+    @delta = self.real_octave - self_natural_octave
     
     self
   end
@@ -951,18 +1052,19 @@ class LINote < NoteClass
     add_octave      = new_octave ? (au_dessus ? 1 : -1) : 0
     # En fonction de l'octave de +linote+, l'octave qu'aurait +self+ 
     # sans delta
-    linote.octave(instrument) + add_octave
+    linote.real_octave + add_octave
   end
   # => Return la linote sous forme de hash
   # 
   def to_hash
     hash = {}
-    [:note, :alter, :delta, :duration, :pre, :post, :finger, :jeu,
-      :duree_post, :dyna
+    [ :note, :alter, :delta, :duration, :pre, :post, :finger, :jeu,
+      :duree_post, :dyna, :in_accord
     ].each do |prop|
       hash = hash.merge( prop => instance_variable_get("@#{prop}") )
     end
-    hash = hash.merge :octave => octave
+    # Propriétés qui doivent être éventuellement calculées
+    hash = hash.merge :octave => octave, :real_octave => real_octave
   end
   
   # => Renvoie la note avec son altération
@@ -977,23 +1079,84 @@ class LINote < NoteClass
   def as_note
     Note::new @note, :octave => octave, :duration => @duration, :alter => @alter
   end
-  # =>  Return l'octave de la note (le calcule d'après delta si
-  #     non défini, en partant de l'octave 4)
+  
+  # =>  Return l'OCTAVE RÉELLE de la LINote
+  # 
+  # @param  instrument  La classe de l'instrument optionnelle. 
+  #                     Si définie, l'octave par défaut prise en 
+  #                     référence peut varier suivant l'instrument.
+  # 
+  def real_octave instrument = nil
+    prop = instrument.nil? ? "real_octave" : "real_octave_#{instrument.class}"
+    get(prop.to_sym) || lambda {
+      @delta = 0 if @delta.nil?
+      real_oct = 
+        oct_ref = instrument.nil? ? @octave : instrument.octave_defaut
+        oct_ref + @delta unless oct_ref.nil?
+      set prop => real_oct
+      return real_oct
+    }.call
+  end
+  
+  # =>  Return l'octave de la note
+  #     @ATTENTION: maintenant, cette octave ne représente plus l'octave
+  #     réelle de la note, mais sa valeur sans le delta. C'est la
+  #     propriété @real_octave qui contient l'octave absolue de la LINote
   # 
   # @return entier représentant l'octave de la note
   # 
   # @param  instrument    L'instrument (objet Instrument) optionnel,
-  #                       définissant l'octave par défaut
+  #                       définissant l'octave par défaut si nécessaire
   # 
   def octave instrument = nil
-    @octave ||= lambda {
-        octave_defaut = unless instrument.nil?
-                          instrument.octave_defaut || 4
-                        else 4 end
-        ( octave_defaut + delta )
-      }.call
+    if instrument.nil?
+      @octave = if    @octave != nil      then @octave
+                elsif @real_octave != nil && @delta != nil 
+                  @real_octave - @delta
+                else nil end
+      # puts "\n\nOctave retourné par la méthode octave: #{@octave}"
+      # puts "(real_octave: #{@real_octave})"
+      return @octave
+      # return @octave unless @octave.nil?
+      # return (@real_octave - (@delta || 0)) unless @real_octave.nil?
+      # return 4
+    end
+    get("octave_#{intrument.class}".to_sym) || lambda {
+      oct = unless @real_octave.nil?
+              @real_octave - @delta
+            else
+              instrument.octave_defaut
+            end
+      set "octave_#{intrument.class}".to_sym => oct
+      return oct
+    }.call
   end
   
+  # =>  Return la marque à appliquer à la note pour la reconstituer
+  # 
+  def mark_duration
+    return "" if @duration.nil? && !end_accord?
+    return @duration.to_s unless in_accord?
+    if start_accord?
+      LINote::duration_pour_implode @duration
+    elsif end_accord? && @duree_post.nil?
+      # C'est la fin de l'accord, mais ce n'est pas juste derrière la
+      # note qu'il faut indiquer la durée, mais après l'accord que
+      # finit la linote courante.
+      @duree_post = LINote::duration_pour_implode( renvoyer=true )
+    end
+    return ""
+  end
+  
+  # => Return la marque de durée post pour la note à reconstituer
+  def mark_duree_post
+    # puts "--> mark_duree_post (@duree_post: #{@duree_post})"
+    # puts "    self: #{self.inspect}"
+    return @duree_chord if end_accord? && @duree_chord != nil
+    return @duree_post  unless @duree_post.nil?
+    return ""
+  end
+
   # =>  Return la marque delta (apostrophe et virgules) en fonction
   #     du @delta de la linote
   def mark_delta
@@ -1010,7 +1173,7 @@ class LINote < NoteClass
                   :start_intensite => nil, :end_intensite => nil }
       end
       params[:crescendo] = false if params.delete(:decrescendo) === true
-      params[:start] = true if params.has_key? :crescendo
+      params[:start] = true if params.has_key?(:crescendo) && params[:crescendo]
       [:crescendo, :start, :end, :start_intensite, :end_intensite
       ].each do |att|
         if params.has_key? att
@@ -1056,11 +1219,8 @@ class LINote < NoteClass
   #     Ou une chaine vide
   def mark_dyna_end
     return "" if @dyna.nil? || @dyna[:end] == false
-    if @dyna[:end_intensite].nil?
-      "\\!"
-    else
-      " \\#{@dyna[:end_intensite]}"
-    end
+    end_intensite = @dyna[:end_intensite]
+    end_intensite.nil? ? "\\!" : end_intensite
   end
   # =>  Retourne l'intensité de départ de la note si nécessaire
   #     Ou une chaine vide
@@ -1079,45 +1239,88 @@ class LINote < NoteClass
   #     fatale dans le cas contraire.
   # 
   # @param  lk_str    Le nom string de la liaison, pour le message d'erreur
-  # @param  value     La valeur de légato (donc celle qui n'est pas à
+  # @param  value     La valeur de legato (donc celle qui n'est pas à
   #                   checker) et celle qui sera donnée à @legato si
-  #                   tout passe
+  #                   tout passe (note: 'legato', ici, concerne le slure
+  #                   aussi bien que le legato)
   # @produit  Définit @legato si OK
   # 
   def checkif_legato_enable lk_str, value
     begin
-      raise "#{lk_str}_unable_if_start_slure"   if value!=1 && @legato==1
-      raise "#{lk_str}_unable_if_end_slure"     if value!=2 && @legato==2
-      raise "#{lk_str}_unable_if_start_legato"  if value!=3 && @legato==3
-      raise "#{lk_str}_unable_if_end_legato"    if value!=4 && @legato==4
+      @legato ||= 0
+      # On s'en retourne immédiatement si @legato contient déjà cette
+      # valeur
+      return if (@legato & value) > 0
+      # Principe : une note ne peut pas porter en même temps une fin
+      # et un début de légato
+      unless @legato.nil?
+        if (start_legato? || start_slure?) \
+            && ([BIT_END_SLURE, BIT_END_LEGATO].include? value )
+          badstart = start_slure? ? 'start_slure' : 'start_legato'
+          raise "#{lk_str}_unable_if_#{badstart}"
+        elsif (end_slure? || end_legato?) \
+              && ([BIT_START_SLURE, BIT_START_LEGATO].include? value )
+          badend = end_slure? ? 'end_slure' : 'end_legato'
+          raise "#{lk_str}_unable_if_#{badend}"
+        end
+      else
+        @legato = 0
+      end
     rescue Exception => e
       fatal_error(e.message, :linote => self.inspect)
     else
-      @legato = value
+      @legato ||= 0
+      @legato += value
     end
   end
   
   # => Place un début de slure sur la note (si c'est possible)
   def start_slure
-    checkif_legato_enable 'slure', 1
+    checkif_legato_enable 'slure', BIT_START_SLURE
+  end
+  # => Retourne true si la LINote est le début d'un slure
+  def start_slure?
+    return false if @legato.nil?
+    (@legato & BIT_START_SLURE) > 0
   end
   # => Place une fin de slure sur la note (si c'est possible)
   def end_slure
-    checkif_legato_enable 'end_slure', 2
+    checkif_legato_enable 'end_slure', BIT_END_SLURE
+  end
+  # => return true si la LINote est la fin d'un slure
+  def end_slure?
+    return false if @legato.nil?
+    (@legato & BIT_END_SLURE) > 0
   end
   # => Place un début de légato sur la note (si c'est possible)
   def start_legato
-    checkif_legato_enable 'legato', 3
+    checkif_legato_enable 'legato', BIT_START_LEGATO
+  end
+  # => Return true si la LINote est le début d'un legato
+  def start_legato?
+    return false if @legato.nil?
+    (@legato & BIT_START_LEGATO) > 0
   end
   # => Place une fin de legato sur la note (si c'est possible)
   def end_legato
-    checkif_legato_enable 'end_legato', 4
+    checkif_legato_enable 'end_legato', BIT_END_LEGATO
+  end
+  # Return true si la LINote est la fin d'un legato
+  def end_legato?
+    return false if @legato.nil?
+    (@legato & BIT_END_LEGATO) > 0
   end
   
   # =>  Retourne la marque de legato (ou slure) éventuelle à poser sur
   #     la note
   def mark_legato
-    ["", "(", ")", "\\(", "\\)"][@legato.to_i]
+    mark = ""
+    return mark if @legato.nil?
+    mark << "\\(" if start_legato?
+    (mark << "(") and return mark if start_slure?
+    mark << ")"   if end_slure?
+    mark << "\\)" if end_legato?
+    mark
   end
   
   #   / Fin des méthodes de liaison
@@ -1136,7 +1339,7 @@ class LINote < NoteClass
     @pre =~ /</
   end
   # => Retourne true si la LINote est la fin d'un accord
-  def fin_accord?
+  def end_accord?
     @post =~ />/
   end
   # Return true si la linote contient des dièses
@@ -1214,7 +1417,7 @@ class LINote < NoteClass
   #     chromatique (en tenant compte de ses altérations)
   # @return un nombre de 0 ("c") à 11 ("b")
   def index
-    @note_int
+    @index ||= NOTE_STR_TO_INT["#{@note}#{@alter}"]
   end
   
   # =>  Return l'index diatonique de la linote (c'est-à-dire son index
@@ -1230,20 +1433,20 @@ class LINote < NoteClass
   # @param params       Contient :tonalite qui définit la tonalité
   # 
   def moins demitons, params = nil
-    while @note_int < demitons
-      @note_int += 12
+    note_int = self.index
+    while note_int < demitons
+      note_int += 12
     end
-    LINote::note_str_in_context(@note_int - demitons, params)
+    LINote::note_str_in_context(note_int - demitons, params)
   end
   # => Return la note montée de +demitons+ demi-tons
   # cf. `moins' pour les arguments
   def plus demitons, params = nil
-    # debug "\n@note_str:#{@note_str} - @note_int:#{@note_int} - demitons:#{demitons} - params:#{params.inspect}"
-    LINote::note_str_in_context(@note_int + demitons, params)
+    LINote::note_str_in_context(index + demitons, params)
   end
   
   # => Return le nom str en fonction du context (cf. la méthode statique)
   def str_in_context context
-    LINote::note_str_in_context @note_int, context
+    LINote::note_str_in_context index, context
   end
 end

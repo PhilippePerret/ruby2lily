@@ -194,14 +194,12 @@ class Instrument
     #           que ça sera différent plus tard) 
     params.each do |p, v| 
       p = p.to_sym
-      if p == :duree && ! NoteClass::duree_valide?( v.to_s )
-        fatal_error(:bad_value_duree, :bad => v.to_s)
-      end
+      v = NoteClass::duree_valide?( v, fatal = true) if p == :duree
       linotes.first.set p => v
       # Cas spécial de la durée avec un accord
       if p == :duree && linotes.first.start_accord?
         linotes.each do |ln|
-          next unless ln.fin_accord?
+          next unless ln.end_accord?
           ln.set :duree_post => v
         end
       end
@@ -235,7 +233,7 @@ class Instrument
     the_last = @notes.last
     if not_a_rest
       # Si on accepte pas un silence
-      return the_last unless the_last.fin_accord? || the_last.rest?
+      return the_last unless the_last.end_accord? || the_last.rest?
     else
       # Si on accepte un silence
       return the_last if the_last.rest?

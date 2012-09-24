@@ -52,12 +52,23 @@ class NoteClass
     }
   end
   
-  # =>  Return true si +duree+ est une durée valide
+  # =>  Return la durée si +duree+ est une durée valide
   #     False dans le cas contraire
-  def self.duree_valide? duree
-    duree = duree[0..-2] if duree.end_with? "~"
-    return true if duree.blank?
-    return DUREES.has_key? duree
+  # 
+  # @param  duree   La durée à tester, dans n'importe quelle class, 
+  #                 nombre ou string.
+  # @param  fatal   Si true, et que la durée n'est pas valide, la méthode
+  #                 lève une erreur fatale.
+  # 
+  # @return +duree+ en string si c'est une durée valide, false si +fatal+
+  #         n'est pas true
+  # 
+  def self.duree_valide? duree, fatal = false
+    duree = duree.to_s
+    tested = duree.end_with?("~") ? duree[0..-2] : duree
+    return duree if tested.blank? || DUREES.has_key?( tested )
+    fatal_error(:bad_value_duree, :bad => duree) if fatal
+    false
   end
   
   # =>  Return un hash à partir de +params+ envoyé dans [...] d'une
@@ -140,10 +151,7 @@ class NoteClass
     
     # Dernière vérification sur la validité de la durée
     if hash.has_key?(:duration)
-      hash[:duration] = hash[:duration].to_s
-      unless NoteClass::duree_valide? hash[:duration]
-        fatal_error(:bad_value_duree, :bad => hash[:duration])
-      end
+      hash[:duration] = NoteClass::duree_valide?( hash[:duration], true)
     end
     
     return hash
@@ -199,10 +207,8 @@ class NoteClass
       params = params.merge :duration => params.delete(:duree)
     end
     unless params[:duration].nil?
-      params[:duration] = params[:duration].to_s
-      unless NoteClass::duree_valide?(params[:duration])
-        fatal_error(:bad_value_duree, :bad => params[:duration])
-      end
+      params[:duration] =  
+        NoteClass::duree_valide?(params[:duration], fatal = true)
     end
     
     # Vérification et définition de l'octave

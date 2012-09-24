@@ -26,27 +26,50 @@ end
 describe "Addition à String" do
 
   describe "String + String" do
-    it "doit retourner un Motif contenant les notes" do
-      res = "a" + "b"
-			res.class.should == Motif
-			res.notes.should == "a b"
-			res = "a" + "bb" + "dois" + "la#"
-			res.class.should == Motif
-			res.notes.should == "a bes cis, ais'"
-			res = "a'" + "bb"
-			res.class.should == Motif
-			# @todo: le traiter car pour le moment, ça ne prend pas le
-			# delta pour le mettre dans la propriété octave
-			res.notes.should == "a bes,"
-			res.octave.should == 5
+		[
+			# Pas une note lilypond
+			# NON, PAS ICI, CAR ON TESTE SI LE RETOUR A LA CLASS MOTIF
+			# [ "autre",			"str",			"autrestr"	],
+			# Simple cases
+			[	"c", 					"c", 				"c c"				],
+			[	"c", 					"a", 				"c a'"			],
+			[	"a", 					"b", 				"a b"				],
+			[	"a", 					"c", 				"a c,"			],
+			[ "c g'",				"c", 				"c g' c,"		],
+			# Avec delta au départ
+			["a'", 					"b",				"a b,"					,	5],
+			["ab,", 				"bis",			"aes bis'"			, 3],
+			# Avec altérations et italiennes
+			["a",						"sib",			"a bes"						],
+			["a bes", 			"c#", 			"a bes cis,"			],
+			["a bes cis,",	"la#",			"a bes cis, ais'"	],
+			["a sib do#", 	"la#", 			"a bes cis ais"		],
+			# Avec des silences
+			["c", 					"r",				"c r"							],
+			["r", 					"c", 				"r c"							],
+			["r r r",				"c c c",		"r r r c c c"			],
+			["a b c",				"r r r", 		"a b c r r r"			],
+			["c e g c",			"r1 r r r", 	"c e g c r1 r r r"				],
+			["c e g c r1 r r r", "e g#",	"c e g c r1 r r r e, gis"	],
+			# Avec accord
+			["<a b c>", 		"<a b c>", 		"<a b c> <a b c>"		],
+			["<a b c>", 		"<a' b c>", 	"<a b c> <a' b c>"	],
+			# En dernier, laisser (simplement pour la virgule) :
+			[	"c", "c", "c c"	]
+		].each do |d|
+			s1, s2, expected, octave = d
+			it "#{s1} + #{s2} doit définir le motif: #{expected}" do
+			  res = s1 + s2
+				res.class.should 	== Motif
+				res.to_llp.should == expected
+				res.octave.should == octave unless octave.nil?
+			end
+			it "'str'+'autre' doit retourner le string 'strautre" do
+			  res = "str" + "autre"
+				res.class.should 	== String
+				res.should 				== "strautre"
+			end
     end
-		it "avec un string entièrement en silence doit fonctionner" do
-		  res = "c e g c" + "r1 r r r" + "e g"
-		  # res = "c e g c" + "r1 r r r" + "e g#"
-			res.class.should == Motif
-			# res.notes.should == "c e g c r1 r r r e, gis"
-			res.notes.should == "c e g c r1 r r r e, g"
-		end
   end
 	describe "String + Note" do
 		it "doit retourner un motif contenant les notes" do
@@ -99,8 +122,8 @@ describe "Addition à Note" do
 		it "doit renvoyer un motif conforme" do
 		  n = Note::new "c"
 			res = (n + "a'")
-			res.class.should == Motif
-			res.to_s.should == "\\relative c' { c a' }"
+			res.class.should 	== Motif
+			res.to_s.should 	== "\\relative c' { c a'' }"
 		end
 		it "autres tests Notes + String" do
 			no = Note::new "c##"
@@ -194,120 +217,119 @@ def define_motifs
 	@mo_silences = Motif::new('r r r r')
 end
 describe "Addition et Motif" do
-	before(:all) do
-	end
-  describe "Motif + String" do
-		define_motifs if @mo_slured.nil?
-	  [
-			[@motif_simple, "c", "c' { c e g c, }"],
-			[@motif_octave_2, "c", "c, { c e g c' }"],
-			[@mo_octave_diff, "c", "c' { a c e a c,, }"],
-			[@mo_accord, "a''", "c' { <a c e> a'' }"],
-			[@mo_chord_et_rest, "r r c,", "c' { r <b d fis> r g r r c, }"],
-			[@mo_chord_et_rest, "r c,", "c' { r <b d fis> r g r c, }"],
-			[@mo_chord_et_rest, "c,", "c' { r <b d fis> r g c, }"],
-			[@mo_slur, "a'( b c)", "c,,,, { a( b c d) e( f g) r a''''( b c) }"],
-			[@mo_slured, "<a c e>", "c' { a( b c d e) <a, c e> }"],
-			[@mo_complex, "cisis( ges ges4)", "c, { r4\\( <ais c e> geses8( b[ e4])\\) r2 cisis'( ges ges4) }"]
-		].each do |d|
-			motif, str, res = d
-			it "Motif « #{motif.notes} » (octave #{motif.octave}) + String « #{str} »" do
-			 	new_mo = motif + str
-				new_mo.class.should == Motif
-				new_mo.object_id.should_not == motif.object_id
-				new_mo.to_s.should == "\\relative #{res}"
-			end
-		end
-  end
-	describe "Motif + Note" do
-		define_motifs if @mo_slured.nil?
-		[
-			[@motif_simple, "c", nil, "c' { c e g c, }"],
-			[@motif_simple, "c", 2, "c' { c e g c,,, }"],
-			[@motif_simple, "c", 4, "c' { c e g c, }"],
-			[@motif_simple, "c", 0, "c' { c e g c,,,,, }"],
-			[@motif_octave_2, "c", nil, "c, { c e g c' }"],
-			[@motif_octave_2, "c", 4, "c, { c e g c' }"],
-			[@mo_octave_diff, "c", nil, "c' { a c e a c,, }"],
-			[@mo_octave_diff, "c", 6, "c' { a c e a c }"],
-			[@mo_accord, "c", nil, "c' { <a c e> c, }"],
-			[@mo_accord, "a", nil, "c' { <a c e> a }"],
-			[@mo_accord, "b", nil, "c' { <a c e> b }"],
-			[@mo_chord_et_rest, "c", nil, "c' { r <b d fis> r g c, }"],
-			[@mo_chord_et_rest, "b", nil, "c' { r <b d fis> r g b }"],
-			[@mo_chord_et_rest, "c", 5, "c' { r <b d fis> r g c }"],
-			[@mo_slur, "c", nil, "c,,,, { a( b c d) e( f g) r c''' }"],
-			[@mo_slur, "b", nil, "c,,,, { a( b c d) e( f g) r b'''' }"],
-			[@mo_slur, "d", 0, "c,,,, { a( b c d) e( f g) r d }"],
-			[@mo_slured, "c", nil, "c' { a( b c d e) c, }"],
-			[@mo_slured, "b", nil, "c' { a( b c d e) b }"],
-			[@mo_slured, "d", 5, "c' { a( b c d e) d }"],
-			[@mo_complex, "c", nil, "c, { r4\\( <ais c e> geses8( b[ e4])\\) r2 c' }"],
-			[@mo_complex, "ces", 4, "c, { r4\\( <ais c e> geses8( b[ e4])\\) r2 ces' }"]
-		].each do |d|
-			motif, note, octave, expected = d
-			it "Motif « #{motif.notes} » (octave #{motif.octave}) + Note « #{note}-#{octave} »" do
-				note = Note::new note, :octave => octave
-				res = motif + note
-				res.class.should == Motif
-				res.to_s.should == "\\relative #{expected}"
-			end
-		end
-	end
-	describe "Motif + Motif" do
-		define_motifs if @mo_slured.nil?
-		[
-			[@motif_simple, @motif_simple, "c' { c e g c, e g }"],
-			[@mo_silences, @motif_octave_2, "c' { r r r r c,, e g }"],
-			[@motif_simple, @motif_octave_2, "c' { c e g c,,, e g }"],
-			[@motif_octave_2, @motif_simple, "c, { c e g c' e g }"],
-			[@motif_octave_2, @mo_accord, "c, { c e g <a'' c e> }"],
-			[@mo_accord, @motif_octave_2, "c' { <a c e> c,,, e g }"],
-			[@motif_octave_2, @mo_chord_et_rest, "c, { c e g r <b'' d fis> r g }"],
-			[@mo_chord_et_rest, @motif_octave_2, "c' { r <b d fis> r g c,,, e g }"],
-			[@mo_chord_et_rest, @mo_accord, "c' { r <b d fis> r g <a c e> }"],
-			[@mo_chord_et_rest, @mo_complex, 
-				"c' { r <b d fis> r g " \
-				<< "r4\\( <ais,, c e> geses8( b[ e4])\\) r2 }"],
-			[@mo_complex, @mo_chord_et_rest,
-				"c, { r4\\( <ais c e> geses8( b[ e4])\\) r2 " \
-				<< "r <b'' d fis> r g }"
-				]
-		].each do |d|
-			mot1, mot2, expected = d
-			it "Motif « #{mot1.notes} »-oct:#{mot1.octave} + Motif « #{mot2.notes} »-oct:#{mot2.octave}" do
-				res = mot1 + mot2
-				res.class.should == Motif
-				res.to_s.should == "\\relative #{expected}"
-			end
-		end
-		# Quelques cas spéciaux
-		it "Additions spéciales doit renvoyer le bon motif" do
-		  final = Motif::new('a b c') + 
-							Motif::new('r r r r') + 
-							Motif::new('c e g', :octave => 1)
-			final.class.should == Motif
-			final.to_s.should == '\relative c\' { a b c r r r r c,,,, e g }'
-		end
-	end
-	describe "Motif + Chord" do
-	  define_motifs if @mo_slured.nil?
-		[
-			[@motif_simple, "c e g", nil, "c' { c e g <c, e g> }"],
-			[@motif_simple, "c e g", 4, "c' { c e g <c, e g> }"],
-			[@mo_chord_et_rest, "a c e", nil, "c' { r <b d fis> r g <a c e> }"],
-			[@mo_chord_et_rest, "a c e", 2, "c' { r <b d fis> r g <a,, c e> }"],
-			[@mo_complex, "c e g c", nil, "c, { r4\\( <ais c e> geses8( b[ e4])\\) r2 <c' e g c> }"],
-			[@mo_complex, "c e g c", 6, "c, { r4\\( <ais c e> geses8( b[ e4])\\) r2 <c''' e g c> }"]
-		].each do |d|
-			motif, accord, chord_octave, expected = d
-			it "Motif « #{motif.notes} »-oct:#{motif.octave} + accord <#{accord}>-oct:#{chord_octave}" do
-			  res = motif + Chord::new( accord, :octave => chord_octave)
-				res.class.should == Motif
-				res.to_s.should == "\\relative #{expected}"
-			end
-		end
-	end
+
+  # describe "Motif + String" do
+  # 		# define_motifs if @mo_slured.nil?
+  # 	  [
+  # 			[@motif_simple, "c", "c' { c e g c, }"],
+  # 			[@motif_octave_2, "c", "c, { c e g c' }"],
+  # 			[@mo_octave_diff, "c", "c' { a c e a c,, }"],
+  # 			[@mo_accord, "a''", "c' { <a c e> a'' }"],
+  # 			[@mo_chord_et_rest, "r r c,", "c' { r <b d fis> r g r r c, }"],
+  # 			[@mo_chord_et_rest, "r c,", "c' { r <b d fis> r g r c, }"],
+  # 			[@mo_chord_et_rest, "c,", "c' { r <b d fis> r g c, }"],
+  # 			[@mo_slur, "a'( b c)", "c,,,, { a( b c d) e( f g) r a''''( b c) }"],
+  # 			[@mo_slured, "<a c e>", "c' { a( b c d e) <a, c e> }"],
+  # 			[@mo_complex, "cisis( ges ges4)", "c, { r4\\( <ais c e> geses8( b[ e4])\\) r2 cisis'( ges ges4) }"]
+  # 		].each do |d|
+  # 			motif, str, res = d
+  # 			it "Motif « #{motif.notes} » (octave #{motif.octave}) + String « #{str} »" do
+  # 			 	new_mo = motif + str
+  # 				new_mo.class.should == Motif
+  # 				new_mo.object_id.should_not == motif.object_id
+  # 				new_mo.to_s.should == "\\relative #{res}"
+  # 			end
+  # 		end
+  # end
+	# describe "Motif + Note" do
+	# 	# define_motifs if @mo_slured.nil?
+	# 	[
+	# 		[@motif_simple, "c", nil, "c' { c e g c, }"],
+	# 		[@motif_simple, "c", 2, "c' { c e g c,,, }"],
+	# 		[@motif_simple, "c", 4, "c' { c e g c, }"],
+	# 		[@motif_simple, "c", 0, "c' { c e g c,,,,, }"],
+	# 		[@motif_octave_2, "c", nil, "c, { c e g c' }"],
+	# 		[@motif_octave_2, "c", 4, "c, { c e g c' }"],
+	# 		[@mo_octave_diff, "c", nil, "c' { a c e a c,, }"],
+	# 		[@mo_octave_diff, "c", 6, "c' { a c e a c }"],
+	# 		[@mo_accord, "c", nil, "c' { <a c e> c, }"],
+	# 		[@mo_accord, "a", nil, "c' { <a c e> a }"],
+	# 		[@mo_accord, "b", nil, "c' { <a c e> b }"],
+	# 		[@mo_chord_et_rest, "c", nil, "c' { r <b d fis> r g c, }"],
+	# 		[@mo_chord_et_rest, "b", nil, "c' { r <b d fis> r g b }"],
+	# 		[@mo_chord_et_rest, "c", 5, "c' { r <b d fis> r g c }"],
+	# 		[@mo_slur, "c", nil, "c,,,, { a( b c d) e( f g) r c''' }"],
+	# 		[@mo_slur, "b", nil, "c,,,, { a( b c d) e( f g) r b'''' }"],
+	# 		[@mo_slur, "d", 0, "c,,,, { a( b c d) e( f g) r d }"],
+	# 		[@mo_slured, "c", nil, "c' { a( b c d e) c, }"],
+	# 		[@mo_slured, "b", nil, "c' { a( b c d e) b }"],
+	# 		[@mo_slured, "d", 5, "c' { a( b c d e) d }"],
+	# 		[@mo_complex, "c", nil, "c, { r4\\( <ais c e> geses8( b[ e4])\\) r2 c' }"],
+	# 		[@mo_complex, "ces", 4, "c, { r4\\( <ais c e> geses8( b[ e4])\\) r2 ces' }"]
+	# 	].each do |d|
+	# 		motif, note, octave, expected = d
+	# 		it "Motif « #{motif.notes} » (octave #{motif.octave}) + Note « #{note}-#{octave} »" do
+	# 			note = Note::new note, :octave => octave
+	# 			res = motif + note
+	# 			res.class.should == Motif
+	# 			res.to_s.should == "\\relative #{expected}"
+	# 		end
+	# 	end
+	# end
+	# describe "Motif + Motif" do
+	# 	# define_motifs if @mo_slured.nil?
+	# 	[
+	# 		[@motif_simple, @motif_simple, "c' { c e g c, e g }"],
+	# 		[@mo_silences, @motif_octave_2, "c' { r r r r c,, e g }"],
+	# 		[@motif_simple, @motif_octave_2, "c' { c e g c,,, e g }"],
+	# 		[@motif_octave_2, @motif_simple, "c, { c e g c' e g }"],
+	# 		[@motif_octave_2, @mo_accord, "c, { c e g <a'' c e> }"],
+	# 		[@mo_accord, @motif_octave_2, "c' { <a c e> c,,, e g }"],
+	# 		[@motif_octave_2, @mo_chord_et_rest, "c, { c e g r <b'' d fis> r g }"],
+	# 		[@mo_chord_et_rest, @motif_octave_2, "c' { r <b d fis> r g c,,, e g }"],
+	# 		[@mo_chord_et_rest, @mo_accord, "c' { r <b d fis> r g <a c e> }"],
+	# 		[@mo_chord_et_rest, @mo_complex, 
+	# 			"c' { r <b d fis> r g " \
+	# 			<< "r4\\( <ais,, c e> geses8( b[ e4])\\) r2 }"],
+	# 		[@mo_complex, @mo_chord_et_rest,
+	# 			"c, { r4\\( <ais c e> geses8( b[ e4])\\) r2 " \
+	# 			<< "r <b'' d fis> r g }"
+	# 			]
+	# 	].each do |d|
+	# 		mot1, mot2, expected = d
+	# 		it "Motif « #{mot1.notes} »-oct:#{mot1.octave} + Motif « #{mot2.notes} »-oct:#{mot2.octave}" do
+	# 			res = mot1 + mot2
+	# 			res.class.should == Motif
+	# 			res.to_s.should == "\\relative #{expected}"
+	# 		end
+	# 	end
+	# 	# Quelques cas spéciaux
+	# 	it "Additions spéciales doit renvoyer le bon motif" do
+	# 	  final = Motif::new('a b c') + 
+	# 						Motif::new('r r r r') + 
+	# 						Motif::new('c e g', :octave => 1)
+	# 		final.class.should == Motif
+	# 		final.to_s.should == '\relative c\' { a b c r r r r c,,,, e g }'
+	# 	end
+	# end
+	# describe "Motif + Chord" do
+	#   # define_motifs if @mo_slured.nil?
+	# 	[
+	# 		[@motif_simple, "c e g", nil, "c' { c e g <c, e g> }"],
+	# 		[@motif_simple, "c e g", 4, "c' { c e g <c, e g> }"],
+	# 		[@mo_chord_et_rest, "a c e", nil, "c' { r <b d fis> r g <a c e> }"],
+	# 		[@mo_chord_et_rest, "a c e", 2, "c' { r <b d fis> r g <a,, c e> }"],
+	# 		[@mo_complex, "c e g c", nil, "c, { r4\\( <ais c e> geses8( b[ e4])\\) r2 <c' e g c> }"],
+	# 		[@mo_complex, "c e g c", 6, "c, { r4\\( <ais c e> geses8( b[ e4])\\) r2 <c''' e g c> }"]
+	# 	].each do |d|
+	# 		motif, accord, chord_octave, expected = d
+	# 		it "Motif « #{motif.notes} »-oct:#{motif.octave} + accord <#{accord}>-oct:#{chord_octave}" do
+	# 		  res = motif + Chord::new( accord, :octave => chord_octave)
+	# 			res.class.should == Motif
+	# 			res.to_s.should == "\\relative #{expected}"
+	# 		end
+	# 	end
+	# end
 end
 
 # -------------------------------------------------------------------
@@ -329,14 +351,14 @@ describe "Addition et Chord" do
     end
 		it "doit réussir avec un accord dont on change l'octave et la durée" do
 		  lam = Chord::new "a c e"
-			str = "c'" # donc à l'octave 4
+			str = "c'" # donc à l'octave 5
 			res = lam[2,"8"] + str # donc à l'octave 2
 			res.class.should == Motif
-			res.to_s.should == "\\relative c, { <a c e>8 c' }"
+			res.to_s.should == "\\relative c, { <a c e>8 c'' }"
 			
 			res = lam[blanche, -2] + str
 			res.class.should == Motif
-			res.to_s.should == "\\relative c,,,,, { <a c e>2 c''''' }"
+			res.to_s.should == "\\relative c,,,,, { <a c e>2 c'''''' }"
 		end
   end
 	describe "Chord + Note" do
@@ -378,14 +400,16 @@ describe "Addition et Chord" do
 	  it "un accord doit pouvoir être ajouté à un accord" do
 	    # @note : on fait simple entendu que ça revient à tester
 			# l'addition de deux motifs qui contiendrait des accords
-			acc1 = Chord::new %w(c e g), :octave => 1, :duration => 4
-			acc2 = Chord::new "a c e", :octave => 4, :duration => 16
+			acc1 = Chord::new %w(c e g), 	:octave => 1, :duration => 4
+			acc2 = Chord::new "a c e", 		:octave => 4, :duration => 16
 			res = acc1 + acc2
 			res.class.should == Motif
+			res.to_llp.should == "<c e g>4 <a'''' c e>16"
 			res.to_s.should == "\\relative c,, { <c e g>4 <a'''' c e>16 }"
 			# Le contraire
 			res = acc2 + acc1
 			res.class.should == Motif
+			res.to_llp.should == "<a c e>16 <c,,,, e g>4"
 			res.to_s.should == "\\relative c' { <a c e>16 <c,,,, e g>4 }"
 	  end
 	end

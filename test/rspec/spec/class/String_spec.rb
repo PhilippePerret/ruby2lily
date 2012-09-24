@@ -244,8 +244,8 @@ describe String do
 		it ":as_motif doit retourner le bon motif (avec silences, octave et durée)" do
 			mo = "r8 r c, r".as_motif
 			mo.class.should == Motif
-			mo.notes.should == "r r c, r" # @fixme: ICI LA DURÉE DEVRAIT ÊTRE ENLEVÉE COMME ICI
-			mo.octave.should == 3
+			mo.notes.should == "r r c, r"
+			mo.octave.should == 4
 			mo.duration.should == "8"
 		end
 	end
@@ -400,22 +400,9 @@ describe String do
 		it ":+ doit renvoyer un motif en cas de bonne addition" do
 		  res = ("c" + "d")
 			res.class.should == Motif
-			# @note: des traitements plus complexes sont fait ailleurs
 		end
-		it ":+ doit ajouter la mark delta d'octave si nécessaire" do
-		  mo = "c" + "fis"
-			mo.notes.should == "c fis"
-			mo = "c g'" + "c"
-			mo.notes.should == "c g' c,"
-		end
-		# :+=
- 		it ":+= doit retourner la bonne valeur (quand ce n'est pas un motif musical)" do
-		  s = "str"
-			s += "autre"
-			s.should == "strautre"
-		end
-		
-		# 
+		# @note: 	Tous les autres traitements sont faits dans le fichier
+		# 				spec/operation/addition_spec.rb
  end
 
 	# -------------------------------------------------------------------
@@ -466,10 +453,15 @@ describe String do
 		it ":+ et * doivent retourner la bonne valeur" do
 		  m = "c4" * 3 + "e g" + "c'" + "c" * 2
 			m.class.should == Motif
+			# puts "\n\nmotif: #{m.inspect}"
 			m.to_llp.should == "c4 c c e g c c, c"
-		 	m = m * 2
-			m.class.should == Motif
-			m.to_s.should == "\\relative c' { c4 c c e g c c, c " \
+			# ---
+			# puts "\n\n= Motif avant multiplication : #{m.inspect}"
+			m = m * 2
+			# puts "\n\n= Motif APRÈS multiplication : #{m.inspect}"
+			m.class.should 	== Motif
+			m.to_llp.should == "c4 c c e g c c, c c4 c c e g c c, c"
+			m.to_s.should 	== "\\relative c' { c4 c c e g c c, c " \
 												<< "c4 c c e g c c, c }"
 		end
 	end

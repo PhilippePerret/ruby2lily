@@ -32,14 +32,21 @@ describe NoteClass do
 		    NoteClass.should respond_to :duree_valide?
 		  end
 		  [
-				["1", true], ["1..", true], [".1", false], ["1..~", true],
-				["~", true], ["256", true], ["256..", true],
-				["3", false], ["a", false]
+				["1", "1"], ["1..", "1.."], ["1..~", "1..~"],
+				["~", "~"], ["256", "256"], ["256..", "256.."],
+				[1, "1"], [2, "2"], [3, false],
+				[".1", false], ["3", false], ["a", false]
 			].each do |d|
 				duree, valide = d
 				it "La durée '#{duree}' doit être considérée #{valide ? 'valide' : 'invalide'}" do
 				  NoteClass::duree_valide?(duree).should === valide
 				end
+			end
+			it ":duree_valide? doit lever une erreur fatale si fatal = true" do
+			  expect{NoteClass::duree_valide?(3)}.not_to raise_error
+				err = detemp(Liby::ERRORS[:bad_value_duree], :bad => 3)
+				expect{NoteClass::duree_valide?(3,true)
+					}.to raise_error(SystemExit, err)
 			end
 		end
     describe "::params_crochet_to_hash" do

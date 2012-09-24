@@ -26,7 +26,11 @@ module OperationsSurNotes
   def + foo
     # Cas spécial de deux motifs (appelé notamment en bas de cette
     # méthode, d'où le `return' ci-dessous)
+    
     if self.class == Motif && foo.class == Motif
+      # puts "\n\n== ADDITIONNER LES DEUX MOTIFS SUIVANT :"
+      # puts "= self: #{self.inspect}"
+      # puts "= foo : #{foo.inspect}\n\n"
       return self.join( foo, :new => true )
     else
       begin
@@ -42,6 +46,7 @@ module OperationsSurNotes
       # puts "\n\nDans operation::+ :"
       # puts "motif_gauche: #{motif_gauche.inspect}"
       # puts "motif_droit: #{motif_droit.inspect}"
+      
       motif_gauche + motif_droit # rappelle cette méthode mais cf. haut
     end    
   end # / +
@@ -61,21 +66,33 @@ module OperationsSurNotes
   # 
   def * fois, params = nil
     
+    params ||= {}
     self_is_motif = self.class == Motif
-    motif = self_is_motif ? self : self.as_motif
+
+    # Le motif
+    # ---------
+    # Dans tous les cas, on fait un clone du motif, pour pouvoir
+    # le modifier sans toucher au motif original dans la suite
+    motif = self_is_motif ? self.clone : self.as_motif
     
-    # On regarde ce que donne la première note du motif lié à sa dernière
     # Suite originale du motif
-    motif_normal = motif.to_llp
-    # Maintenant, on peut modifier le motif sans problème
-    explosion = motif.explode
-    explosion[0] = explosion.first.as_next_of explosion.last
-    suivants = LINote::implode explosion
+    motif_normal = "#{motif.to_llp}"
+
+    # On regarde ce que donne la première note du motif lié à sa dernière
+    prem = motif.first_note(strict = true)
+    dern = motif.last_note( strict = true)
+    
+    # On transforme la première note comme si elle suivait la dernière
+    unless prem.nil? || dern.nil?
+      prem.as_next_of dern
+      motif.set_first_note( prem, strict = true )
+    end
+    
+    suivants = LINote::implode motif.exploded
     motif_final = motif_normal.plus( " #{suivants}".x(fois - 1) )
 
     # On construit ou on modifie le motif
     motif.change_objet_ou_new_instance(motif_final, params, self_is_motif)
-    
   end
   
   # =>  Retourne une nouvelle instance de l'objet (sauf si :new => false)

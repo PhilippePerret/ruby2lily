@@ -57,7 +57,9 @@ class String
   # @note   Les italiennes et altérations "normales" seront transformées
   # 
   def as_motif
-    Motif::new self
+    motif = Motif::new self
+    # puts "\nSTRING '#{self}' TRANSFORMÉ EN MOTIF : #{motif.inspect}"
+    motif
   end
   
   
@@ -76,8 +78,7 @@ class String
   # @todo: String#* doit être supprimé car ajouté et traité par OperationsSurNotes
   def *( nombre )
     if self.is_lilypond?
-      # Multiplication pour une suite de notes LilyPond
-      Motif::new( self ) * nombre
+      self.as_motif * nombre
     else
       # Multiplication conventionnelle
       self.x nombre

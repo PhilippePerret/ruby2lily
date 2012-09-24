@@ -98,13 +98,16 @@ class Chord < NoteClass
   
   def as_motif params = nil
     params ||= {}
-    params[:duration] = params if params.class == Fixnum
+    params[:octave] = params    if params.class == Fixnum
+    params[:duration] = params  if params.class == String
     duree = params[:duration] || @duration
-    Motif::new(
+    data = {
       :notes      => self.to_acc(""), # pour empêcher la durée 
       :octave     => params[:octave] || @octave,
       :duration   => duree
-      )
+    }
+    # puts "\n\nData envoyées à Motif::new par chord: #{data.inspect}"
+    Motif::new data
   end
   
   # => Return un string sous forme d'accord (p.e. "<c e g>8")
