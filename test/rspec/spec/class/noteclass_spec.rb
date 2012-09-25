@@ -170,12 +170,12 @@ describe NoteClass do
 		  expect{Motif.new("a", :octave => -2)}.not_to raise_error
 			oct = -3
 			err = detemp(Liby::ERRORS[:bad_value_octave], 
-				:bad => oct, :class => "Motif")
+				:bad => oct, :class => "LINote")
 			expect{Motif.new("a", :octave => oct)}.to \
 				raise_error(SystemExit, err)
-			oct = "11"
+			oct = 11
 			err = detemp(Liby::ERRORS[:bad_value_octave], 
-				:bad => oct, :class => "Motif")
+				:bad => oct, :class => "LINote")
 			expect{Motif.new("a", :octave => oct)}.to \
 				raise_error(SystemExit, err)
 		end

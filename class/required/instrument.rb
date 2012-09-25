@@ -79,8 +79,9 @@ class Instrument
   # => Retourne les mesures de l'instrument spécifiées par +params+
   # 
   # Cette méthode est une des méthodes principales de construction de la
-  # partition. 
-  def mesures first, last = nil
+  # partition. Même lorsqu'aucune mesure spéciale n'est demandée, elle
+  # est appelée, avec les paramètres à nil
+  def mesures first = nil, last = nil
     last ||= first
     # @todo: produire ici une erreur si last est avant first
     
@@ -101,8 +102,21 @@ class Instrument
       if index_mesure >= first
         linotes_expected << linote
       end
-      duree_note = linote.duree_absolue || duree_absolue_last_note
+      
+      # Pour l'instant, je mets 4 en durée par défaut, quand aucune
+      # durée de note n'est encore précisée
+      duree_note = linote.duree_absolue || duree_absolue_last_note ||= 1.0
       position_courante += duree_note
+
+      # # = débug =
+      # puts "\n=== in mesures ==="
+      # puts "= linote: #{linote.inspect}"
+      # puts "= linote.duree_absolue: #{linote.duree_absolue}"
+      # puts "= duree_absolue_last_note: #{duree_absolue_last_note}"
+      # puts "= Nouvelle position_courante: #{position_courante}"
+      # puts "--------------------------------------"
+      # # = /débug =
+
       if position_courante == duree_mesure
         # Une fin de mesure est atteinte avec cette note
         index_mesure      += 1 

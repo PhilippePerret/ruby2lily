@@ -33,6 +33,7 @@ describe "Méthode :[]" do
     end
 		it "doit retourner un bon motif" do
 		  mo = Motif::new "c(\\< d e)\\!"
+			puts "\n\n= MOTIF: #{mo.inspect}"
 			mo_duree_8 = mo["8"]
 			mo_duree_8.to_s.should == "\\relative c' { c8(\\< d e)\\! }"
 			mo_octave_2 = mo[2]

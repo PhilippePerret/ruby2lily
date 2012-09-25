@@ -64,13 +64,15 @@ describe Instrument do
 				
 				ln = res[5]
 				ln.note.should == "e"
-				ln.octave.should == 5
-				ln.duration.should be_nil # @fixme: ici, il vaudrait mieux : "8"
+				ln.octave.should == 4
+				ln.duration.should be_nil
+				ln.duree_chord == "8"
 				
 				ln = res[6]
 				ln.note.should == "g"
-				ln.octave.should == 5
+				ln.octave.should == 4
 				ln.duration.should == "8"
+				ln.duree_chord == "8"
 				
 			end
 			# # :mesure / :mesures
@@ -205,8 +207,8 @@ describe Instrument do
 				init_notes
 				mot1 = Motif::new "a b c"
 				mot2 = Motif::new "d e f"
-				puts "= motif 1: #{mot1.inspect}"
-				puts "= motif 2: #{mot2.inspect}"
+				# puts "= motif 1: #{mot1.inspect}"
+				# puts "= motif 2: #{mot2.inspect}"
 				@instru.add_notes mot1
 				@instru.notes_to_llp.should == "a b c"
 				iv_get(@instru, :notes).count.should == 3
@@ -216,17 +218,17 @@ describe Instrument do
 			end
 			it ":doit régler correctement l'octave lors d'une jonction" do
 			  mot1 = Motif::new "a b c", :octave => 2
-				puts "= motif 1: #{mot1.inspect}"
+				# puts "= motif 1: #{mot1.inspect}"
 				mot2 = Motif::new "d e f" # ie à l'octave 4
 				init_notes
 				@instru.add_notes mot1
 				ln = notes_instru.first
 				ln.octave.should == 2
 				@instru.octave.should == 2
-				puts "= Dernière ln avant ajout motif 2 : #{notes_instru.last.inspect}"
+				# puts "= Dernière ln avant ajout motif 2 : #{notes_instru.last.inspect}"
 				@instru.add_notes mot2
 				ln = notes_instru[3]
-				puts "= 4e ln: #{ln.inspect}"
+				# puts "= 4e ln: #{ln.inspect}"
 				ln.octave.should == 4
 				ln.delta.should == 1
 				ln.mark_delta.should == "'"

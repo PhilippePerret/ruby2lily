@@ -6,7 +6,7 @@
 	/Users/philippeperret/Sites/cgi-bin/lilypond/test/score/piano_complexe.rb
 %}
 
-\version "2.16.0"
+\version "2.7.38"
 
 % Informations score
 \header {

@@ -55,7 +55,6 @@ class Motif < NoteClass
   def initialize notes = nil, params = nil
     params ||= {}
     @notes    = nil
-    @octave   = params[:octave] || 4
     @duration = nil
     @slured   = false
     @legato   = false
@@ -64,8 +63,9 @@ class Motif < NoteClass
     if notes.class == Hash
       params  = notes
       notes   = params.delete(:notes)
-      @octave = params[:octave] || @octave
     end
+    @octave = params.delete(:octave)
+    
     set_with_string  notes  unless notes.nil?
     # puts "\n\n= Avant set properties : #{self.inspect}"
     set_properties params
@@ -247,21 +247,23 @@ class Motif < NoteClass
     # --------------------------------
     params ||= {}
     
+    # Si une octave est stipulé, on s'en sert pour modifier l'octave
+    # par défaut du motif
     add_octave = 
     case params.class.to_s
     when "String" then 0
     when "Fixnum" then octave_from params
     else
       if params.has_key? :octave
-         octave_from( params[:octave] )
+         octave_from params.delete(:octave)
        elsif params.has_key? :add_octave
-         params[:add_octave]
+         params.delete(:add_octave)
        else 0 end
     end
 
     # Complet
-    # "#{mark_relative(ajout=add_octave)} { #{mark_clef}#{to_llp(params)} }"
-    "#{mark_relative(ajout=add_octave)} { #{mark_clef}#{to_llp} }"
+    "#{mark_relative(ajout=add_octave)} { #{mark_clef}#{to_llp(params)} }"
+    # "#{mark_relative(ajout=add_octave)} { #{mark_clef}#{to_llp} }"
 
   end
   
@@ -385,14 +387,17 @@ class Motif < NoteClass
     return nil if @notes.nil?
     instance_variable_get("@last#{strict ? '_strict' : ''}") \
     || lambda {
-      # puts "SELF MOTIF AVANT DE RECHERCHER LAST_NOTE: #{self.inspect}"
       ln_found = nil
-      exploded.reverse.each do |ln|
-        if strict
-          next if ln.rest?
-          next if ln.in_accord? && !ln.start_accord?
+      unless strict
+        ln_found = exploded[-1]
+      else
+        exploded.reverse.each do |ln|
+          if strict
+            next if ln.rest?
+            next if ln.in_accord? && !ln.start_accord?
+          end
+          (ln_found = ln) and break
         end
-        ln_found = ln and break
       end
       set "last#{strict ? '_strict' : ''}" => ln_found
       return ln_found
@@ -558,7 +563,7 @@ class Motif < NoteClass
   #     du motif pour atteindre la valeur +oct+ (ajout en négatif ou
   #     en positif)
   def octave_from oct
-    oct - octave
+    oct - (@octave || 4)
   end
   
   # => Retourne le '\relative c..' du motif
@@ -752,7 +757,7 @@ class Motif < NoteClass
       :start      => for_crescendo ? '\<' : '\>',
       :end        => fin_dyna
       }
-    puts "\n\nFIN SET_CRESCENDO: @crescendo=#{@crescendo.inspect}"
+    # puts "\n\nFIN SET_CRESCENDO: @crescendo=#{@crescendo.inspect}"
     @crescendo
   end
   def set_decrescendo valeur

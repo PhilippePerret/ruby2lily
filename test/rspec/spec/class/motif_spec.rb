@@ -106,7 +106,7 @@ describe Motif do
 		  mo = Motif::new
 			mo.to_hash.should == {
 				:notes => nil,
-				:octave => 4, 
+				:octave => nil, 
 				:slured => false, 
 				:legato => false,
 				:triolet => nil,
@@ -220,8 +220,8 @@ describe Motif do
 			@m2 = Motif::new :notes => "c c c", :octave => 3
 			(@m1 + @m2).to_s(:octave => 1, :duree => 8).should ==
 				"\\relative c,, { a8 a a c,,, c c }"
-			puts "\n@m2 : #{@m2.inspect}"
-			puts "\n@m1: #{@m1.inspect}"
+			# puts "\n@m2 : #{@m2.inspect}"
+			# puts "\n@m1: #{@m1.inspect}"
 			(@m2 + @m1).to_s(:octave => 1, :duree => 8).should ==
 				"\\relative c,, { c8 c c a''' a a }"
 		end
@@ -415,10 +415,10 @@ describe Motif do
 			c-d-r						3				r			r						3
 			a-b-c						2				c			c						3
 			a-c-e						3				e			e						4
-			<b-d-fis>				1				b			fis					1
+			<b-d-fis>				1				fis		fis					2
 			d-<d-fis-a>8-r	2				r			r						2
-			d-<d-fis-a>8		2				d			a						2
-			d-<g-bb-d>4 	 	2				g			d						2
+			d-<d-fis-a>8		2				a			a						2
+			d-<g-bb-d>4 	 	2				d			d						3
 			d-<g-bb-d>4-r 	2				r			r						2
 			d-d,-d,					1				d			d						-1
 			d-d,-d,-r				1				r			r						-1
@@ -441,7 +441,7 @@ describe Motif do
 					real_last_note 	= mot.real_last_note( strict = false)
 					raise if 			last_note.class						!= LINote \
 										||	real_last_note.class			!= LINote \
-					 					||	last_note.octave 					!= octave_last \
+					 					||	last_note.real_octave			!= octave_last \
 										|| 	last_note.with_alter 			!= last \
 										||	real_last_note.with_alter	!= real_last
 				rescue
@@ -454,7 +454,7 @@ describe Motif do
 				end
 				last_note.with_alter.should 			== last
 				real_last_note.with_alter.should	== real_last
-				last_note.octave.should 					== octave_last
+				last_note.real_octave.should			== octave_last
 			end
 		end
 		
@@ -488,20 +488,24 @@ describe Motif do
 					real_last_note 	= mot.real_last_note(strict=true)
 					raise if 			last_note.class						!= LINote \
 										||	real_last_note.class			!= LINote \
-					 					||	last_note.octave 					!= octave_last \
+					 					||	last_note.real_octave			!= octave_last \
 										|| 	last_note.with_alter 			!= last \
 										||	real_last_note.with_alter	!= real_last
 				rescue
-					if $DEBUG 
-						$DEBUG = false
-					else
-						$DEBUG = true
-						retry
-					end
+					puts "\n\n### ERREUR CONTRÔLE DE LAST NOTE"
+					puts "= motif: #{mot.inspect}"
+					puts "  Construit à partir de :"
+					puts "	- suite: #{suite}"
+					puts "	- octave du motif: #{octave_motif}"
+					puts "= Dernière attendue: #{last}-octave:#{octave_last}"
+					puts "= Obtenu: #{real_last_note.inspect}"
+					puts "======================================="
 				end
+				last_note.class.should 						== LINote
+				real_last_note.class.should 			== LINote
+				last_note.real_octave.should			== octave_last
 				last_note.with_alter.should 			== last
-				real_last_note.with_alter.should	== real_last
-				last_note.octave.should 					== octave_last
+				real_last_note.with_alter.should 	== real_last
 			end
 		end
 		# :first_et_last_note
@@ -570,8 +574,8 @@ describe Motif do
 			res = mo.notes_with_liaison
 			res.class.should 				== Array
 			res.first.class.should 	== LINote
-			res.first.legato.should == 1
-			res.last.legato.should  == 2
+			res.first.legato.should == LINote::BIT_START_SLURE
+			res.last.legato.should  == LINote::BIT_END_SLURE
 			
 			mo = Motif::new :notes => suite, :legato => true
 			LINote::implode(mo.notes_with_liaison).should == "a\\( b c d e\\)"

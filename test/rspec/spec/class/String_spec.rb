@@ -460,9 +460,9 @@ describe String do
 			m = m * 2
 			# puts "\n\n= Motif APRÈS multiplication : #{m.inspect}"
 			m.class.should 	== Motif
-			m.to_llp.should == "c4 c c e g c c, c c4 c c e g c c, c"
+			m.to_llp.should == "c4 c c e g c c, c c4 c4 c e g c c, c"
 			m.to_s.should 	== "\\relative c' { c4 c c e g c c, c " \
-												<< "c4 c c e g c c, c }"
+												<< "c4 c4 c e g c c, c }"
 		end
 	end
 	# -------------------------------------------------------------------

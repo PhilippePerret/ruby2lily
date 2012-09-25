@@ -152,7 +152,7 @@ describe LINote do
 		describe ":explode et :implode" do
 			def compare_notes_et_data notes, data_comp
 				liste_linotes = LINote::explode notes
-				puts "\n\n=== liste_linotes: #{liste_linotes.inspect}"
+				# puts "\n\n=== liste_linotes: #{liste_linotes.inspect}"
 				nombre_linotes = liste_linotes.count
 				(0..nombre_linotes-1).each do |i_linote|
 					linote 	= liste_linotes[i_linote]
@@ -350,24 +350,32 @@ describe LINote do
 		it "doit répondre à :extract_post_values" do
 		  LINote.should respond_to :extract_post_values
 		end
+		it "doit répondre à :extract_dynamique_values" do
+		  LINote.should respond_to :extract_dynamique_values
+		end
 		[
-			["(",  				[LINote::BIT_START_SLURE, nil, ""]], 
-			[")",  				[LINote::BIT_END_SLURE, nil, ""]], 
-			["\\(",  			[LINote::BIT_START_LEGATO, nil, ""]],
-			["\\)",  			[LINote::BIT_END_LEGATO, nil, ""]],
-			["\\((",			[LINote::BIT_START_SLURE|LINote::BIT_START_LEGATO, nil, ""]],
-			[")\\)",			[LINote::BIT_END_SLURE|LINote::BIT_END_LEGATO, nil, ""]],
-			["(\\!", 			[LINote::BIT_START_SLURE, {:end 	=> true}, ""]],
-			[")\\<", 			[LINote::BIT_END_SLURE, {:start => true, :crescendo => true}, ""]],
-			["\\<)", 			[LINote::BIT_END_SLURE, {:start => true, :crescendo => true}, ""]],
-			["\\)\\>--", 	[LINote::BIT_END_LEGATO, {:start => true, :crescendo => false}, "--"]],
-			["\\>--\\)", 	[LINote::BIT_END_LEGATO, {:start => true, :crescendo => false}, "--"]]
+			["(",  				[LINote::BIT_START_SLURE, ""]], 
+			[")",  				[LINote::BIT_END_SLURE, ""]], 
+			["\\(",  			[LINote::BIT_START_LEGATO, ""]],
+			["\\)",  			[LINote::BIT_END_LEGATO, ""]],
+			["\\((",			[LINote::BIT_START_SLURE|LINote::BIT_START_LEGATO, ""]],
+			[")\\)",			[LINote::BIT_END_SLURE|LINote::BIT_END_LEGATO, ""]],
+			["(\\!", 			[LINote::BIT_START_SLURE, "\\!"], {:end 	=> true}],
+			[")\\<", 			[LINote::BIT_END_SLURE, "\\<"], {:start => true, :crescendo => true}],
+			["\\<)", 			[LINote::BIT_END_SLURE, "\\<"], {:start => true, :crescendo => true}],
+			["\\)\\>--", 	[LINote::BIT_END_LEGATO, "\\>--"], {:start => true, :crescendo => false}],
+			["\\>--\\)", 	[LINote::BIT_END_LEGATO, "\\>--"], {:start => true, :crescendo => false}]
 		].each do |d|
-			post, expected = d
+			post, expected, dyna = d
 			it ":extract_post_values('#{post}') doit renvoyer #{expected.inspect}" do
 				# Rappel : la valeur renvoyée est un array qui contient :
 				# 	[value pour @legato, value pour @dyna, new value pour @post]
 			  LINote::extract_post_values(post).should == expected
+			end
+			it ":extract_dynamique_values('#{expected}') doit retourner #{dyna.inspect}" do
+				unless dyna.nil?
+			  	LINote::extract_dynamique_values(expected[1]).should == dyna
+				end
 			end
 		end
 		
@@ -1104,8 +1112,8 @@ describe LINote do
 			hash_ln[:duration].should == "8"
 			hash_ln[:alter].should 		== "isis"
 			hash_ln[:delta].should 		== 2
-			hash_ln[:octave].should 	== 4
-			hash_ln[:real_octave].should == 6
+			hash_ln[:octave].should 	== nil
+			hash_ln[:real_octave].should == nil
 		end
 		
 		# :as_note
@@ -1161,8 +1169,8 @@ describe LINote do
 			["c",  nil,    0,     4,        nil,         4],
 			["c",  1,      0,     1,        nil,         1],
 			["c",  -2,     0,     -2,       nil,         -2],
-			["c",  nil,    1,     nil,      nil,          4],
-			["c",  nil,    -2,    nil,      nil,          4],
+			["c",  nil,    1,     nil,      nil,          nil],
+			["c",  nil,    -2,    nil,      nil,          nil],
 			["c",  nil,    -2,    4,      	nil,          6]
 			# @TODO: des tests doivent être ajoutés ici avec un instrument
 		].each do |d|

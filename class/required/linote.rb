@@ -247,22 +247,34 @@ class LINote < NoteClass
       tout, pre, note, alter, mark_delta, duree, jeu, finger, post, 
       duree_post, mark_dyna = 
         [$&, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10]
-        
+      
+      # # = débug =
+      # puts "\n=== LINote::llp_to_linote(note_llp:'#{note_llp}')"
+      # puts "= mark_dyna: '#{mark_dyna}'"
+      # puts "------------------------------------"
+      # # = / débug =
+      
       # Étude du jeu et du doigté
       # -------------------------
       # (pour retirer le tiret qui les précède)
       jeu     = jeu[1..-1]    unless jeu.to_s.blank?
       finger  = finger[1..-1] unless finger.to_s.blank?
 
+      # Étude de la dynamique
+      unless mark_dyna.to_s.blank?
+        dyna = extract_dynamique_values mark_dyna
+        # puts "\n dyna retourné: #{dyna.inspect}"
+      end
+      
       # Étude de la valeur :post
       # ------------------------
       # (qui peut contenir les marques de 
       #  dynamique et de liaison — legato et slure, transformées en
       #  propriétés @legato et @dyna)
       unless post.nil? || post.blank?
-        legato, dyna, post = extract_post_values post
+        legato, post = extract_post_values post
       else
-        legato, dyna = [nil, nil]
+        legato = nil
       end
       
       # Composition de la linote
@@ -280,11 +292,37 @@ class LINote < NoteClass
     fatal_error(:not_note_llp, :note => note_llp)
   end
   
+  # =>  Extrait de +mark+ les indications sur la dynamique
+  # 
+  # @param  mark   Une indication dynamique, comme '\>', '\!', etc.
+  # 
+  # @return le hash dynamique à enregistrer dans la LINote
+  # 
+  def self.extract_dynamique_values mark    
+    dyna = nil
+    rest = mark.sub(REG_START_CRESCENDO, '')
+    if rest != mark
+      dyna = {:start => true, :crescendo => true}; mark = rest
+    else
+      rest = mark.sub(REG_END_CRESCENDO, '')
+      unless rest == mark
+        dyna = {:end => true }; mark = rest
+      else
+        rest = mark.sub(REG_START_DECRESCENDO, '')
+        unless mark == rest
+          dyna = {:start => true, :crescendo => false}; mark = rest
+        end
+      end
+    end
+    dyna
+  end
   # =>  Extrait de la valeur 'post' de la note analysée les liaisons et
   #     la dynamique éventuelle et renvoie :
   #     [value @legato, value @dyna, value post restante]
   def self.extract_post_values post
     return [nil, nil, post] if post.nil? || post.blank?
+ 
+    # puts "\n--> LINote::extract_post_values(post:'#{post}')"
     
     # Une liaison ?
     legato = 0
@@ -310,25 +348,12 @@ class LINote < NoteClass
     end
     legato = nil if legato == 0
     
-    # Une marque de dynamique ?
-    dyna = nil
-    rest = post.sub(REG_START_CRESCENDO, '')
-    unless rest == post
-      dyna = {:start => true, :crescendo => true}; post = rest
-    else
-      rest = post.sub(REG_END_CRESCENDO, '')
-      unless rest == post
-        dyna = {:end => true }; post = rest
-      else
-        rest = post.sub(REG_START_DECRESCENDO, '')
-        unless post == rest
-          dyna = {:start => true, :crescendo => false}; post = rest
-        end
-      end
-    end
-    
+    # puts "= post: #{post}"
+    # puts "= rest: #{rest}"
+    # puts "---------------------------"
+
     # La liste renvoyée
-    [legato, dyna, rest]
+    [legato, rest]
   end
   
   # => Return les données notes du motif +str+ (motif LilyPond)
@@ -869,7 +894,12 @@ class LINote < NoteClass
     begin
       # puts "\nself.index: #{self.index}"
       # puts "self.real_octave: #{self.real_octave}"
-      valeur = self.index + (self.real_octave + 1) * 12
+      oct_ref = unless real_octave.nil? 
+                  real_octave
+                else
+                  4 + (@delta || 0)
+                end
+      valeur = self.index + (oct_ref + 1) * 12
     rescue Exception => e
       puts "\n\nIMPOSSIBLE D'OBTENIR LA VALEUR ABSOLU DE :"
       puts "= Erreur: #{e.message}"
@@ -1135,17 +1165,8 @@ class LINote < NoteClass
   # =>  Return la marque à appliquer à la note pour la reconstituer
   # 
   def mark_duration
-    return "" if @duration.nil? && !end_accord?
-    return @duration.to_s unless in_accord?
-    if start_accord?
-      LINote::duration_pour_implode @duration
-    elsif end_accord? && @duree_post.nil?
-      # C'est la fin de l'accord, mais ce n'est pas juste derrière la
-      # note qu'il faut indiquer la durée, mais après l'accord que
-      # finit la linote courante.
-      @duree_post = LINote::duration_pour_implode( renvoyer=true )
-    end
-    return ""
+    return "" if @duration.nil? || in_accord?
+    @duration.to_s
   end
   
   # => Return la marque de durée post pour la note à reconstituer
