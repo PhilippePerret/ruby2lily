@@ -232,4 +232,26 @@ class NoteClass
     end
   end
   
+  # =>  Méthode qui ajoute à +params+ l'octave et la durée, en les
+  #     prenant soit dans ce hash +params+, soit dans la class de note
+  #     (Chord, Motif, etc.) s'ils ne sont pas définis.
+  # 
+  # @return   Dans tous les cas, retourne un Hash qui contient au moins
+  #           l'octave et la duration.
+  # 
+  def def_octave_et_duree_in_params params = nil
+    params ||= {}
+    unless params.has_key? :octave
+      params = params.merge :octave => @octave
+    end
+    unless params.has_key? :duration
+      duree = if params.has_key? :duree
+                params.delete(:duree)
+              else
+                @duration
+              end
+      params = params.merge :duration => duree
+    end
+    params
+  end
 end

@@ -191,5 +191,19 @@ describe NoteClass do
 			mot.set_params :clef => "g"
 			iv_get(mot, :clef).should == "treble"
 		end
-	end
+
+		it "doit répondre à :def_octave_et_duree_in_params" do
+		  @nc.should respond_to :def_octave_et_duree_in_params
+		end
+		it ":def_octave_et_duree_in_params doit définir les clés octave et durée" do
+		  ch = Chord::new "a c e", :octave => 0, :duration => "8"
+			res = ch.def_octave_et_duree_in_params nil
+			res.should == {:octave => 0, :duration => "8"}
+			res = ch.def_octave_et_duree_in_params :octave => 2, :duration => "1"
+			res.should == {:octave => 2, :duration => "1"}
+			res = ch.def_octave_et_duree_in_params :octave => 6, :duree => "4."
+			res.should == {:octave => 6, :duration => "4."}
+		end
+
+	end # / fin describe Instance
 end

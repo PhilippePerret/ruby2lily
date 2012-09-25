@@ -124,21 +124,42 @@ describe Chord do
 			acc.to_hash.should == { :notes => notes.split(' '), 
 															:duration => "4.", :octave => 5}
 		end
+		
 		# :as_motif
-		it "doit répondre à :as_motif" do
-		  @chord.should respond_to :as_motif
-		end
-		it ":as_motif doit renvoyer la bonne valeur" do
-			chord = Chord::new(:notes => ['a', 'c', 'e'], :octave => -1)
-		  mo = chord.as_motif
-			mo.class.should == Motif
-			mo.to_s.should == "\\relative c,,,, { <a c e> }"
-			iv_set(chord, :duration => 8)
-			mo = chord.as_motif
-			(mo.notes == "<a c e>8" ).should be_false
-			mo.notes.should == "<a c e>"
-			# puts "mo: #{mo.inspect}"
-			mo.to_s.should == "\\relative c,,,, { <a c e>8 }"
+		describe "Transformation en motif" do
+			before(:each) do
+			  @chord = Chord::new "a c e"
+			end
+			it "doit répondre à :as_motif" do
+			  @chord.should respond_to :as_motif
+			end
+			it ":as_motif doit renvoyer la bonne valeur" do
+				chord = Chord::new(:notes => ['a', 'c', 'e'], :octave => -1)
+			  mo = chord.as_motif
+				mo.class.should == Motif
+				mo.to_s.should == "\\relative c,,,, { <a c e> }"
+				iv_set(chord, :duration => 8)
+				mo = chord.as_motif
+				(mo.notes == "<a c e>8" ).should be_false
+				mo.notes.should == "<a c e>"
+				# puts "mo: #{mo.inspect}"
+				mo.to_s.should == "\\relative c,,,, { <a c e>8 }"
+			end
+			it ":as_motif doit accepter les paramètres" do
+			  expect{@chord.as_motif(:octave => 1)}.not_to raise_error
+			end
+			it ":as_motif avec paramètres doit renvoyer un bon motif" do
+			  chord = Chord::new "a c e"
+				mo = chord.as_motif
+				mo.octave.should == 4
+				mo = chord.as_motif(:octave => 0)
+				mo.octave.should == 0
+				mo = chord.as_motif(:octave => 1, :clef => "f", :crescendo => true)
+				mo.octave.should == 1
+				mo.clef.should == "bass"
+				mo.dynamique.should_not be_nil
+				mo.dynamique.should == {:start=>"\\<", :start_dyna=>nil, :end=>"\\!"}
+			end
 		end
 		
 		# :with_duree

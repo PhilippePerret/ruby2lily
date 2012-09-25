@@ -134,10 +134,9 @@ class Note < NoteClass
   end
   
   # => Return la note sous la forme d'un motif
-  def as_motif
-    Motif::new  :notes => "#{@it}#{@alter}", 
-                :octave => @octave, 
-                :duration => @duration
+  def as_motif params = nil
+    params = def_octave_et_duree_in_params params
+    Motif::new "#{@it}#{@alter}", params
   end
   
   # -------------------------------------------------------------------

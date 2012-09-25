@@ -211,7 +211,7 @@ describe String do
 		it ":as_motif doit retourner un bon motif (avec octaves)" do
 		  mo = "a'".as_motif
 			mo.class.should == Motif
-			mo.simple_notes.should == "a" # @fixme: L'APOSTROPHE DEVRAIT ÊTRE ENVELÉ
+			mo.simple_notes.should == "a"
 			mo.octave.should == 5
 			
 			mo = "c,,,".as_motif
@@ -247,6 +247,19 @@ describe String do
 			mo.notes.should == "r r c, r"
 			mo.octave.should == 4
 			mo.duration.should == "8"
+		end
+		it ":as_motif doit accepter et traiter les paramètres" do
+		  str = "a b c"
+			mo  = str.as_motif(:octave => 0)
+			mo.class.should == Motif
+			mo.notes.should == "a b c"
+			mo.octave.should == 0
+			mo = str.as_motif(:octave => 1)
+			mo.octave.should == 1
+			mo = str.as_motif(:slured => true, :octave => 2, :clef => "f")
+			mo.slured.should be_true
+			mo.octave.should == 2
+			mo.clef.should == "bass"
 		end
 	end
 

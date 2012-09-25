@@ -56,10 +56,8 @@ class String
   # @note   +self+ peut être une suite, pas seulement une note seule
   # @note   Les italiennes et altérations "normales" seront transformées
   # 
-  def as_motif
-    motif = Motif::new self
-    # puts "\nSTRING '#{self}' TRANSFORMÉ EN MOTIF : #{motif.inspect}"
-    motif
+  def as_motif params = nil
+    Motif::new self, params
   end
   
   

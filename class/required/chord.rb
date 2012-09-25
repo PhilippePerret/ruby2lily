@@ -34,7 +34,11 @@ class Chord < NoteClass
     @duration = nil
     @notes    = []
     case notes.class.to_s
+    when "Array"
+      @notes = LINote::to_llp( notes )
     when "String", "Array"
+      notes = notes[1..-1] if notes.start_with? '<'
+      notes = notes[0..-2] if notes.end_with? '>'
       @notes = LINote::to_llp( notes )
       # Dans le cas d'un String ou d'un Array, +params+ peut contenir
       # d'autres données
@@ -97,17 +101,8 @@ class Chord < NoteClass
   alias :with_duree :to_s
   
   def as_motif params = nil
-    params ||= {}
-    params[:octave] = params    if params.class == Fixnum
-    params[:duration] = params  if params.class == String
-    duree = params[:duration] || @duration
-    data = {
-      :notes      => self.to_acc(""), # pour empêcher la durée 
-      :octave     => params[:octave] || @octave,
-      :duration   => duree
-    }
-    # puts "\n\nData envoyées à Motif::new par chord: #{data.inspect}"
-    Motif::new data
+    params = def_octave_et_duree_in_params params
+    Motif::new self.to_acc(""), params
   end
   
   # => Return un string sous forme d'accord (p.e. "<c e g>8")
