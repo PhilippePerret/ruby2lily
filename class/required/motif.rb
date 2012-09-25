@@ -16,7 +16,7 @@ class Motif < NoteClass
   # -------------------------------------------------------------------
   #   Instance
   # -------------------------------------------------------------------
-  attr_reader :notes, :octave, :duration
+  attr_reader :notes, :octave, :duration, :clef, :dynamique
   
   @notes    = nil   # Le motif (String)
   @octave   = nil   # L'octave du motif (par défaut, c'est 2)
@@ -36,6 +36,7 @@ class Motif < NoteClass
                       # simple sur le motif : <first>( <autres notes>)
   @legato   = false   # Mis à true quand on doit poser une sur-liaison
                       # sur le motif : <first>\( <autres notes>\)
+  @dynamique = nil    # Définit éventuellement la dynamique du motif
   @triolet  = nil     # Mis à la valeur si triolet (p.e. "2/3")
   
   # --- Propriétés d'affichage ---
@@ -45,6 +46,7 @@ class Motif < NoteClass
   # 
   # @param  notes   SOIT Les notes String du motif
   #                 SOIT Un hash contenant toutes les propriétés
+  #                 SOIT Un Motif
   #                 SOIT nil pour un motif vierge
   # @param  params  Paramètres définissant le nouveau motif.
   #         Peut être :
@@ -54,15 +56,18 @@ class Motif < NoteClass
   #           précisément la hauteur du motif.
   def initialize notes = nil, params = nil
     params ||= {}
-    @notes    = nil
-    @duration = nil
-    @slured   = false
-    @legato   = false
-    @triolet  = nil
-    @clef     = nil
-    if notes.class == Hash
-      params  = notes
-      notes   = params.delete(:notes)
+    @notes      = nil
+    @duration   = nil
+    @slured     = false
+    @legato     = false
+    @triolet    = nil
+    @clef       = nil
+    @dynamique  = nil
+    if notes.class == Hash || notes.class == Motif
+      pms     = notes.class == Hash ? notes : notes.to_hash
+      notes   = pms.delete(:notes)
+      pms     = pms.merge params
+      params  = pms
     end
     @octave = params.delete(:octave)
     
@@ -212,7 +217,7 @@ class Motif < NoteClass
  
     llp = notes_with_duree( duree )
     llp = notes_with_liaison(llp) if @slured || @legato
-    llp = notes_with_dynamique(llp) unless @crescendo.nil?
+    llp = notes_with_dynamique(llp) unless @dynamique.nil?
     # puts "LLP avant implode : #{llp.inspect}"
     llp = LINote::implode( llp ) if llp.class == Array
     llp = notes_with_triolet llp
@@ -524,7 +529,7 @@ class Motif < NoteClass
   
   # => Retourne le motif agrémenté de sa dynamique (if any)
   # 
-  # @rappel:  Une dynamique est définie si @crescendo n'est pas 
+  # @rappel:  Une dynamique est définie si @dynamique n'est pas 
   #           nil. Si non nil, elle contient :
   #             :start_dyna   Éventuellement la dynamique de départ
   #             :start        Le signe \< ou \> indiquant le sens
@@ -536,10 +541,10 @@ class Motif < NoteClass
   # 
   def notes_with_dynamique notes = nil
     notes ||= @notes
-    return notes if @crescendo.nil?
-    start_dyna  = @crescendo[:start_dyna]
-    markin      = @crescendo[:start]
-    markout     = @crescendo[:end]
+    return notes if @dynamique.nil?
+    start_dyna  = @dynamique[:start_dyna]
+    markin      = @dynamique[:start]
+    markout     = @dynamique[:end]
     markout     = " #{markout}" unless markout == '\!'
     ary_lns = LINote::post_first_and_last_note notes, markin, markout
       # @rappel: le signe est ajouté APRÈS le @post déjà défini (if any)
@@ -738,7 +743,7 @@ class Motif < NoteClass
   #               :for_crescendo  true si cresc., false si decresc.
   # 
   # @produit et retourne :
-  #   la propriété @crescendo du motif
+  #   la propriété @dynamique du motif
   # 
   def set_crescendo pms
     start_dyna  = nil
@@ -752,13 +757,13 @@ class Motif < NoteClass
       fin_dyna      = mark_dyna(pms[:end])   if pms.has_key?(:end)
       for_crescendo = pms[:for_crescendo]
     end
-    @crescendo = {
+    @dynamique = {
       :start_dyna => start_dyna,
       :start      => for_crescendo ? '\<' : '\>',
       :end        => fin_dyna
       }
-    # puts "\n\nFIN SET_CRESCENDO: @crescendo=#{@crescendo.inspect}"
-    @crescendo
+    # puts "\n\nFIN SET_CRESCENDO: @dynamique=#{@dynamique.inspect}"
+    @dynamique
   end
   def set_decrescendo valeur
     valeur = false if valeur === true # si si

@@ -170,7 +170,10 @@ class Instrument
   # 
   # @param  aryormot  Array des instances LINotes à insérer dans les
   #                   notes de l'instrument.
-  #                 OU un objet Motif
+  #                   OU un objet Motif
+  # 
+  # @param  params    Normalement, obsolète maintenant, car traité
+  #                   directement dans les sous-méthodes add_as_<...>
   # 
   # @note:  C'est la méthode finale de la suite :
   #           add <something> (ci dessus)
@@ -179,62 +182,84 @@ class Instrument
   # 
   # @note:  C'est dans cette méthode qu'on va gérer les delta pour faire
   #         le bon raccord octave avec les notes précédentes.
+  #         OBSOLÈTE maintenant qu'on garde une liste de Motifs
+  # 
+  # @FIXME: La méthode utilisée actuellement n'est pas efficiente. Elle
+  #         ne permet pas, par exemple, de modifier la clé utilisée.
+  #         @TODO: pour corriger ça, il faut en fait mémoriser des
+  #         motif dans les @notes de l'instrument.
+  #         Mais attention, beaucoup de choses seront modifiées, et
+  #         notamment :
+  #           - une marque relative devra être posée au début de chaque
+  #             motif, donc plus de vérification d'octave d'un motif à
+  #             l'autre
+  #           - la construction du texte se fera en passant en revue 
+  #             chaque motif et en demande <motif>.to_s
+  #           - le résultat de la recherche par mesure sera plus complexe
+  #         @note: le bug #15 pourra être supprimé, normalement
   # 
   def add_notes aryormot, params = nil
     
     return if aryormot.nil? || (aryormot.class == Array && aryormot.empty?)
     
-    # @FIXME: ici, @notes peut être un string vide, alors qu'il est
-    # initialisé à [] à l'instanciation. NOTE: ÇA DOIT ÊTRE SEULEMENT
-    # PENDANT LES TESTS
-    # @notes = [] if @notes.class != Array
+    if aryormot.class == Array
+      aryormot = Motif.new LINote::implode aryormot
+    end
     
-    # Les nouvelles linotes
-    linotes = case aryormot.class.to_s
-              when "Array" then aryormot
-              when "Motif" then aryormot.explode
-              else fatal_error(:bad_params_in_add_notes_instrument,
-                                :instrument => self.name,
-                                :params     => aryormot)
-              end
+    @notes ||= []
+    @notes << aryormot
+      # Rien à faire d'autres maintenant
+    
+    # # Les nouvelles linotes
+    # # OBSOLÈTE: ON AJOUTE SIMPLEMENT LE MOTIF
+    # linotes = case aryormot.class.to_s
+    #           when "Array" then aryormot
+    #           when "Motif" then aryormot.explode
+    #           else fatal_error(:bad_params_in_add_notes_instrument,
+    #                             :instrument => self.name,
+    #                             :params     => aryormot)
+    #           end
 
     # puts "linote: #{linotes.inspect}:#{linotes.class}"
     
-    # Traitement des paramètres
-    # -------------------------
-    # @rappel:  les paramètres peuvent tout modifier dans une donnée,
-    #           comme l'octave, la durée, etc.
-    # @note:    on les ajoute seulement à la première note (peut-être
-    #           que ça sera différent plus tard) 
-    params.each do |p, v| 
-      p = p.to_sym
-      v = NoteClass::duree_valide?( v, fatal = true) if p == :duree
-      linotes.first.set p => v
-      # Cas spécial de la durée avec un accord
-      if p == :duree && linotes.first.start_accord?
-        linotes.each do |ln|
-          next unless ln.end_accord?
-          ln.set :duree_post => v
-        end
-      end
-    end unless params.nil?
+    # # Traitement des paramètres
+    # # -------------------------
+    # # OBSOLÈTE : ON AJOUTE SIMPLEMENT LE MOTIF
+    # # @rappel:  les paramètres peuvent tout modifier dans une donnée,
+    # #           comme l'octave, la durée, etc.
+    # # @note:    on les ajoute seulement à la première note (peut-être
+    # #           que ça sera différent plus tard) 
+    # params.each do |p, v| 
+    #   p = p.to_sym
+    #   v = NoteClass::duree_valide?( v, fatal = true) if p == :duree
+    #   linotes.first.set p => v
+    #   # Cas spécial de la durée avec un accord
+    #   if p == :duree && linotes.first.start_accord?
+    #     linotes.each do |ln|
+    #       next unless ln.end_accord?
+    #       ln.set :duree_post => v
+    #     end
+    #   end
+    # end unless params.nil?
     
-    # Gestion du raccord avec note précédente
-    # ----------------------------------------
-    # @principe:    Le principe est simple : si la dernière note n'a
-    #               pas la même octave que la première note des nouvelles
-    #               notes, il faut modifier le delta de la première des
-    #               nouvelles notes.
-    # @FIXME: une erreur ici, sur deux accords : c'est la première note
-    # de l'accord qu'il faut prendre en référence.
-    linotes.first.as_next_of(last_note_hors_accord(true)) unless @notes.empty?
+    # # Gestion du raccord avec note précédente
+    # # ----------------------------------------
+    # # OBSOLÈTE: MAINTENANT ON AJOUTE SIMPLEMENT UN MOTIF
+    # # @principe:    Le principe est simple : si la dernière note n'a
+    # #               pas la même octave que la première note des nouvelles
+    # #               notes, il faut modifier le delta de la première des
+    # #               nouvelles notes.
+    # # @FIXME: une erreur ici, sur deux accords : c'est la première note
+    # # de l'accord qu'il faut prendre en référence.
+    # linotes.first.as_next_of(last_note_hors_accord(true)) unless @notes.empty?
     
-    # Ajout à la liste des notes
-    # ---------------------------
-    # puts "\n\n@notes: #{@notes.inspect}"
-    # puts "linotes: #{linotes.inspect}"
-    @notes =  @notes.nil? ? linotes : (@notes + linotes)
-    # puts "Nouvelle liste @notes: #{@notes.inspect}"
+    # # Ajout à la liste des notes
+    # # ---------------------------
+    # # OBSOLÈTE: MAINTENANT ON AJOUTE SIMPLEMENT UN MOTIF
+    # # puts "\n\n@notes: #{@notes.inspect}"
+    # # puts "linotes: #{linotes.inspect}"
+    # @notes =  @notes.nil? ? linotes : (@notes + linotes)
+    # # puts "Nouvelle liste @notes: #{@notes.inspect}"
     
     @notes
   end
@@ -268,7 +293,7 @@ class Instrument
   #           lilypond
   # 
   def add_as_string str, params = nil
-    add_notes str.as_motif, params
+    add_notes str.as_motif( params )
   end
   
   # => Ajoute la chose comme accord
@@ -277,16 +302,19 @@ class Instrument
   # 
   # @todo: des vérifications de la validaté des paramètres
   def add_as_chord chord, params = nil
-    add_notes chord.as_motif, params
+    add_notes chord.as_motif( params )
   end
   
   # => Ajoute la chose comme motif
   # @param  motif     Instance Motif du motif
   # @param  duree     Durée (lilypond) optionnelle
   # 
-  # @todo: des vérifications de la validaté des paramètres
   def add_as_motif motif, params = nil
-    add_notes motif, params
+    unless params.nil?
+      add_notes motif.set_params( params )
+    else
+      add_notes motif
+    end
   end
   
   # =>  Définit la suite de notes de l'instrument au format lilypond
@@ -298,18 +326,23 @@ class Instrument
   # 
   # @note     Ne commence pas par « \relative ... » (cf. ci-dessous)
   # 
-  # @note     Je n'ai plus besoin de traiter l'octave ici puisqu'il est
-  #           maintenant traité au bon endroit, c'est-à-dire dans la
-  #           première marque relative.
-  # 
   # @note     Ne pas mettre le résultat dans une propriété, car ça
   #           poserait problème pour les tests. Et normalement, cette
   #           méthode n'est appelée qu'une seule fois, pour créer la
   #           partition LilyPond
   # 
   def notes_to_llp
+    
     return "" if @notes.empty? || @notes.nil?
-    LINote::implode @notes
+    
+    # OBSOLÈTE: MAINTENANT, @notes EST UNE LISTE DE MOTIFS
+    # LINote::implode @notes
+    
+    # Nouvelle formule, avec des motifs dans l'instrument
+    # @TODO: peut-être, pour la clarté, faudra-t-il mettre des retours
+    # chariot plutôt que des espaces ?
+    llp = @notes.collect { |motif| motif.to_s }.join(' ')
+    
   end
   
   # -------------------------------------------------------------------
@@ -365,7 +398,7 @@ class Instrument
   
   # => Return le contenu des notes de l'instrument
   # 
-  # @notes: si un filtre des mesures est appliquées, on l'utilise
+  # @notes: si un filtre des mesures est appliqué, on l'utilise
   def staff_content
     mesures SCORE::from_mesure, SCORE::to_mesure
   end
@@ -386,32 +419,5 @@ class Instrument
   def octave
     (@notes.empty? ? @octave_defaut : @notes.first.octave) || 4
   end
-
-  # # => Retourne un accord (instance Accord) de l'instrument
-  # def accord params = nil
-  #   Chord::new params
-  # end
-  # alias :chord :accord
-  # 
-  # # => Retourne les accords de l'instrument spécifiés par +params+
-  # def accords params
-  #   @chords ||= {}
-  # end
-  # alias :chords :accords
-  # 
-  # # => Retourne un motif (instance Motif) de l'instrument
-  # def motif params = nil
-  #   Motif::new params
-  # end
-  # # => Retourne les motifs de l'instrument spécifiés par +params+
-  # def motifs params
-  #   @motifs ||= {}
-  # end
-  # 
-  # # => Retourne une mesure (instance Mesure) de l'instrument
-  # def mesure params = nil
-  #   Measure::new params
-  # end
-  # alias :measure :mesure
-  # 
+  
 end
