@@ -7,8 +7,13 @@
 cd ~/Sites/cgi-bin/lilypond/test/rspec;pwd
 
 # LA TOTALE
-rspec spec
+# rspec spec
 
+# rspec spec/class/note_spec.rb
+# rspec spec/class/chord_spec.rb
+# rspec spec/class/noteclass_spec.rb
+
+# rspec spec/class/String_spec.rb
 # rspec spec/operation/crochets_spec.rb
 # rspec spec/class/motif_spec.rb
 # rspec spec/class/linote_spec.rb

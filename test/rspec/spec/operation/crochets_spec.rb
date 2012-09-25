@@ -48,6 +48,9 @@ describe "Méthode :[]" do
 			mo.set_clef nil
 			new_mo = mo[:octave => 3, :clef => 'g']
 			iv_get(new_mo, :clef).should == "treble"
+			new_mo = mo[:octave => 3, :clef => 'f']
+			iv_get(new_mo, :clef).should == "bass"
+			new_mo.to_s.should == "\\relative c { \\clef \"bass\" c e f }"
 		end
   end
 	# -------------------------------------------------------------------
