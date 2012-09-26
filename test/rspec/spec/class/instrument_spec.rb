@@ -125,7 +125,7 @@ describe Instrument do
 			end
 			it ":<< doit ajouter les notes" do
 			  @instru << "a b e"
-				@instru.notes_to_llp.should == "a b e"
+				@instru.notes_to_llp.should == "\\relative c' { a b e }"
 			end
 			
 			# :add_as_string
@@ -136,9 +136,10 @@ describe Instrument do
 				notes = "a b c"
 				iv_set(@instru, :notes => [])
 			  @instru.add notes
-				@instru.notes_to_llp.should == notes
+				@instru.notes_to_llp.should == "\\relative c' { a b c }"
 				@instru.add "fb b##"
-				@instru.notes_to_llp.should == "#{notes} fes, bisis"
+				@instru.notes_to_llp.should == 
+					"\\relative c' { a b c } \\relative c' { fes bisis }"
 			end
 			
 			# :add_as_chord
@@ -148,9 +149,10 @@ describe Instrument do
 			it ":add_as_chord doit ajouter l'accord" do
 				accord = Chord::new ["c", "eb", "g"]
 			  @instru.add accord
-				@instru.notes_to_llp.should == "<c ees g>"
+				@instru.notes_to_llp.should == "\\relative c' { <c ees g> }"
 				@instru.add accord, :duree => 4
-				@instru.notes_to_llp.should == "<c ees g> <c ees g>4"
+				@instru.notes_to_llp.should == 
+					"\\relative c' { <c ees g> } \\relative c' { <c ees g>4 }"
 			end
 			
 			# :add_as_motif
@@ -160,26 +162,9 @@ describe Instrument do
 			it ":add_as_motif doit ajouter le motif" do
 				motif = Motif::new "a( b c b a)"
 			  @instru.add motif
-				@instru.notes_to_llp.should == "a( b c b a)"
+				@instru.notes_to_llp.should == "\\relative c' { a( b c b a) }"
 			end
 			
-			# :last_note_hors_accord
-			it "doit répondre à :last_note_hors_accord" do
-			  @instru.should respond_to :last_note_hors_accord
-			end
-			it ":last_note_hors_accord doit retourner la bonne valeur" do
-			  @instru << "a b c"
-				@instru.last_note_hors_accord.to_llp.should == "c"
-				@instru << "r r d r r"
-				@instru.last_note_hors_accord.to_llp.should == "r"
-				@instru.last_note_hors_accord(true).to_llp.should == "d"
-			  iv_set(@instru, :notes => [])
-				@instru << "<a b c>"
-				@instru.last_note_hors_accord.to_llp.should == "<a"
-				@instru << "r e r"
-				@instru.last_note_hors_accord.to_llp.should == "r"
-				@instru.last_note_hors_accord(true).to_llp.should == "e"
-			end
 		end
 
 		# -------------------------------------------------------------------
@@ -210,31 +195,13 @@ describe Instrument do
 				# puts "= motif 1: #{mot1.inspect}"
 				# puts "= motif 2: #{mot2.inspect}"
 				@instru.add_notes mot1
-				@instru.notes_to_llp.should == "a b c"
-				iv_get(@instru, :notes).count.should == 3
+				@instru.notes_to_llp.should == "\\relative c' { a b c }"
+				iv_get(@instru, :notes).count.should == 1
 				@instru.add_notes mot2
-				iv_get(@instru, :notes).count.should == 6
-				@instru.notes_to_llp.should == "a b c d, e f"
+				iv_get(@instru, :notes).count.should == 2
+				@instru.notes_to_llp.should == 
+					"\\relative c' { a b c } \\relative c' { d e f }"
 			end
-			it ":doit régler correctement l'octave lors d'une jonction" do
-			  mot1 = Motif::new "a b c", :octave => 2
-				# puts "= motif 1: #{mot1.inspect}"
-				mot2 = Motif::new "d e f" # ie à l'octave 4
-				init_notes
-				@instru.add_notes mot1
-				ln = notes_instru.first
-				ln.octave.should == 2
-				@instru.octave.should == 2
-				# puts "= Dernière ln avant ajout motif 2 : #{notes_instru.last.inspect}"
-				@instru.add_notes mot2
-				ln = notes_instru[3]
-				# puts "= 4e ln: #{ln.inspect}"
-				ln.octave.should == 4
-				ln.delta.should == 1
-				ln.mark_delta.should == "'"
-				@instru.notes_to_llp.should == "a b c d' e f"
-			end
-			# Tests les plus complets possible de add_notes
 			
 		end
 		# -------------------------------------------------------------------
@@ -266,7 +233,7 @@ describe Instrument do
 					"\\new Staff {\n\t\\relative c' {" \
 					<< "\n\t\t\\clef \"treble\"" \
 					<< "\n\t\t\\time 4/4\n\t\t" \
-					<< suite \
+					<< "\\relative c' { #{suite} }" \
 					<<"\n\t}\n}"
 				# @note: des tests plus poussés sont effectués par le biais
 				# des partitions.
