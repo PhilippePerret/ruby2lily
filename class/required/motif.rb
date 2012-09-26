@@ -735,7 +735,7 @@ class Motif < NoteClass
   # Utilisé par `set_params' quand le motif est défini avec
   # :crescendo => {...}
   # 
-  # @todo: pouvoir utiliser :crescendo => {:start}
+  # @todo: pouvoir utiliser :crescendo => {:start => true}
   # 
   # @param  pms   Paramètres du crescendo/decrescendo. Peut contenir:
   #               :start    La dynamique de départ  (p.e. "ppp")

@@ -28,7 +28,7 @@
 		\relative c' {
 			\clef "bass"
 			\time 4/4
-			a b c d
+			\relative c' { a b c d }
 		}
 	}
 >>
