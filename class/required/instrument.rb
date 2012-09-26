@@ -58,7 +58,7 @@ class Instrument
   @staff      = nil   # Instance Staff pour la construction de la portée
                       # de l'instrument
   
-  @notes      = nil   # La liste Array des notes de l'instrument au 
+  @motifs      = nil   # La liste Array des notes de l'instrument au 
                       # cours du morceau. Ce sont des instances de LINote
                       # contenant toutes les informations et notamment :
                       # l'octave, la durée
@@ -68,7 +68,7 @@ class Instrument
                       
   def initialize data = nil
     @data       = data
-    @notes      = []
+    @motifs      = []
     @displayed  = true
     data.each do |prop, value|
       instance_variable_set("@#{prop}", value)
@@ -86,8 +86,8 @@ class Instrument
     # @todo: produire ici une erreur si last est avant first
     
     # Retourner toutes les notes s'il n'y a pas de filtre de mesure
-    # puts "@notes: #{@notes.inspect}"
-    # @notes contient quelque chose comme : \relative c { a b c }
+    # puts "@motifs: #{@motifs.inspect}"
+    # @motifs contient quelque chose comme : \relative c { a b c }
     return notes_to_llp if first.nil? && last.nil?
     
     duree_mesure = SCORE::duree_absolue_mesure
@@ -96,7 +96,7 @@ class Instrument
     index_mesure            = 1
     linotes_expected        = []
     duree_absolue_last_note = nil
-    @notes.each do |linote|
+    @motifs.each do |linote|
       # Tant qu'on n'a pas atteint la dernière mesure voulue,
       # on prend la linote si on a déjà passé la première mesure voulue
       if index_mesure >= first
@@ -135,7 +135,7 @@ class Instrument
   #     Array d'objets LINote
   def explode
     ary_linotes = []
-    @notes.each { |motif| ary_linotes += motif.exploded }
+    @motifs.each { |motif| ary_linotes += motif.exploded }
     ary_linotes
   end
   
@@ -203,9 +203,9 @@ class Instrument
 									:params			=> aryormot)
     end
     
-    @notes ||= []
-    @notes << aryormot    
-    @notes
+    @motifs ||= []
+    @motifs << aryormot    
+    @motifs
   end
   
   
@@ -244,7 +244,7 @@ class Instrument
   
   # =>  Définit la suite de notes de l'instrument au format lilypond
   # 
-  # @principe: la méthode passe en revue toutes les LINotes de @notes
+  # @principe: la méthode passe en revue toutes les LINotes de @motifs
   # et les ajoute.
   # 
   # @return   Le string fabriqué, prêt à être mis dans le score lilypond
@@ -258,15 +258,15 @@ class Instrument
   # 
   def notes_to_llp
     
-    return "" if @notes.empty? || @notes.nil?
+    return "" if @motifs.empty? || @motifs.nil?
     
-    # OBSOLÈTE: MAINTENANT, @notes EST UNE LISTE DE MOTIFS
-    # LINote::implode @notes
+    # OBSOLÈTE: MAINTENANT, @motifs EST UNE LISTE DE MOTIFS
+    # LINote::implode @motifs
     
     # Nouvelle formule, avec des motifs dans l'instrument
     # @TODO: peut-être, pour la clarté, faudra-t-il mettre des retours
     # chariot plutôt que des espaces ?
-    llp = @notes.collect { |motif| motif.to_s }.join(' ')
+    llp = @motifs.collect { |motif| motif.to_s }.join(' ')
     
   end
   
@@ -323,7 +323,7 @@ class Instrument
   
   # => Return le contenu des notes de l'instrument
   # 
-  # @notes: si un filtre des mesures est appliqué, on l'utilise
+  # @motifs: si un filtre des mesures est appliqué, on l'utilise
   def staff_content
     mesures SCORE::from_mesure, SCORE::to_mesure
   end
@@ -342,7 +342,7 @@ class Instrument
   # @note:  Par défaut, l'octave est 4
   # 
   def octave
-    (@notes.empty? ? @octave_defaut : @notes.first.octave) || 4
+    (@motifs.empty? ? @octave_defaut : @motifs.first.octave) || 4
   end
   
 end

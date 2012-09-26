@@ -111,7 +111,7 @@ describe Instrument do
 		# -------------------------------------------------------------------
 		describe "Définition de la partition" do
 			before(:each) do
-			  iv_set(@instru, :notes => [])
+			  iv_set(@instru, :motifs => [])
 			end
 			# :add
 		  it "doit répondre à la méthode :add" do
@@ -134,7 +134,7 @@ describe Instrument do
 			end
 			it ":add_as_string doit ajouter les notes" do
 				notes = "a b c"
-				iv_set(@instru, :notes => [])
+				iv_set(@instru, :motifs => [])
 			  @instru.add notes
 				@instru.notes_to_llp.should == "\\relative c' { a b c }"
 				@instru.add "fb b##"
@@ -174,10 +174,10 @@ describe Instrument do
 		# -------------------------------------------------------------------
 		describe "Méthode principale :add_notes" do
 			def init_notes
-				iv_set(@instru, :notes => [])
+				iv_set(@instru, :motifs => [])
 			end
 			def notes_instru
-				iv_get(@instru, :notes)
+				iv_get(@instru, :motifs)
 			end
 			it "doit exister" do
 			  @instru.should respond_to :add_notes
@@ -196,9 +196,9 @@ describe Instrument do
 				# puts "= motif 2: #{mot2.inspect}"
 				@instru.add_notes mot1
 				@instru.notes_to_llp.should == "\\relative c' { a b c }"
-				iv_get(@instru, :notes).count.should == 1
+				iv_get(@instru, :motifs).count.should == 1
 				@instru.add_notes mot2
-				iv_get(@instru, :notes).count.should == 2
+				iv_get(@instru, :motifs).count.should == 2
 				@instru.notes_to_llp.should == 
 					"\\relative c' { a b c } \\relative c' { d e f }"
 			end
@@ -211,8 +211,8 @@ describe Instrument do
 			before(:all) do
 			  SCORE = Score::new unless defined? SCORE
 			end
-			# :notes_to_llp
-			it "doit répondre à :notes_to_llp" do
+			# :motifs_to_llp
+			it "doit répondre à :motifs_to_llp" do
 			  @instru.should respond_to :notes_to_llp
 			end
 			# :to_lilypond
@@ -259,7 +259,7 @@ describe Instrument do
 			  @instru.should respond_to :staff_content
 			end
 			it ":staff_content doit retourner le bon code" do
-				iv_set(@instru, :notes => [])
+				iv_set(@instru, :motifs => [])
 				@instru.add_as_string "a( b c)"
 			  @instru.staff_content.should_not == ""
 				@instru.staff_content.should =~ /a\( b c\)/
