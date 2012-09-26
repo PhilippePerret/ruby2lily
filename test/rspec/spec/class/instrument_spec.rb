@@ -125,7 +125,7 @@ describe Instrument do
 			end
 			it ":<< doit ajouter les notes" do
 			  @instru << "a b e"
-				@instru.notes_to_llp.should == "\\relative c' { a b e }"
+				@instru.to_llp.should == "\\relative c' { a b e }"
 			end
 			
 			# :add_as_string
@@ -136,9 +136,9 @@ describe Instrument do
 				notes = "a b c"
 				iv_set(@instru, :motifs => [])
 			  @instru.add notes
-				@instru.notes_to_llp.should == "\\relative c' { a b c }"
+				@instru.to_llp.should == "\\relative c' { a b c }"
 				@instru.add "fb b##"
-				@instru.notes_to_llp.should == 
+				@instru.to_llp.should == 
 					"\\relative c' { a b c } \\relative c' { fes bisis }"
 			end
 			
@@ -149,9 +149,9 @@ describe Instrument do
 			it ":add_as_chord doit ajouter l'accord" do
 				accord = Chord::new ["c", "eb", "g"]
 			  @instru.add accord
-				@instru.notes_to_llp.should == "\\relative c' { <c ees g> }"
+				@instru.to_llp.should == "\\relative c' { <c ees g> }"
 				@instru.add accord, :duree => 4
-				@instru.notes_to_llp.should == 
+				@instru.to_llp.should == 
 					"\\relative c' { <c ees g> } \\relative c' { <c ees g>4 }"
 			end
 			
@@ -162,7 +162,7 @@ describe Instrument do
 			it ":add_as_motif doit ajouter le motif" do
 				motif = Motif::new "a( b c b a)"
 			  @instru.add motif
-				@instru.notes_to_llp.should == "\\relative c' { a( b c b a) }"
+				@instru.to_llp.should == "\\relative c' { a( b c b a) }"
 			end
 			
 		end
@@ -195,11 +195,11 @@ describe Instrument do
 				# puts "= motif 1: #{mot1.inspect}"
 				# puts "= motif 2: #{mot2.inspect}"
 				@instru.add_notes mot1
-				@instru.notes_to_llp.should == "\\relative c' { a b c }"
+				@instru.to_llp.should == "\\relative c' { a b c }"
 				iv_get(@instru, :motifs).count.should == 1
 				@instru.add_notes mot2
 				iv_get(@instru, :motifs).count.should == 2
-				@instru.notes_to_llp.should == 
+				@instru.to_llp.should == 
 					"\\relative c' { a b c } \\relative c' { d e f }"
 			end
 			
@@ -213,7 +213,7 @@ describe Instrument do
 			end
 			# :motifs_to_llp
 			it "doit répondre à :motifs_to_llp" do
-			  @instru.should respond_to :notes_to_llp
+			  @instru.should respond_to :to_llp
 			end
 			# :to_lilypond
 		  it "doit répondre à to_lilypond" do

@@ -88,7 +88,7 @@ class Instrument
     # Retourner toutes les notes s'il n'y a pas de filtre de mesure
     # puts "@motifs: #{@motifs.inspect}"
     # @motifs contient quelque chose comme : \relative c { a b c }
-    return notes_to_llp if first.nil? && last.nil?
+    return to_llp if first.nil? && last.nil?
     
     duree_mesure = SCORE::duree_absolue_mesure
     
@@ -256,7 +256,7 @@ class Instrument
   #           méthode n'est appelée qu'une seule fois, pour créer la
   #           partition LilyPond
   # 
-  def notes_to_llp
+  def to_llp
     
     return "" if @motifs.empty? || @motifs.nil?
     
