@@ -589,7 +589,7 @@ describe Motif do
 			it ":set_crescendo doit régler la dynamique" do
 			  motif = Motif::new "a b c"
 				motif.set_crescendo true
-				motif.get(:crescendo).should == {
+				motif.get(:dynamique).should == {
 					:start => '\<',
 					:start_dyna => nil,
 					:end 		=> '\!'
@@ -601,7 +601,7 @@ describe Motif do
 			it ":set_decrescendo doit régler la dynamique" do
 			  motif = Motif::new "a b c"
 				motif.set_decrescendo( true )
-				motif.get(:crescendo).should == {
+				motif.get(:dynamique).should == {
 					:start => '\>', :start_dyna => nil, :end => '\!'
 				}
 			end
