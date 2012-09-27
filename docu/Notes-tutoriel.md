@@ -1,6 +1,17 @@
 NOTES TUTORIELS
 ===============
 
+• Tutoriel sur l'utilisation d'une shell-script textmate pour lancer
+  la création
+  cf. celui de Nos Habitudes
+
+• Tutoriel sur le choix des mesures à afficher
+  Ces trois syntaxes sont équivalentes
+    $ ruby2lily score.rb -m4-8
+    $ ruby2lily score.rb -m=4-8
+    $  ruby2lily score.rb --mesures=4-8
+  ... et sortiront les mesures de 4 à 8 comprises
+  @note: normalement, sauf s'il y a des coupures ?
 
 Préciser qu'il vaut mieux utiliser `<<` pour construire une suite de
 notes plutôt que le signe "+"
