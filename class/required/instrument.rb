@@ -38,6 +38,46 @@ class Instrument
                         # instrument
     
   
+  # => Retourne le code pour afficher les numéros de mesures
+  # 
+  # @note:  Ce code doit être inséré dans chaque portée pour pouvoir
+  #         fonctionner (je n'ai pas réussi à faire autrement, mais
+  #         il serait bien de pouvoir indiquer ça seulement dans
+  #         une définir de `Score', car ça multiplie le code alors 
+  #         que l'affichage ne se fait que sur le premier instrument.
+  #         Hé bien justement, n'inscrire ce code que sur le premier).
+  # 
+  # @param    first_measure_number  
+  #           Numéro de première mesure (quand extrait)
+  # 
+  # @return   Le code à insérer dans le début de la partition de
+  #           l'instrument. Pour le moment, les numéros sont inscrits
+  #           en gros, dans un rond, toutes les deux mesures.
+  #           @TODO: pouvoir définir mieux l'affichage des numéros.
+  # 
+  # @note     Le `\bar ""' est obligatoire pour pouvoir afficher le
+  #           numéro de la première mesure.
+  # 
+  def self.code_show_bar_numbers first_measure_number = nil
+    return "" if first_measure_number.nil?
+    
+    # Ajouter ça si on veut que ce soit dans un rond :
+    # \\override Score.BarNumber #'stencil
+    #     = #(make-stencil-circler 0.1 0.25 ly:text-interface::print)
+
+    <<-EOS
+    
+    \\override Score.BarNumber #'break-visibility = #end-of-line-invisible
+    \\set Score.barNumberVisibility = #all-bar-numbers-visible
+    \\set Score.currentBarNumber = ##{first_measure_number}
+    \\set Score.barNumberVisibility = #(every-nth-bar-number-visible 2)
+    \\override Score.BarNumber #'font-size = #2
+		\\bar ""
+	  
+	  EOS
+  end
+  
+  
   # -------------------------------------------------------------------
   #   Instance
   # -------------------------------------------------------------------
@@ -83,9 +123,17 @@ class Instrument
   # est appelée, avec les paramètres à nil
   def mesures first = nil, last = nil
     last ||= first
-    # @todo: produire ici une erreur si last est avant first
+    # @TODO: produire ici une erreur si last est avant first ?
     
     jusqua_derniere = last == -1
+    
+    # Nombre de mesures attendues (if any)
+    nombre_mesures_expected = 
+      if first.nil? || last.nil? || jusqua_derniere
+        nil
+      else 
+        last - first + 1
+      end
     
     # Retourner toutes les notes s'il n'y a pas de filtre de mesure
     # puts "@motifs: #{@motifs.inspect}"
@@ -224,9 +272,12 @@ class Instrument
     # @FIXME : il faudrait fonctionner plus finement, car l'instrument
     # peut par exemple posséder seulement une noire ou autre dans la
     # mesure manquante.
-    (last - index_mesure + 1).times do |i|
-      linotes_expected << ( mesure_vide ||= LINote::new("r1") )
-    end unless index_mesure > last
+    unless nombre_mesures_expected.nil?
+      diff_nombre_mesures = nombre_mesures_expected - linotes_expected.count
+      diff_nombre_mesures.times do |i|
+        linotes_expected << ( mesure_vide ||= LINote::new("r1") )
+      end
+    end
     
     first_ln = linotes_expected.first
 
@@ -448,10 +499,14 @@ class Instrument
   # -------------------------------------------------------------------
 
   # => Return le code lilypond pour l'instrument (hors accolades)
+  #           OU false quand l'instrument ne doit pas être affiché
   # 
-  # @param  params    Les paramètres (non utilisés encore, mais à 
-  #                   l'avenir, permettra par exemple de définir les
-  #                   mesures à prendre)
+  # @param  params    
+  #         Les paramètres optionnels pour l'affichage.
+  #         :is_first     Mis à true si c'est le premier instrument de
+  #                       l'orchestre. Permet de savoir s'il faut mettre
+  #                       d'autres indications, comme par exemple les
+  #                       numéros de mesures en cas d'un extrait
   # 
   # @note: le code renvoyé est sans accolades, il est donc ajouté
   # "{" et "}" autour du retour lorsqu'il y a plusieurs instruments par
@@ -464,7 +519,9 @@ class Instrument
   #   On passe en revue chaque mesure de l'instrument et on crée le
   #   code.
   # -------------------------------------------------------------------
+
   def to_lilypond params = nil
+    return false unless @displayed
     @staff = Staff::new(
                         :clef         => @clef, 
                         :tempo        => SCORE.tempo, 
@@ -475,28 +532,35 @@ class Instrument
     # @todo: ci-dessous, on pourra retirer le mark_relative, qui
     # ne sert à rien
     "\\new Staff {"                                   \
-    << "\n\t#{mark_relative} {"                     \
-    << "\n#{staff_header}".gsub(/\n/, "\n\t")         \
+    << "\n\t#{mark_relative} {"                       \
+    << "\n#{staff_header(params)}".gsub(/\n/, "\n\t")         \
     << "\n#{staff_content}".gsub(/\n/, "\n\t")[1..-1] \
     << "\n\t}\n}"
   end
   
   # => Return l'entête de la portée (clé, tempo, signature)
-  def staff_header
-    key     = @staff.mark_key
-    tempo   = @staff.mark_tempo
-    mkey    = key.nil? ? "" : key
-    mtempo  = tempo.nil? ? "" : tempo
-
+  # 
+  # @note   Pour +params+, cf la méthode `to_lilypond' précédente.
+  # 
+  # @TODO: C'est dans ce header qu'on doit placer les informations
+  # pour les numéros de mesure (en cas d'extrait par exemple)
+  def staff_header params = nil
+    key       = @staff.mark_key
+    tempo     = @staff.mark_tempo
+    mkey      = key.nil? ? "" : key
+    mtempo    = tempo.nil? ? "" : tempo
+    mshowmes  = Instrument::code_show_bar_numbers(SCORE::from_mesure)
+    
     # Code retourné : 
     @staff.mark_clef    << "\n"  \
     << @staff.mark_time << "\n"  \
-    << mkey << mtempo
+    << mkey << mtempo << mshowmes
   end
   
   # => Return le contenu des notes de l'instrument
   # 
-  # @motifs: si un filtre des mesures est appliqué, on l'utilise
+  # @note: si un filtre des mesures est appliqué, on l'utilise
+  # 
   def staff_content
     mesures SCORE::from_mesure, SCORE::to_mesure
   end

@@ -62,7 +62,7 @@ class Score::Sheet
       h =   "% Informations score"
       h =  h << r << "\\header {"
       [ code_title, code_composer, code_arranger, code_opus, code_meter, 
-        code_description
+        code_description, code_extrait
       ].each do |val|
         h = h << rt << val unless val.nil?
       end
@@ -99,7 +99,7 @@ class Score::Sheet
       markout = ORCHESTRE.polyphonique? ? "\t>>"      : ""
       # Code retourné :
       "% Score" << "\n{" <<
-      markin << ORCHESTRE::to_lilypond << markout << 
+      markin << ORCHESTRE::to_lilypond() << markout << 
       "\n}"
     end
     
@@ -129,6 +129,14 @@ class Score::Sheet
     def code_description
       return nil if SCORE.description.nil? || SCORE.description == ""
       "description = \"#{SCORE.description}\""
+    end
+    # =>  Retourne le code à inscrire dans l'header dans le cas où
+    #     c'est seulement un extrait de la partition qui est
+    #     demandé. Par exemple seulement un nombre de mesures spécifié
+    #     ou certains instruments seulement.
+    def code_extrait
+      # @TODO: à implémenter
+      
     end
     
     # Retourne la version courante de lilypond

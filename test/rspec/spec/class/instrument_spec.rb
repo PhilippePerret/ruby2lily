@@ -19,6 +19,12 @@ describe Instrument do
 		it ":new doit retourner un objet de type Instrument" do
 		  Instrument.new.class.should == Instrument
 		end
+		it "doit répondre à :code_show_bar_numbers" do
+		  pending "à implémenter"
+		end
+		it ":code_show_bar_numbers doit retourner le bon code" do
+		  pending "à implémenter"
+		end
   end # /la classe
 
 	# -------------------------------------------------------------------
@@ -373,6 +379,9 @@ describe Instrument do
 					<<"\n\t}\n}"
 				# @note: des tests plus poussés sont effectués par le biais
 				# des partitions.
+			end
+			it "doit inscrire le code pour les mesures si extrait" do
+			  pending "à implémenter"
 			end
 			
 			# :staff_header

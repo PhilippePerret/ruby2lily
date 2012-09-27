@@ -94,8 +94,20 @@ class Orchestre
   # 
   # Le code est construit en passant en revue tous les instruments de
   # l'orchestre
+  # 
+  # @note   Noter que suivant la ligne de commande, tous les instruments
+  #         ne seront pas forcément inscrits. Le code renvoyé est mis
+  #         à `false' si l'instrument ne doit pas être affiché
+  # 
   def to_lilypond
-    @instruments.collect{|instrument|instrument.to_lilypond}.join("\n")
+    is_first = true
+    @instruments.collect do |instrument|
+      code = instrument.to_lilypond( :is_first => is_first )
+      unless code === false # code est False quand instrument non affiché
+        is_first = false # pour le prochain
+        code
+      else "" end
+    end.join("\n")
   end
   
   # => Return true si l'orchestre comprend plusieurs instruments

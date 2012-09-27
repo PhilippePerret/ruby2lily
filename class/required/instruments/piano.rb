@@ -45,10 +45,10 @@ class Piano < Instrument
   # -------------------------------------------------------------------
   #   Méthodes vers Lilypond
   # -------------------------------------------------------------------
-  def to_lilypond
+  def to_lilypond  params = nil
     "\\new PianoStaff <<"                               \
-    << "\n\t#{droite.to_lilypond.gsub(/\n/, "\n\t")}"   \
-    << "\n\t#{gauche.to_lilypond.gsub(/\n/, "\n\t")}"   \
+    << "\n\t#{droite.to_lilypond(params).gsub(/\n/, "\n\t")}"   \
+    << "\n\t#{gauche.to_lilypond(params).gsub(/\n/, "\n\t")}"   \
     << "\n>>"
   end
   
