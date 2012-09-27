@@ -97,7 +97,7 @@ class Instrument
     position_courante       = 0
     index_mesure            = 1
     linotes_expected        = []
-    duree_absolue_last_note = nil
+    last_duration           = "4"   # Par défaut, une noire
     
     # Dans le cas où une liaison, une dynamique commencerait avant
     # la mesure désirée, on conserve sa trace pour l'ajouter en début
@@ -163,14 +163,16 @@ class Instrument
       # 4 est mis en durée par défaut à la première note si aucune
       # durée n'est précisée
       unless linote.in_accord? && !linote.start_accord?
-        duree_note = linote.duree_absolue || duree_absolue_last_note ||= 1.0
+        duree_note = linote.duree_absolue( last_duration )
         position_courante += duree_note
       end
+      # On mémorise la dernière durée spécifiée
+      last_duration = linote.duration unless linote.duration.nil?
+      
       # # = débug =
       # puts "\n=== in mesures ==="
       # puts "= linote: #{linote.inspect}"
       # puts "= linote.duree_absolue: #{linote.duree_absolue}"
-      # puts "= duree_absolue_last_note: #{duree_absolue_last_note}"
       # puts "= Nouvelle position_courante: #{position_courante}"
       # puts "--------------------------------------"
       # # = /débug =
@@ -193,10 +195,7 @@ class Instrument
       elsif linote.legato_end?    then legato_run_in  = false end
       if linote.dynamique_start?  then dyna_run_in    = true
       elsif linote.dynamique_end? then dyna_run_in    = false end
-      
-      # On conserve la durée de la dernière note
-      duree_absolue_last_note = duree_note
-      
+            
     end
     # / Fin de boucle sur les linotes dans l'espace voulu
     
@@ -222,15 +221,7 @@ class Instrument
     # @FIXME : il faudrait fonctionner plus finement, car l'instrument
     # peut par exemple posséder seulement une noire ou autre dans la
     # mesure manquante.
-    # Code simple :
-    # unless index_mesure > last
-    #   mesure_vide = LINote::new("a1")
-    #   (last - index_mesure).times do |i|
-    #     linotes_expected << mesure_vide
-    #   end
-    # end
-    
-    (last - index_mesure).times do |i|
+    (last - index_mesure + 1).times do |i|
       linotes_expected << ( mesure_vide ||= LINote::new("r1") )
     end unless index_mesure > last
     
@@ -269,8 +260,8 @@ class Instrument
     # vraies LINotes du motif.
     #
     last_ln = linotes_expected.last
-    last_ln.set(:legato => nil)    if last_ln.slure_start? || last_ln.legato_start?
-    last_ln.set(:dyna => nil) if last_ln.dynamique_start?
+    last_ln.set(:legato => nil)   if last_ln.slure_start? || last_ln.legato_start?
+    last_ln.set(:dyna => nil)     if last_ln.dynamique_start?
     
     # puts "\nlast_ln après premier test: #{last_ln.inspect}"
     
@@ -288,10 +279,10 @@ class Instrument
 
     linotes_expected = LINote::implode linotes_expected
 
-    # = débug =
-    puts "\n\n= LINotes obtenues pour l'instrument de classe #{self.class} :"
-    puts "= #{linotes_expected}"
-    # = / débug =
+    # # = débug =
+    # puts "\n\n= LINotes obtenues pour l'instrument de classe #{self.class} :"
+    # puts "= #{linotes_expected}"
+    # # = / débug =
 
     linotes_expected
   end

@@ -122,6 +122,10 @@ describe Instrument do
 				@voix.mesures(2).to_s.should == "<a c e>2 <e g b>2"
 				@voix.mesures(3).to_s.should == "<b d fis>1"
 			end
+			it "doit bien gérer les accords" do
+			  @voix << Motif::new("<c e g> <d fis la> <e sol si>", :duration => "1")
+				@voix.mesures(2,3).should == "<d fis a> <e g b>"
+			end
 			it "doit tenir compte d'une durée définie avant" do
 			  @voix << Motif::new("a a a a b1 c d e f")
 				@voix.mesure(1).to_s.should == "a a a a"
@@ -129,12 +133,19 @@ describe Instrument do
 				@voix.mesure(4).to_s.should == "d"
 				@voix.mesure(5,6).to_s.should == "e f"
 			end
-			# it "doit produire une erreur (non fatale) si last est trop grand" do
-			#   @voix << Motif::new("a a a a")
-			# 	err = detemp(Liby::ERRORS[:mesure_first_too_big], 
-			# 								:expected => 10, :last => 1)
-			# 	expect{@voix.mesure(10)}.to raise_error(SystemExit, err)
-			# end
+			it "ne doit pas produire d'erreur si last est trop grand" do
+			  @voix << Motif::new("a a a a")
+				expect{@voix.mesure(10)}.not_to raise_error
+			end
+			it "doit mettre des silences si last est trop grand" do
+			  @voix << Motif::new("a a a a")
+				@voix.mesure(2).should == "r1"
+			end
+			it "doit ajouter juste ce qu'il faut de silence" do
+			  pending "à implémenter"
+				@voix << Motif::new("a a a a a a")
+				@voix.msure(2).should == "a a r2"
+			end
 			it "doit conserver un slure compris dans les mesures" do
 			  @voix << Motif::new("a a a a b b( b b c c) c c d d d d")
 				@voix.mesures(2,3).should == "b b( b b c c) c c"
