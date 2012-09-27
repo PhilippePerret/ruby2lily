@@ -741,6 +741,15 @@ describe LINote do
 				dyna[:end].should be_false
 				dyna[:start_intensite].should be_nil
 			end
+			it "doit répondre à :crescendo_start?" do
+			  @ln.should respond_to :crescendo_start?
+			end
+			it ":start_crescendo? doit retourner la bonne valeur" do
+			  @ln.set(:dyna => nil)
+				@ln.should_not be_crescendo_start
+				@ln.start_crescendo
+				@ln.should be_crescendo_start
+			end
 			it "doit répondre à :start_decrescendo" do
 			  @ln.should respond_to :start_decrescendo
 			end
@@ -750,6 +759,15 @@ describe LINote do
 				dyna[:crescendo].should be_false
 				dyna[:start].should be_true
 				dyna[:end].should be_false
+			end
+			it "doit répondre à decrescendo_start?" do
+			  @ln.should respond_to :decrescendo_start?
+			end
+			it ":decrescendo_start? doit retourner la bonne valeur" do
+			  @ln.set(:dyna => nil)
+				@ln.should_not be_decrescendo_start
+				@ln.start_decrescendo
+				@ln.should be_decrescendo_start
 			end
 			it "doit répondre à :end_crescendo" do
 			  @ln.should respond_to :end_crescendo
@@ -765,6 +783,43 @@ describe LINote do
 				dynaln.should be_nil
 			  @ln.end_decrescendo
 				dynaln[:end].should be_true
+			end
+			it "doit répondre à :dynamique_start?" do
+			  @ln.should respond_to :dynamique_start?
+			end
+			it ":dynamique_start? doit retourner la bonne valeur" do
+			  @ln.set(:dyna => nil)
+				@ln.should_not be_dynamique_start
+				@ln.start_crescendo
+				@ln.should be_dynamique_start
+			  @ln.set(:dyna => nil)
+				@ln.should_not be_dynamique_start
+				@ln.start_decrescendo
+				@ln.should be_dynamique_start
+			end
+			it "doit répondre à :dynamique_end?" do
+			  @ln.should respond_to :dynamique_end?
+			end
+			it ":dynamique_end? doit retourner la bonne valeur" do
+			  @ln.set(:dyna => nil)
+				@ln.should_not be_dynamique_end
+				@ln.end_crescendo
+				@ln.should be_dynamique_end
+			  @ln.set(:dyna => nil)
+				@ln.should_not be_dynamique_end
+				@ln.end_decrescendo
+				@ln.should be_dynamique_end
+			end
+			it "doit répondre à :erase_dynamique" do
+			  @ln.should respond_to :erase_dynamique
+			end
+			it ":erase_dynamique doit effacer la dynamique" do
+			  @ln.set(:dyna => nil)
+				iv_get(@ln, :dyna).should be_nil
+				@ln.start_crescendo
+				iv_get(@ln, :dyna).should_not be_nil
+				@ln.erase_dynamique
+				iv_get(@ln, :dyna).should be_nil
 			end
 			it "doit répondre à :start_intensite" do
 			  @ln.should respond_to :start_intensite
@@ -833,7 +888,7 @@ describe LINote do
 			end
 		end # / fin de describe Dynamique
 		
-		describe "Légato" do
+		describe "Slure et Legato" do
 		  before(:each) do
 		    @ln = LINote::new "c"
 		  end
@@ -880,6 +935,16 @@ describe LINote do
 				iv_set(@ln, :legato => LINote::BIT_END_LEGATO)
 				expect{@ln.end_slure}.not_to raise_error
 			end
+			it "doit répondre à :erase_slure_end" do
+			  @ln.should respond_to :erase_slure_end
+			end
+			it ":erase_slure_end doit effacer la fin de slure" do
+			  @ln.set :legato => nil
+				@ln.end_slure
+				@ln.should be_slure_end
+				@ln.erase_slure_end
+				@ln.should_not be_slure_end
+			end
 			it "doit répondre à :start_legato" do
 			  @ln.should respond_to :start_legato
 			end
@@ -916,6 +981,17 @@ describe LINote do
 				err = detemp(Liby::ERRORS[:end_legato_unable_if_start_legato], :linote => @ln)
 				expect{@ln.end_legato}.to raise_error(SystemExit, err)
 			end
+			it "doit répondre à :erase_legato_end" do
+			  @ln.should respond_to :erase_legato_end
+			end
+			it ":erase_legato_end doit effacer la fin de legato" do
+			  @ln.set :legato => nil
+				@ln.end_legato
+				@ln.should be_legato_end
+				@ln.erase_legato_end
+				@ln.should_not be_legato_end
+			end
+			
 			it "doit répondre à :mark_legato" do
 			  @ln.should respond_to :mark_legato
 			end
@@ -934,41 +1010,41 @@ describe LINote do
 					@ln.mark_legato.should == expected
 			  end
 			end
-			it "doit répondre à :start_slure?" do
-			  @ln.should respond_to :start_slure?
+			it "doit répondre à :slure_start?" do
+			  @ln.should respond_to :slure_start?
 			end
-			it ":start_slure? doit retourner la bonne valeur" do
+			it ":slure_start? doit retourner la bonne valeur" do
 				iv_set(@ln, :legato => nil)
-			  @ln.should_not be_start_slure
+			  @ln.should_not be_slure_start
 				iv_set(@ln, :legato => LINote::BIT_START_SLURE | LINote::BIT_START_LEGATO)
-				@ln.should be_start_slure
+				@ln.should be_slure_start
 			end
-			it "doit répondre à :start_legato?" do
-			  @ln.should respond_to :start_legato?
+			it "doit répondre à :legato_start?" do
+			  @ln.should respond_to :legato_start?
 			end
-			it ":start_legato? doit retourner la bonne valeur" do
+			it ":legato_start? doit retourner la bonne valeur" do
 				iv_set(@ln, :legato => nil)
-				@ln.should_not be_start_legato
+				@ln.should_not be_legato_start
 			  iv_set(@ln, :legato => LINote::BIT_START_SLURE | LINote::BIT_START_LEGATO)
-				@ln.should be_start_legato
+				@ln.should be_legato_start
 			end
-			it "doit répondre à :end_slure?" do
-			  @ln.should respond_to :end_slure?
+			it "doit répondre à :slure_end?" do
+			  @ln.should respond_to :slure_end?
 			end
-			it ":end_slure? doit retourner la bonne valeur" do
+			it ":slure_end? doit retourner la bonne valeur" do
 				iv_set(@ln, :legato => nil)
-				@ln.should_not be_end_slure
+				@ln.should_not be_slure_end
 			  iv_set(@ln, :legato => LINote::BIT_END_SLURE | LINote::BIT_END_LEGATO)
-				@ln.should be_end_slure
+				@ln.should be_slure_end
 			end
-			it "doit répondre à :end_legato?" do
-			  @ln.should respond_to :end_legato?
+			it "doit répondre à :legato_end?" do
+			  @ln.should respond_to :legato_end?
 			end
-			it ":end_legato? doit retourner la bonne valeur" do
+			it ":legato_end? doit retourner la bonne valeur" do
 				iv_set(@ln, :legato => nil)
-				@ln.should_not be_end_legato
+				@ln.should_not be_legato_end
 			  iv_set(@ln, :legato => LINote::BIT_END_SLURE | LINote::BIT_END_LEGATO)
-				@ln.should be_end_legato
+				@ln.should be_legato_end
 			end
 		end # / fin de describe Légato
 		
@@ -1440,6 +1516,11 @@ describe LINote do
 				  ln = LINote::new "c", :duree => duree
 					ln.duree_absolue.should == expected
 				end
+			end
+			it "La durée absolue doit utiliser la valeur par défaut si pas de durée" do
+			  ln = LINote::new "c"
+				ln.duration.should be_nil
+				ln.duree_absolue("4").should == 1.0
 			end
 		end # / fin describe méthodes pour la durée
 		

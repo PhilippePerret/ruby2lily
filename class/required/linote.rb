@@ -944,8 +944,14 @@ class LINote < NoteClass
   #     de mesures par exemple)
   #     Cette valeur est comptée sur la base d'une noire qui vaut 1.0
   #     Donc, par exemple, une ronde vaut 4.0, une blanche 2.0, etc.
-  def duree_absolue
-    duree = duration(true)
+  # 
+  # @param  duree_defaut . La durée par défaut (peut-être héritée de la
+  #                      . note précédente) dans le cas où duration
+  #                      . renverrait une valeur nulle. C'est une durée
+  #                      . au format String, p.e. "2.".
+  # 
+  def duree_absolue duree_defaut = nil
+    duree = duration(true) || duree_defaut
     return nil if duree.nil?
     valeur = 0
     duree.scan(/^([0-9]*)?([.]*)?(~)?$/){
@@ -1204,19 +1210,45 @@ class LINote < NoteClass
     end
     return self
   end
+  # Remet la dynamique à nil
+  def erase_dynamique
+    @dyna = nil
+  end
   # Pose un début de crescendo sur la LINote
   def start_crescendo
     set_dyna :crescendo => true, :start => true
   end
+  # Retourne true si la note marque un début de crescendo
+  def crescendo_start?
+    return false if @dyna.nil?
+    return @dyna[:crescendo] === true && @dyna[:start] === true
+  end
   # Pose une fin de dynamique sur la LINote
   def end_crescendo
     set_dyna :crescendo => nil, :end => true
+  end
+  alias :end_dynamique :end_crescendo
+  # => Return true si la LINote marque la fin d'un crescendo
+  def dynamique_end?
+    return false if @dyna.nil?
+    return @dyna[:crescendo].nil? && @dyna[:end] === true
   end
   alias :end_decrescendo :end_crescendo
   # Pose un début de decrescendo sur la LINote
   def start_decrescendo
     set_dyna :crescendo => false, :start => true
   end
+  # => Return true si la LINote est le départ d'un decrescendo
+  def decrescendo_start?
+    return false if @dyna.nil?
+    return @dyna[:crescendo] === false && @dyna[:start] === true
+  end
+  # => Return true si la LINote est un départ de dynamique
+  def dynamique_start?
+    return false if @dyna.nil?
+    @dyna[:start] === true
+  end
+  # => Return true si la LINote est la fin d'une dynamique
   # Pose une intensité de départ sur la note
   def start_intensite intensite
     set_dyna :start_intensite => intensite, :start => true
@@ -1275,13 +1307,13 @@ class LINote < NoteClass
       # Principe : une note ne peut pas porter en même temps une fin
       # et un début de légato
       unless @legato.nil?
-        if (start_legato? || start_slure?) \
+        if (legato_start? || slure_start?) \
             && ([BIT_END_SLURE, BIT_END_LEGATO].include? value )
-          badstart = start_slure? ? 'start_slure' : 'start_legato'
+          badstart = slure_start? ? 'start_slure' : 'start_legato'
           raise "#{lk_str}_unable_if_#{badstart}"
-        elsif (end_slure? || end_legato?) \
+        elsif (slure_end? || legato_end?) \
               && ([BIT_START_SLURE, BIT_START_LEGATO].include? value )
-          badend = end_slure? ? 'end_slure' : 'end_legato'
+          badend = slure_end? ? 'end_slure' : 'end_legato'
           raise "#{lk_str}_unable_if_#{badend}"
         end
       else
@@ -1300,7 +1332,7 @@ class LINote < NoteClass
     checkif_legato_enable 'slure', BIT_START_SLURE
   end
   # => Retourne true si la LINote est le début d'un slure
-  def start_slure?
+  def slure_start?
     return false if @legato.nil?
     (@legato & BIT_START_SLURE) > 0
   end
@@ -1309,16 +1341,30 @@ class LINote < NoteClass
     checkif_legato_enable 'end_slure', BIT_END_SLURE
   end
   # => return true si la LINote est la fin d'un slure
-  def end_slure?
+  def slure_end?
     return false if @legato.nil?
     (@legato & BIT_END_SLURE) > 0
+  end
+  # # => Supprime une marque de fin de slure (si elle existe)
+  def erase_slure_end
+    return unless slure_end?
+    @legato -= BIT_END_SLURE
+    @legato = nil if @legato == 0
   end
   # => Place un début de légato sur la note (si c'est possible)
   def start_legato
     checkif_legato_enable 'legato', BIT_START_LEGATO
   end
+  
+  # => Supprime une marque de fin de legato
+  def erase_legato_end
+    return unless legato_end?
+    @legato -= BIT_END_LEGATO
+    @legato = nil if @legato == 0
+  end
+  
   # => Return true si la LINote est le début d'un legato
-  def start_legato?
+  def legato_start?
     return false if @legato.nil?
     (@legato & BIT_START_LEGATO) > 0
   end
@@ -1327,7 +1373,7 @@ class LINote < NoteClass
     checkif_legato_enable 'end_legato', BIT_END_LEGATO
   end
   # Return true si la LINote est la fin d'un legato
-  def end_legato?
+  def legato_end?
     return false if @legato.nil?
     (@legato & BIT_END_LEGATO) > 0
   end
@@ -1337,10 +1383,10 @@ class LINote < NoteClass
   def mark_legato
     mark = ""
     return mark if @legato.nil?
-    mark << "\\(" if start_legato?
-    (mark << "(") and return mark if start_slure?
-    mark << ")"   if end_slure?
-    mark << "\\)" if end_legato?
+    mark << "\\(" if legato_start?
+    (mark << "(") and return mark if slure_start?
+    mark << ")"   if slure_end?
+    mark << "\\)" if legato_end?
     mark
   end
   
