@@ -53,6 +53,7 @@ class Liby
       :bad_params_in_add_notes_instrument => 
         "Mauvais arguments dans Instrument#add_notes. Une liste de LINotes ou un Motif est requis " \
         << "(instrument: \#{instrument}, bad params: \#{params.inspect} )",
+
       # === Portée === #
       :bad_clef                   => "La clé '\#{clef}' est inconnue",
       
@@ -70,7 +71,10 @@ class Liby
                                      << "(elle devrait être sous la forme « xx/xx »)",
       :key_invalid                => "La clé (@key/@tonalite) est mal définie ('\#{bad}')" \
                                     << "(elle devrait être une valeur parmi #{LINote::TONALITES.keys.join(', ')}).",
-      
+      :mesure_last_too_big        => "Le numéro de mesure demandé (\#{expected}) est trop grand " \
+                                      << "(dernière mesure : \#{last}) !",
+      :mesure_first_too_big       => "Le premier numéro de mesure demandé (\#{expected}) excède le" \
+                                      << " nombre de mesures de la partition (\#{last}) !",
       # ==== Motif ==== #
       :invalid_arguments_pour_motif => "Les arguments pour définir le motif sont invalides… (\#{raison} dans \#{args})",
       :invalid_motif              => "Le motif fourni ('\#{bad}') est invalide.",

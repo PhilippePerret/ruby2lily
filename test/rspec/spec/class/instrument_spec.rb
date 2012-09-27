@@ -29,19 +29,7 @@ describe Instrument do
 	    @instru = Instrument::new( {} )
 	  end
 	
-		describe "Sous-instances" do
-			# # :accord / :accords
-			# it "doit répondre à :accord et :chord" do
-			#   @instru.should respond_to :accord
-			# 	@instru.should respond_to :chord
-			# end
-			# it ":accord doit renvoyer une instance de class Accord" do
-			#   @instru.accord.class.should == Chord
-			# end
-			# it "doit répondre à :accords et :chords" do
-			#   @instru.should respond_to :accords
-			# 	@instru.should respond_to :chords
-			# end
+		describe "Explosion (explode)" do
 
 			# :explode
 			it "doit répondre à :explode" do
@@ -75,36 +63,160 @@ describe Instrument do
 				ln.duree_chord == "8"
 				
 			end
-			# # :mesure / :mesures
-			# it "doit répondre à :mesure et :measure" do
-			#   @instru.should respond_to :mesure
-			# 	@instru.should respond_to :measure
-			# end
-			# it ":mesure doit retourner une instance de classe Mesure" do
-			#   @instru.mesure.class.should == Measure
-			# end
+			
+			it ":explode doit définir la durée de la première linote si non définie" do
+				voix = Voice::new
+				voix << "a4 b c d"
+				voix << "<c e g>8"
+				motif1 = iv_get(voix, :motifs).first
+				linote1 = motif1.first_note
+				linote1.duration.should be_nil
+				motif1.duration.should == "4"
+				voix.explode.first.duration.should == "4"
+			end
+		end
+		
+		# -------------------------------------------------------------------
+		# 	Sélection de mesures
+		# -------------------------------------------------------------------
+		describe "Sélection de mesures" do
+			before(:each) do
+			  @voix = Voice::new
+			end
 			it "doit répondre à :mesures et :measures" do
 			  @instru.should respond_to :mesures
 			  @instru.should respond_to :measures
+				@instru.should respond_to :measure
+				@instru.should respond_to :mesure
 			end
-			it ":mesures doit renvoyer les mesures demandées" do
-			  voix = Voice::new()
-				voix << "a4 b c d eis4-^ f g a"
-				res = voix.mesures(2, 2)
+			it "Motif unique doit renvoyer les bonnes notes" do
+				@voix << "a4 b c d eis4-^ f g a"
+				res = @voix.mesures(2, 2)
 				res.to_s.should == "eis4-^ f g a"
 			end
+			it ":mesure(s) doit accepter un seul paramètre" do
+				@voix << "a4 b c d eis4-^ f g a"
+			  expect{@voix.mesure(1)}.not_to raise_error
+			end
+			it ":mesure(s) avec un seul paramètre doit retourner la mesure seule" do
+				@voix << "a4 b c d eis4-^ f g a"
+			  @voix.mesure(1).to_s.should == "a4 b c d"
+			  @voix.mesure(2).to_s.should == "eis4-^ f g a"
+			end
+			it "doit renvoyer les bonnes notes avec deux motifs" do
+				@voix << Motif::new("c c c c d d d d")
+				@voix << Motif::new("e e e e f f f f")
+				res = @voix.mesures(2, 3)
+				res.to_s.should == "d d d d e e e e"
+			end
+			it "doit renvoyer jusqu'à la dernière si last = -1" do
+				@voix << Motif::new("c c c c d d d d")
+				@voix << Motif::new("e e e e f f f f")
+				res = @voix.mesures(1, -1)
+				res.to_s.should == "c c c c d d d d e e e e f f f f"
+			end
+			it "doit tenir compte des accords" do
+			  @voix << Motif::new("<c e g>1 <a c e>2")
+				@voix << Motif::new("<e g b>2 <b d fis>1")
+				@voix.mesures(1).to_s.should == "<c e g>1"
+				@voix.mesures(2).to_s.should == "<a c e>2 <e g b>2"
+				@voix.mesures(3).to_s.should == "<b d fis>1"
+			end
+			it "doit tenir compte d'une durée définie avant" do
+			  @voix << Motif::new("a a a a b1 c d e f")
+				@voix.mesure(1).to_s.should == "a a a a"
+				@voix.mesure(2).to_s.should == "b1"
+				@voix.mesure(4).to_s.should == "d"
+				@voix.mesure(5,6).to_s.should == "e f"
+			end
+			# it "doit produire une erreur (non fatale) si last est trop grand" do
+			#   @voix << Motif::new("a a a a")
+			# 	err = detemp(Liby::ERRORS[:mesure_first_too_big], 
+			# 								:expected => 10, :last => 1)
+			# 	expect{@voix.mesure(10)}.to raise_error(SystemExit, err)
+			# end
+			it "doit conserver un slure compris dans les mesures" do
+			  @voix << Motif::new("a a a a b b( b b c c) c c d d d d")
+				@voix.mesures(2,3).should == "b b( b b c c) c c"
+			end
+			it "doit conserver un legato compris dans les mesures" do
+			  @voix << Motif::new( "a a a a b b b\\( b c\\) c c c d d d d")
+				@voix.mesures(2,3).should == "b b b\\( b c\\) c c c"
+			end
+			it "doit conserver un crescendo compris dans les mesures" do
+			  @voix << Motif::new( "a a a a b b\\< b b c c\\! c c d d d d")
+				@voix.mesures(2,3).should == "b b\\< b b c c\\! c c"
+			end
+			it "doit conserver une marque de dynamique comprise dans les mesures" do
+			  @voix << Motif::new( "a a a a b b\\< b b c c\\! c c d d d d")
+				@voix.mesures(2,3).should == "b b\\< b b c c\\! c c"
+			end
+			it "doit ajouter un début de dynamique qui commence avant" do
+			  @voix << Motif::new("a\\< a a a b b b\\! b")
+				@voix.mesure(2).should ==      "b\\< b b\\! b"
+			end
+			it "doit ajouter une fin de dynamique qui finirait après" do
+			  @voix << Motif::new("a a a a b\\< b b b c c c c\\!")
+				@voix.mesure(2).should ==   "b\\< b b b\\!"
+			end
+			it "doit ajouter un début de slure qui commence avant" do
+			  @voix << Motif::new("a( a a a b b b) b")
+				@voix.mesure(2).should == "b( b b) b"
+			end
+			it "doit ajouter une fin de slure qui finirait après" do
+			  @voix << Motif::new("a a a a b( b b b c c c) c")
+				@voix.mesure(2).should == "b( b b b)"
+			end
+			it "doit ajouter un début de legato qui commence avant" do
+			  @voix << Motif::new("a\\( a a a b b b\\) b")
+				@voix.mesure(2).should == "b\\( b b\\) b"
+			end
+			it "doit ajouter une fin de legato qui finirait après" do
+			  @voix << Motif::new("a a a a b b\\( b b c c c c d d d\\) d")
+				@voix.mesure(2, 3).should == "b b\\( b b c c c c\\)"
+			end
+			it "doit supprimer le slure s'il termine sur la première note" do
+			  @voix << Motif::new("a( a a a b) b b b")
+				@voix.mesure(2).should == "b b b b"
+			end
+			it "doit supprimer le legato s'il termine sur la première note" do
+			  @voix << Motif::new("a a a a\\( b\\) b b b")
+				@voix.mesure(2).should == "b b b b"
+			end
+			it "doit supprimer le slure s'il commence sur la dernière note" do
+			  @voix << Motif::new( "a a a a b b b b( c c c) c" )
+				@voix.mesure(2).should == "b b b b"
+			end
+			it "doit supprimer le slure des deux côtés si nécessaire" do
+			  @voix << Motif::new( "a a a( a b) b b b( c c c) c" )
+				@voix.mesure(2).should == "b b b b"
+			end
+			it "doit supprimer le legato s'il commence sur la dernière note" do
+			  @voix << Motif::new( "a a a a b b b b\\( c c\\) c c" )
+				@voix.mesure(2).should == "b b b b"
+			end
+			it "doit supprimer le legato des deux côtés si nécessaire" do
+			  @voix << Motif::new( "a a\\( a a b\\) b b b\\( c c\\) c c" )
+				@voix.mesure(2).should == "b b b b"
+			end
+			it "doit supprimer la dynamique si elle termine sur la première note" do
+			  @voix << Motif::new( "a a\\> a a b\\! b b b c c c c" )
+				@voix.mesure(2).should == "b b b b"
+			end
+			it "doit supprimer la dynamique si elle commence sur la dernière note" do
+			  @voix << Motif::new( "a a a a b b b b\\< c c\\! c c" )
+				@voix.mesure(2).should == "b b b b"
+			end
+			it "doit supprimer la dynamique des deux côtés si nécessaire" do
+			  @voix << Motif::new( "a a\\< a a b\\! b b b\\> c c c\\!" )
+				@voix.mesure(2).should == "b b b b"
+			end
+			it "doit ajouter toutes les marques manquantes (slure, legato, dynamique)" do
+			  @voix << Motif::new("a\\( a( a\\< a b b)\\) b\\! b\\> c c c c\\( d d d\\! d\\)")
+				@voix.mesures(2,3).should == "b\\((\\< b)\\) b\\! b\\> c c c c\\!"
+			end
+		end
 
-			# # :motif / :motifs
-			# it "doit répondre à :motif" do
-			#   @instru.should respond_to :motif
-			# end
-			# it ":motif doit retourner une instance de classe Motif" do
-			#   @instru.motif.class.should == Motif
-			# end
-			# it "doit répondre à :motifs" do
-			#   @instru.should respond_to :motifs
-			# end
-		end # / sous-instances
 
 		# -------------------------------------------------------------------
 		# 	Méthodes de définition de la partition

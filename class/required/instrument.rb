@@ -85,6 +85,8 @@ class Instrument
     last ||= first
     # @todo: produire ici une erreur si last est avant first
     
+    jusqua_derniere = last == -1
+    
     # Retourner toutes les notes s'il n'y a pas de filtre de mesure
     # puts "@motifs: #{@motifs.inspect}"
     # @motifs contient quelque chose comme : \relative c { a b c }
@@ -96,18 +98,74 @@ class Instrument
     index_mesure            = 1
     linotes_expected        = []
     duree_absolue_last_note = nil
-    @motifs.each do |linote|
+    
+    # Dans le cas où une liaison, une dynamique commencerait avant
+    # la mesure désirée, on conserve sa trace pour l'ajouter en début
+    # d'extrait.
+    slure_run_before      = false
+    legato_run_before     = false
+    dyna_run_before       = false
+    crescendo_run_before  = false
+    slure_run_in          = false
+    legato_run_in         = false
+    dyna_run_in           = false
+    
+    explode.each do |linote|
+      
       # Tant qu'on n'a pas atteint la dernière mesure voulue,
       # on prend la linote si on a déjà passé la première mesure voulue
       if index_mesure >= first
+
+        # --- AJOUT DE LA LINOTE --- #
+        
+        # Si au moment de l'ajout d'une première LINote, on a un slure,
+        # un legato ou une dynamique en route, il faudra faire un 
+        # traitement particulier. On ne le fait pas ici, ce qui ferait
+        # des blocs conditionnels à chaque linote. Plutôt, on mémorise
+        # — cf. ci-dessous — et on le traitera en fin de boucle si
+        # nécessaire.
+        
         linotes_expected << linote
+        
+        # On ne contrôle pas ici si un slure, un legato ou une dynamique
+        # comme avec cette LINote, on le fera après le break éventuel.
+        # Dans le cas contraire, une dernière note qui commencerait un
+        # crescendo par exemple mettrait le `dyna_run_in' à true, et
+        # au cours des tests de la fin, il faudrait vérifier si c'est
+        # elle ou non qui a généré ce départ de dynamique.
+        # En mettant les contrôles après le break, c'est forcément une
+        # note précédente qui aura engendré le départ de slure, de legato
+        # ou de dynamique.
+          
+      else
+        # On n'a pas encore atteint la première mesure cherchée
+        # On mémorise et démémorise les marques éventuelles de slure,
+        # de legato, de dynamique, pour pouvoir les replacer le cas
+        # échéant.
+        if ! slure_run_before && linote.slure_start?
+          slure_run_before = true
+        elsif slure_run_before && linote.slure_end?
+          slure_run_before = false
+        end
+        if ! legato_run_before && linote.legato_start?
+          legato_run_before = true
+        elsif legato_run_before && linote.legato_end?
+          legato_run_before = false
+        end
+        if ! dyna_run_before && linote.dynamique_start?
+          dyna_run_before = linote.dyna[:start] === true
+          crescendo_run_before = linote.dyna[:crescendo] === true
+        elsif dyna_run_before && linote.dynamique_end?
+          dyna_run_before = false
+        end
       end
       
-      # Pour l'instant, je mets 4 en durée par défaut, quand aucune
-      # durée de note n'est encore précisée
-      duree_note = linote.duree_absolue || duree_absolue_last_note ||= 1.0
-      position_courante += duree_note
-
+      # 4 est mis en durée par défaut à la première note si aucune
+      # durée n'est précisée
+      unless linote.in_accord? && !linote.start_accord?
+        duree_note = linote.duree_absolue || duree_absolue_last_note ||= 1.0
+        position_courante += duree_note
+      end
       # # = débug =
       # puts "\n=== in mesures ==="
       # puts "= linote: #{linote.inspect}"
@@ -119,23 +177,141 @@ class Instrument
 
       if position_courante == duree_mesure
         # Une fin de mesure est atteinte avec cette note
-        index_mesure      += 1 
-        position_courante =  0
-        break if index_mesure > last
+        # Mais c'est peut-être un accord, donc on ne considère que 
+        # c'est la fin seulement si on est au bout de l'accord
+        unless linote.in_accord? && !linote.end_accord?
+          index_mesure      += 1 
+          position_courante =  0
+          (break if index_mesure > last) unless jusqua_derniere
+        end
       end
+      
+      # Un slure, un legato ou une dynamique démarre-t-elle ?
+      if linote.slure_start?      then slure_run_in   = true
+      elsif linote.slure_end?     then slure_run_in   = false end
+      if linote.legato_start?     then legato_run_in  = true
+      elsif linote.legato_end?    then legato_run_in  = false end
+      if linote.dynamique_start?  then dyna_run_in    = true
+      elsif linote.dynamique_end? then dyna_run_in    = false end
+      
+      # On conserve la durée de la dernière note
       duree_absolue_last_note = duree_note
+      
     end
+    # / Fin de boucle sur les linotes dans l'espace voulu
+    
+    # On génère une erreur non fatal si le numéro de dernière ou de 
+    # première mesure est trop grand. 
+    # Noter qu'il ne faut pas générer d'erreur fatale. En effet, le cas
+    # est simple : si on demande l'affichage de mesures précises, c'est
+    # certainement qu'on est en train de travailler sur un passage qui
+    # n'est pas encore défini pour un instrument donné. Donc pour qui
+    # ces mesures n'existent pas encore. L'erreur générée empêcherait
+    # tout bonnement de voir ce qui se passe en même temps que ces
+    # mesure.
+    # if linotes_expected.empty?
+    #   fatal_error(:mesure_first_too_big, 
+    #               :expected => first, :last => (index_mesure - 1))
+    # elsif index_mesure <= last
+    #   fatal_error(:mesure_last_too_big, 
+    #                 :expected => last, :last => (index_mesure - 1))
+    # end
+    
+    # Si la liste n'a pas le bon nombre de mesures, on ajoute ce qui
+    # manque
+    # @FIXME : il faudrait fonctionner plus finement, car l'instrument
+    # peut par exemple posséder seulement une noire ou autre dans la
+    # mesure manquante.
+    # Code simple :
+    # unless index_mesure > last
+    #   mesure_vide = LINote::new("a1")
+    #   (last - index_mesure).times do |i|
+    #     linotes_expected << mesure_vide
+    #   end
+    # end
+    
+    (last - index_mesure).times do |i|
+      linotes_expected << ( mesure_vide ||= LINote::new("r1") )
+    end unless index_mesure > last
+    
+    first_ln = linotes_expected.first
+
+    # @FIXME: Dans tous les cas ci-dessous on n'étudie pas le fait que
+    # ce soit ou non un silence. Il est IMPÉRATIF de le faire, car
+    # une marque de slure, de legato ou de dynamique placé sur un 
+    # silence génère peut-être une erreur (même si, pourtant, ça peut
+    # arriver en musique… comme un crescendo sur un accord tenu au
+    # piano — cf. Liszt ou Beethove, sait plus)
+    # Si un slure, un legato ou une dynamique courait avant, sans être
+    # fermé, il faut l'ajouter à la première note, sauf si cette première
+    # contient justement la marque de fin de la chose
+    first_ln.send(
+      first_ln.slure_end? ? 'erase_slure_end' : 'start_slure'
+      ) if slure_run_before
+    first_ln.send(
+      first_ln.legato_end? ? 'erase_legato_end' : 'start_legato'
+      ) if legato_run_before
+    # @TODO: voir s'il n'est pas dangereux, pour les marques d'intensité,
+    # d'éraser complètement la dynamique
+    first_ln.send(
+      first_ln.dynamique_end? ? 'erase_dynamique' :
+      "start_#{crescendo_run_before ? '' : 'de'}crescendo"
+    ) if dyna_run_before
+    
+    # Si la dernière linote commence un slure, un legato ou une dynamique,
+    # il faut les supprimer
+    # 
+    # @FIXME: mais attention : tout se passe bien si la commande
+    # est appelée seule pour extraire des mesures une seule fois.
+    # En revanche, comme la linote est modifiée, si l'instrument
+    # doit resservir ailleurs, il deviendra erroné.
+    # La solution serait d'introduire des clones plutôt que les 
+    # vraies LINotes du motif.
+    #
+    last_ln = linotes_expected.last
+    last_ln.set(:legato => nil)    if last_ln.slure_start? || last_ln.legato_start?
+    last_ln.set(:dyna => nil) if last_ln.dynamique_start?
+    
+    # puts "\nlast_ln après premier test: #{last_ln.inspect}"
+    
+    # Faut-il ajouter une fin de slure, de legato ou de dynamique ?
+    if slure_run_in || legato_run_in || dyna_run_in
+      # @note: l'ordre est important, ci-dessous
+      last_ln.end_slure     if slure_run_in
+      last_ln.end_legato    if legato_run_in
+      if dyna_run_in
+        # Mais ça peut être la note elle-même qui a généré ce départ de
+        # dynamique.
+        last_ln.end_dynamique 
+      end
+    end
+
     linotes_expected = LINote::implode linotes_expected
-    # puts "linotes_expected: #{linotes_expected.inspect}"
+
+    # = débug =
+    puts "\n\n= LINotes obtenues pour l'instrument de classe #{self.class} :"
+    puts "= #{linotes_expected}"
+    # = / débug =
+
     linotes_expected
   end
+  alias :measure  :mesures
+  alias :mesure   :mesures
   alias :measures :mesures
   
   # =>  Retourne l'ensemble des notes de l'instrument, sous forme d'un
   #     Array d'objets LINote
   def explode
     ary_linotes = []
-    @motifs.each { |motif| ary_linotes += motif.exploded }
+    @motifs.each do |motif|
+      explosion = motif.exploded
+      # Appliquer la duree du motif à la première LINote si nécessaire
+      unless explosion.empty?
+        explosion.first.set(:duration => motif.duration) \
+          if explosion.first.duration.nil?
+      end
+      ary_linotes += explosion
+    end
     ary_linotes
   end
   
