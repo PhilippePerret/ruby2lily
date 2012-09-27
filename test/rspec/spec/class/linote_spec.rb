@@ -1502,25 +1502,44 @@ describe LINote do
 				prem_ln.duration(true).should == "8."
 			end
 
+			# :duree_points_to_float
+			it "doit répondre à :duree_points_to_float" do
+			  @ln.should respond_to :duree_points_to_float
+			end
 			# :duree_absolue
 			it "doit répondre à duree_absolue" do
 			  @ln.should respond_to :duree_absolue
 			end
 			{
-				"1"  => 4.0, "2" => 2.0, "4" => 1.0, "8" => 0.5, "16" => 0.25,
-				"32" => 0.125,
-				"1." => 6.0, "2." => 3.0, "4." => 1.5, "8." => 0.75, "16." => 0.375,
-				"1.." => 7.0, "2.." => 3.5, "4.." => 1.75
-			}.each do |duree, expected|
+				"1/"  => 4.0, "2/" => 2.0, "4/" => 1.0, "8/" => 0.5, "16/" => 0.25,
+				"32/" => 0.125,
+				"1/." => 6.0, "2/." => 3.0, "4/." => 1.5, "8/." => 0.75, "16/." => 0.375,
+				"1/.." => 7.0, "2/.." => 3.5, "4/.." => 1.75
+			}.each do |dduree, expected|
+				nombre, points = dduree.split('/')
+				duree = "#{nombre}#{points}"
 				it "La durée absolue pour une durée LilyPond de '#{duree}' doit être #{expected}" do
 				  ln = LINote::new "c", :duree => duree
 					ln.duree_absolue.should == expected
+				end
+				it "La durée absolue doit pouvoir recevoir une durée absolue en argument" do
+				  ln = LINote::new "c~"
+					ln.duree_absolue(expected).should == expected
+				end
+				it ":duree_points_to_float(#{nombre}, '#{points}') doit retourner #{expected}" do
+					ln = LINote::new "c"
+					ln.duree_points_to_float(nombre, points).should == expected
 				end
 			end
 			it "La durée absolue doit utiliser la valeur par défaut si pas de durée" do
 			  ln = LINote::new "c"
 				ln.duration.should be_nil
 				ln.duree_absolue("4").should == 1.0
+			end
+			it "La durée absolue doit utiliser la valeur par défaut si la durée est ~" do
+			  ln = LINote::new "c~"
+				ln.duration.should == "~"
+				ln.duree_absolue("2").should == 2.0
 			end
 		end # / fin describe méthodes pour la durée
 		

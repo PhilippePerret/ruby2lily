@@ -947,21 +947,34 @@ class LINote < NoteClass
   # 
   # @param  duree_defaut . La durée par défaut (peut-être héritée de la
   #                      . note précédente) dans le cas où duration
-  #                      . renverrait une valeur nulle. C'est une durée
-  #                      . au format String, p.e. "2.".
+  #                      . renverrait une valeur nulle.
+  #                      . SOIT : une durée string  (String)
+  #                      . SOIT : une durée absolue (Float)
+  # 
+  # @note:  Si aucune durée n'est trouvée, on met une noire ("4")
   # 
   def duree_absolue duree_defaut = nil
-    duree = duration(true) || duree_defaut
+    duree = duration(true)
+    if duree.nil? || duree == "~"
+      return duree_defaut if duree_defaut.class == Float
+      duree = duree_defaut || "4"
+    end
     return nil if duree.nil?
-    valeur = 0
     duree.scan(/^([0-9]*)?([.]*)?(~)?$/){
       tout, nombre, points, tilde = [$&, $1, $2, $3]
-      valeur = 4.0 / nombre.to_i
-      valeur_init = 0.0 + valeur
-      unless points.nil?
-        points.length.times { |itime| valeur += valeur_init / (2**(itime + 1)) }
-      end
+      return duree_points_to_float nombre, points
     }
+  end
+  
+  # =>  Retourne la durée absolue (flottant) en fonction de la durée
+  #     définie par le +nombre+ (qui peut être un string) et les +points+
+  # 
+  def duree_points_to_float nombre, points
+    valeur = 4.0 / nombre.to_i
+    valeur_init = 0.0 + valeur
+    points.length.times do |itime| 
+      valeur += valeur_init / ( 2**(itime + 1) ) 
+    end unless points.nil?
     valeur
   end
 

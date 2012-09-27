@@ -109,6 +109,19 @@ describe Instrument do
 				res = @voix.mesures(2, 3)
 				res.to_s.should == "d d d d e e e e"
 			end
+			it "doit renvoyer les bonnes notes avec des liaisons de durée (~)" do
+			  @voix << Motif::new("c c~ c c~ c b b b")
+				@voix.mesure(1).should == "c c~ c c"
+			end
+			it "doit renvoyer les bonnes notes avec un motif sans durée commençant par un tilde" do
+			  @voix << Motif::new("c~ c c c b b b b")
+				@voix.mesure(1).should == "c~ c c c"
+			end
+			it "une liaison de durée à la fin (~) doit être supprimée" do
+			  @voix << Motif::new("c c c c b b b b~ b c c c", :duration => "4")
+				@voix.mesure(2).should_not == "b b b b~"
+				@voix.mesure(2).should == "b b b b"
+			end
 			it "doit renvoyer jusqu'à la dernière si last = -1" do
 				@voix << Motif::new("c c c c d d d d")
 				@voix << Motif::new("e e e e f f f f")

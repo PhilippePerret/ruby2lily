@@ -97,7 +97,7 @@ class Instrument
     position_courante       = 0
     index_mesure            = 1
     linotes_expected        = []
-    last_duration           = "4"   # Par défaut, une noire
+    last_duree_absolue      = 1.0   # Par défaut, une noire
     
     # Dans le cas où une liaison, une dynamique commencerait avant
     # la mesure désirée, on conserve sa trace pour l'ajouter en début
@@ -110,7 +110,10 @@ class Instrument
     legato_run_in         = false
     dyna_run_in           = false
     
+
     explode.each do |linote|
+
+      # puts "\n= linote: #{linote.inspect}"
       
       # Tant qu'on n'a pas atteint la dernière mesure voulue,
       # on prend la linote si on a déjà passé la première mesure voulue
@@ -163,11 +166,11 @@ class Instrument
       # 4 est mis en durée par défaut à la première note si aucune
       # durée n'est précisée
       unless linote.in_accord? && !linote.start_accord?
-        duree_note = linote.duree_absolue( last_duration )
+        duree_note = linote.duree_absolue( last_duree_absolue )
         position_courante += duree_note
+        # On mémorise la dernière durée absolue
+        last_duree_absolue = duree_note
       end
-      # On mémorise la dernière durée spécifiée
-      last_duration = linote.duration unless linote.duration.nil?
       
       # # = débug =
       # puts "\n=== in mesures ==="
@@ -262,6 +265,9 @@ class Instrument
     last_ln = linotes_expected.last
     last_ln.set(:legato => nil)   if last_ln.slure_start? || last_ln.legato_start?
     last_ln.set(:dyna => nil)     if last_ln.dynamique_start?
+    
+    # Si la durée de la dernière note est "~", il faut la supprimer
+    last_ln.set(:duration => nil) if last_ln.duration == "~"
     
     # puts "\nlast_ln après premier test: #{last_ln.inspect}"
     
