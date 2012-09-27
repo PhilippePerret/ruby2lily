@@ -10,9 +10,9 @@ cd ~/Sites/cgi-bin/lilypond/test/rspec;pwd
 # rspec spec
 
 # DEUX SPECS À CORRIGER :
-# rspec spec/class/instrument_spec.rb -e "Sélection de mesures"
-
-rspec spec/class/linote_spec.rb
+rspec spec/class/instrument_spec.rb -e "Sélection de mesures"
+# rspec spec/class/instrument_spec.rb -e "doit bien gérer les accords"
+# rspec spec/class/linote_spec.rb
 
 # rspec spec/class/note_spec.rb
 # rspec spec/class/chord_spec.rb
