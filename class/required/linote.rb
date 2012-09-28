@@ -17,6 +17,7 @@ class LINote < NoteClass
     SUITE_DIESES = ['f', 'c', 'g', 'd', 'a', 'e', 'b']
     SUITE_BEMOLS = SUITE_DIESES.reverse
     
+    
     ALTERS_PER_TUNE = {
       'C'   => { :nombre => 0, :suite => nil, :add => nil},
       'G'   => { :nombre => 1, :suite => SUITE_DIESES,  :add => 'is' },
@@ -202,9 +203,18 @@ class LINote < NoteClass
   
   # =>  Définit et retourne les altérations des notes dans la tonalité
   #     +key+ fournie
+  # 
+  # @return:  Un hash avec en clé la note sans altération et en 
+  #           valeur la note avec son altération si elle est
+  #           nécessaire dans la tonalité voulue.
+  # 
+  # @note:    On peut travailler avec plusieurs tonalités puisque 
+  #           chaque tonalité utilisée au cours du programme est mise 
+  #           dans un hash avec en clé la-dite tonalité
+  # 
   def self.alterations_notes_in_key key
-    # @todo: il faut vérifier que la tonalité existe
-    key ||= "C"
+    key ||= SCORE::key || "C"
+    key = key.capitalize
     @@alteration_notes_per_key ||= {}
     @@alteration_notes_per_key[key] ||= lambda {
       data_key = ALTERS_PER_TUNE[key]
@@ -213,6 +223,31 @@ class LINote < NoteClass
       alter_to_add  = data_key[:add]
       hash_alters =
       {'c'=>'c', 'd'=>'d', 'e'=>'e', 'f'=>'f', 'g'=>'g', 'a'=>'a', 'b'=>'b'}
+      if nombre_alters > 0
+        nombre_alters.times do |i|
+          note = suite_alters[i]
+          hash_alters[note] << alter_to_add
+        end
+      end
+      hash_alters
+    }.call
+  end
+  
+  # =>  Return un hash de données paire clé-value où la clé est une note
+  #     et la valeur son altération SEULE dans la tonalité donnée.
+  #     Pour obtenir la note avec son altération toute prête, utiliser
+  #     plutôt la méthode précédente.
+  def self.alteration_for_notes_in_key
+    key ||= SCORE::key || "C"
+    key = key.capitalize
+    @@alteration_for_notes_in_key ||= {}
+    @@alteration_for_notes_in_key[key] ||= lambda {
+      data_key = ALTERS_PER_TUNE[key]
+      nombre_alters = data_key[:nombre]
+      suite_alters  = data_key[:suite]
+      alter_to_add  = data_key[:add]
+      hash_alters =
+      {'c'=>'', 'd'=>'', 'e'=>'', 'f'=>'', 'g'=>'', 'a'=>'', 'b'=>''}
       if nombre_alters > 0
         nombre_alters.times do |i|
           note = suite_alters[i]
@@ -710,6 +745,25 @@ class LINote < NoteClass
                 :bad    => ary.class.to_s)
   end
 
+  # =>  Hausse toutes les LINotes de +ary_linotes+ du nombre de +degres+
+  #     voulus dans la tonalité courante
+  # 
+  # @param  ary_linotes     Liste (Array) des LINotes
+  # @param  degres          Nombre de degrés voulus
+  # 
+  # @return   Liste de LINotes ré-haussées
+  # @note     Ce sont des clones des LINotes initiales, qui ne sont donc
+  #           pas modifiées.
+  def self.up ary_linotes, degres
+    ary_linotes.collect{ |ln| ln.up degres }
+  end
+  # =>  Hausse toutes les LINotes de +ary_linotes+ du nombre de +degres+
+  #     voulus dans la tonalité courante
+  # @note:  Cf. self.up pour le détail
+  def self.down ary_linotes, degres
+    up ary_linotes, -degres
+  end
+
   # =>  Return la valeur string de la note en fonction du +context+
   #     soumis.
   #     CETTE MÉTHODE DOIT DEVENIR OBSOLÈTE (ELLE N'EST PAS EFFICIENTE)
@@ -1103,6 +1157,12 @@ class LINote < NoteClass
     # sans delta
     linote.real_octave + add_octave
   end
+  
+  # => Retourne un clone de la LINote courante
+  def clone
+    LINote::new to_hash
+  end
+  
   # => Return la linote sous forme de hash
   # 
   def to_hash
@@ -1505,6 +1565,45 @@ class LINote < NoteClass
   #     altérations)
   def index_diat
     @index_diat ||= GAMME_DIATONIQUE.index(self.note)
+  end
+  
+  # -------------------------------------------------------------------
+  #   Méthodes de changement de hauteur
+  # -------------------------------------------------------------------
+
+  # =>  Retourne une nouvelle linote haussée du nombre de degrés voulu
+  #     dans la tonalité courante
+  # 
+  # @param    degres      Nombre de degrés dont il faut surélever la note
+  # 
+  # @note     Si le nombre de degrés est supérieur à 7, on modifie aussi
+  #           l'octave de la LINote.
+  # @note     La même méthode est utilisée pour :down, avec un argument
+  #           négatif.
+  # 
+  # @requis   SCORE::key  Tonalité courante. Do par défaut
+  # @return   La nouvelle LINote réhaussée
+  # 
+  def up degres
+    new_ln      = self.clone
+    index_self  = self.index_diat
+    index_new   = (index_self + degres) % 7
+    octave_sup  = degres / 7
+    new_ln.set :note  => GAMME_DIATONIQUE[index_new]
+    new_ln.set :alter => LINote::alteration_for_notes_in_key[new_ln.note]
+    unless octave_sup == 0
+      new_ln.set :real_octave => (new_ln.real_octave || 4) + octave_sup
+      new_ln.set :octave      => (new_ln.octave      || 4) + octave_sup
+    end
+    new_ln
+  end
+  # =>  Retourne une nouvelle linote baissée du nombre de degrés voulu
+  #     dans la tonalité courante (ou DO)
+  # 
+  # @note: Paramètres identiques à :up
+  # 
+  def down degres
+    up -degres
   end
   
   # =>  Return la note baissée de +demitons+ demi-tons dans le contexte

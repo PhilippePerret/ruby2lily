@@ -5,7 +5,10 @@ require 'spec_helper'
 require 'linote'
 
 describe LINote do
-	
+	before(:all) do
+	  SCORE = Score::new unless defined? SCORE
+		ORCHESTRE = Orchestre::new unless defined? ORCHESTRE
+	end
 	# -------------------------------------------------------------------
 	# 	Classe
 	# -------------------------------------------------------------------
@@ -630,13 +633,40 @@ describe LINote do
 			end
 		end
 
-		it "doit répondre à :note_str_in_context" do
-		  LINote.should respond_to :note_str_in_context
+		it "doit répondre à :up" do
+		  LINote.should respond_to :up
 		end
-		it ":note_str_in_context doit renvoyer la bonne valeur" do
-		  LINote::note_str_in_context(0).should == 'c'
-			LINote::note_str_in_context(1, :tonalite => 'C').should == 'cis'
-			LINote::note_str_in_context(1, :tonalite => 'F').should == 'des'
+		it ":up ne doit pas toucher le motif initial" do
+			iv_set(SCORE, :key => "E")
+		  motif = Motif::new "e f# sol# la si do# re# mi"
+			explosion = motif.explode
+			LINote::up(explosion, 1)
+			LINote::implode(explosion).should == "e fis gis a b cis dis e"
+		end
+		it ":up doit monter toutes les LINotes de la liste" do
+			iv_set(SCORE, :key => "E")
+		  motif = Motif::new "e f# sol# la si do# re# mi"
+			explosion = motif.explode
+			res = LINote::up(explosion, 1)
+			LINote::implode(res).should == "fis gis a b cis dis e fis"
+			res = LINote::up(explosion, 2)
+			LINote::implode(res).should == "gis a b cis dis e fis gis"
+		end
+		it "doit répondre à :down" do
+		  LINote.should respond_to :down
+		end
+		it ":down doit baisser toutes les LINotes de la liste" do
+			iv_set(SCORE, :key => "E")
+		  motif = Motif::new "e f# sol# la si do# re# mi"
+			explosion = motif.explode
+			res = LINote::down(explosion, 1)
+			LINote::implode(res).should == "dis e fis gis a b cis dis"
+			res = LINote::down(explosion, 2)
+			LINote::implode(res).should == "cis dis e fis gis a b cis"
+		end
+		
+		it "doit répondre à :note_str_in_context" do
+		  pending "OBSOLÈTE"
 		end
 	end # /méthodes de classe
 
@@ -1192,6 +1222,22 @@ describe LINote do
 			hash_ln[:real_octave].should == nil
 		end
 		
+		# :clone
+		it "doit répondre à :clone" do
+		  @ln.should respond_to :clone
+		end
+		it ":clone doit faire un clone de la LINote" do
+		  ln1 = LINote::new "c", :alter => "is", :octave => 5
+			ln2 = ln1.clone
+			ln2.octave.should == 5
+			ln1.set :octave => 1
+			ln1.octave.should == 1
+			ln2.octave.should == 5
+			ln2.set :alter => ""
+			ln1.with_alter.should == "cis"
+			ln2.with_alter.should == "c"
+		end
+
 		# :as_note
 		it "doit répondre à :as_note" do
 		  @ln.should respond_to :as_note
@@ -1542,6 +1588,56 @@ describe LINote do
 				ln.duree_absolue("2").should == 2.0
 			end
 		end # / fin describe méthodes pour la durée
+		
+		# -------------------------------------------------------------------
+		# 	Méthode de changement de hauteur
+		# -------------------------------------------------------------------
+		describe "Changement de hauteur" do
+		  it "doit répondre à :up" do
+		    @ln.should respond_to :up
+		  end
+			it ":up doit monter la note dans la tonalité de do" do
+				iv_set(SCORE, :key => "C")
+			  ln = LINote::new "c", :octave => 0
+				res = ln.up(1)
+				res.with_alter.should == "d"
+				ln.up(2).with_alter.should == "e"
+				ln.up(3).with_alter.should == "f"
+				ln.up(4).with_alter.should == "g"
+				ln.up(5).with_alter.should == "a"
+				ln.up(6).with_alter.should == "b"
+				res = ln.up(7)
+				res.with_alter.should == "c"
+				res.real_octave.should == 1
+				ln.up(8).with_alter.should == "d"
+				ln.up(9).with_alter.should == "e"
+				ln.up(10).with_alter.should == "f"
+				ln.up(11).with_alter.should == "g"
+				ln.up(12).with_alter.should == "a"
+				ln.up(13).with_alter.should == "b"
+				res = ln.up(14)
+				res.with_alter.should == "c"
+				res.real_octave.should == 2
+			end
+			it "doit répondre à :down" do
+			  @ln.should respond_to :down
+			end
+			it ":down doit descendre la note dans la tonalité choisie" do
+			  iv_set(SCORE, :key => "C")
+				ln = LINote::new "d"
+				ln.down(1).with_alter.should == "c"
+			  iv_set(SCORE, :key => "D")
+				ln.down(1).with_alter.should == "cis"
+				ln.down(2).with_alter.should == "b"
+				ln.down(3).with_alter.should == "a"
+				ln.down(4).with_alter.should == "g"
+				ln.down(5).with_alter.should == "fis"
+				ln.down(6).with_alter.should == "e"
+				res = ln.down(7)
+				res.with_alter.should == "d"
+				res.real_octave.should == 3
+			end
+		end # / Describe changement de hauteur
 		
 		# :str_in_context
 		it "doit répondre à :str_in_context" do
