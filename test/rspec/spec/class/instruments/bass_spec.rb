@@ -5,6 +5,10 @@ require 'spec_helper'
 require 'instruments/bass'
 
 describe Bass do
+	before(:all) do
+	  SCORE = Score::new unless defined? SCORE
+		ORCHESTRE = Orchestre::new unless defined? ORCHESTRE
+	end
   # -------------------------------------------------------------------
 	# Classe
 	# -------------------------------------------------------------------
@@ -24,5 +28,7 @@ describe Bass do
 	  before(:each) do
 	    @bass = Bass::new
 	  end
+		describe "avec les motifs" do
+		end
 	end # / L'instance
 end

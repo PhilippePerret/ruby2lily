@@ -8,6 +8,7 @@ cd ~/Sites/cgi-bin/lilypond/test/rspec;pwd
 
 # LA TOTALE
 rspec spec
+# rspec spec/class/linote_spec.rb
 
 # DEUX SPECS À CORRIGER :
 # rspec spec/class/instrument_spec.rb -e "Sélection de mesures"
