@@ -121,6 +121,10 @@ class Instrument
   # Cette méthode est une des méthodes principales de construction de la
   # partition. Même lorsqu'aucune mesure spéciale n'est demandée, elle
   # est appelée, avec les paramètres à nil
+  # 
+  # @note:  Si SCORE.bars est défini, et que c'est le premier instrument,
+  #         on l'utilise pour ajouter les barres de mesure.
+  # 
   def mesures first = nil, last = nil
     last ||= first
     # @TODO: produire ici une erreur si last est avant first ?
@@ -135,12 +139,18 @@ class Instrument
         last - first + 1
       end
     
-    # Retourner toutes les notes s'il n'y a pas de filtre de mesure
+    # Définition éventuelle des barres de mesure
+    barres_mesures = SCORE.bars
+    
+    # Retourner toutes les notes s'il n'y a pas de filtre de mesure, et
+    # aucune barre de mesures spéciales
     # puts "@motifs: #{@motifs.inspect}"
     # @motifs contient quelque chose comme : \relative c { a b c }
-    return to_llp if first.nil? && last.nil?
-    
-    duree_mesure = SCORE::duree_absolue_mesure
+    return to_llp if first.nil? && last.nil? && barres_mesures.nil?
+    first           = 1     if first.nil? 
+    jusqua_derniere = true  if last.nil?
+
+    duree_mesure = SCORE.duree_absolue_mesure
     
     position_courante       = 0
     index_mesure            = 1
@@ -175,6 +185,11 @@ class Instrument
         # des blocs conditionnels à chaque linote. Plutôt, on mémorise
         # — cf. ci-dessous — et on le traitera en fin de boucle si
         # nécessaire.
+        
+        # Au cours de l'explosion (cf. `explode' ci-dessous), on a pu
+        # ajouter des propriétés utiles à la LINote (comme par exemple
+        # un changement de clef). Il faut le traiter ici
+        linotes_expected << "\\clef \"#{linote.clef}\"" unless linote.clef.nil?
         
         linotes_expected << linote
         
@@ -232,8 +247,16 @@ class Instrument
         # Une fin de mesure est atteinte avec cette note
         # Mais c'est peut-être un accord, donc on ne considère que 
         # c'est la fin seulement si on est au bout de l'accord
+        # 
+        # Si une barre de mesure spéciale est définie, on l'ajoute
         unless linote.in_accord? && !linote.end_accord?
           index_mesure      += 1 
+          unless barres_mesures.nil?
+            if barres_mesures.has_key? index_mesure
+              bar = "\\bar \"#{barres_mesures[index_mesure]}\""
+              linotes_expected << bar
+            end
+          end
           position_courante =  0
           (break if index_mesure > last) unless jusqua_derniere
         end
@@ -250,7 +273,7 @@ class Instrument
     end
     # / Fin de boucle sur les linotes dans l'espace voulu
     
-    # On génère une erreur non fatal si le numéro de dernière ou de 
+    # On génère une erreur non fatale si le numéro de dernière ou de 
     # première mesure est trop grand. 
     # Noter qu'il ne faut pas générer d'erreur fatale. En effet, le cas
     # est simple : si on demande l'affichage de mesures précises, c'est
@@ -279,7 +302,13 @@ class Instrument
       end
     end
     
-    first_ln = linotes_expected.first
+    # Récupération de la première linote
+    # @note:  linotes_expected peut contenir des simples textes (comme
+    #         par exemple des barres spéciales)
+    first_ln = nil
+    linotes_expected.each do |ln| 
+      (first_ln=ln) and break if ln.class == LINote
+    end
 
     # @FIXME: Dans tous les cas ci-dessous on n'étudie pas le fait que
     # ce soit ou non un silence. Il est IMPÉRATIF de le faire, car
@@ -303,6 +332,15 @@ class Instrument
       "start_#{crescendo_run_before ? '' : 'de'}crescendo"
     ) if dyna_run_before
     
+    # Récupération de la dernière linote
+    # @note:  linotes_expected peut contenir des simples textes (comme
+    #         par exemple des barres spéciales). Il faut donc chercher
+    #         la première linote en partant de la fin
+    last_ln = nil
+    linotes_expected.reverse.each do |ln| 
+      (last_ln=ln) and break if ln.class == LINote
+    end
+
     # Si la dernière linote commence un slure, un legato ou une dynamique,
     # il faut les supprimer
     # 
@@ -313,7 +351,6 @@ class Instrument
     # La solution serait d'introduire des clones plutôt que les 
     # vraies LINotes du motif.
     #
-    last_ln = linotes_expected.last
     last_ln.set(:legato => nil)   if last_ln.slure_start? || last_ln.legato_start?
     last_ln.set(:dyna => nil)     if last_ln.dynamique_start?
     
@@ -342,6 +379,7 @@ class Instrument
     # # = / débug =
 
     linotes_expected
+    
   end
   alias :measure  :mesures
   alias :mesure   :mesures
@@ -353,10 +391,21 @@ class Instrument
     ary_linotes = []
     @motifs.each do |motif|
       explosion = motif.exploded
-      # Appliquer la duree du motif à la première LINote si nécessaire
       unless explosion.empty?
-        explosion.first.set(:duration => motif.duration) \
-          if explosion.first.duration.nil?
+        first_ln = explosion.first
+        # Appliquer la duree du motif à la première LINote si nécessaire
+        first_ln.set(:duration => motif.duration) if explosion.first.duration.nil?
+        # Ici, il faut faire beaucoup plus que ça : par exemple,
+        # les indications de clé doivent être ajoutées si nécessaire
+        # BUT: un gros problème quand même : on n'est pas certain que
+        # cette méthode soit uniquement utilisée par `mesures' pour 
+        # produire les mesures. En d'autres termes, il n'est peut-être
+        # pas du tout bon d'ajouter inconsidérément des strings dans
+        # l'explosion.
+        # Utiliser un autre traitement pour ne pas engendrer d'erreurs. 
+        # Par exemple, mettre toutes les indications dans la première 
+        # linote ?
+        first_ln.set(:clef => motif.clef) unless motif.clef.nil?
       end
       ary_linotes += explosion
     end

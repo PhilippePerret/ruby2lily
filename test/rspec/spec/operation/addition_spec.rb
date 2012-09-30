@@ -60,6 +60,12 @@ describe "Addition à String" do
 			s1, s2, expected, octave = d
 			it "#{s1} + #{s2} doit définir le motif: #{expected}" do
 			  res = s1 + s2
+				unless res.class == Motif
+					puts "\n\nERREUR: #{s1} + #{s2} doit définir le motif: #{expected}"
+					puts "= '#{s1}'.as_motif: #{s1.as_motif.inspect}"
+					puts "= '#{s2}'.as_motif: #{s2.as_motif.inspect}"
+					puts "= res non motif: #{res.inspect}" 
+				end
 				res.class.should 	== Motif
 				res.to_llp.should == expected
 				res.octave.should == octave unless octave.nil?

@@ -8,6 +8,7 @@ describe Instrument do
 	before(:all) do
 	  SCORE = Score::new unless defined? SCORE
 		iv_set(SCORE, :key => nil)
+		iv_set(SCORE, :bars => nil)
 	end
 	# -------------------------------------------------------------------
 	# Tests de la classe
@@ -83,7 +84,7 @@ describe Instrument do
 		end
 		
 		# -------------------------------------------------------------------
-		# 	Sélection de mesures
+		# 	Sélection de mesures ( + barres spéciales )
 		# -------------------------------------------------------------------
 		describe "Sélection de mesures" do
 			before(:each) do
@@ -114,6 +115,14 @@ describe Instrument do
 				@voix << Motif::new("e e e e f f f f")
 				res = @voix.mesures(2, 3)
 				res.to_s.should == "d d d d e e e e"
+			end
+			it "doit insérer la barre de mesure spéciale si nécessaire" do
+				SCORE::bars 3 => '||'
+				@voix << Motif::new("c c c c d d d d")
+				@voix << Motif::new("e e e e f f f f")
+				res = @voix.mesures(2, 3)
+				res.to_s.should == "d d d d \\bar \"||\" e e e e"
+				iv_set(SCORE, :bars => nil)
 			end
 			it "doit renvoyer les bonnes notes avec des liaisons de durée (~)" do
 			  @voix << Motif::new("c c~ c c~ c b b b")

@@ -244,9 +244,13 @@ describe String do
 		it ":as_motif doit retourner le bon motif (avec silences, octave et durée)" do
 			mo = "r8 r c, r".as_motif
 			mo.class.should == Motif
-			mo.notes.should == "r r c, r"
-			mo.octave.should == 4
+			mo.notes.should == "r r c r"
+			mo.octave.should == 3
 			mo.duration.should == "8"
+			ndo = mo.explode[2]
+			ndo.note.should == "c"
+			ndo.octave.should == 3
+			ndo.delta.should == 0
 		end
 		it ":as_motif doit accepter et traiter les paramètres" do
 		  str = "a b c"

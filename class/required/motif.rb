@@ -18,9 +18,9 @@ class Motif < NoteClass
   # -------------------------------------------------------------------
   attr_reader :notes, :octave, :duration, :clef, :dynamique
   
-  @notes    = nil   # Le motif (String)
-  @octave   = nil   # L'octave du motif (par défaut, c'est 2)
-  @duration = nil   # Durée du motif (optionnel)
+  @notes    = nil     # Le motif (String)
+  @octave   = nil     # L'octave du motif (nil par défaut)
+  @duration = nil     # Durée du motif (optionnel)
   
   @first_note = nil   # La première note (LINote). Calculé au besoin
                       # en utilisant <motif>.first_note
@@ -71,18 +71,23 @@ class Motif < NoteClass
     end
     @octave = params.delete(:octave)
     
-    set_with_string  notes  unless notes.nil?
-    # puts "\n\n= Avant set properties : #{self.inspect}"
+    set_with_string( notes ) unless notes.nil?
     set_properties params
-    # puts "\n= Avant rationnalize_durees: #{self.inspect}"
     rationnalize_durees
-    # puts "\n= Avant implode: #{self.inspect}"
     implode # pour reconstituer @notes explodé avant
+    # @FIXME: dans `set_with_string', on demande déjà l'implode pour
+    # reconstituer @notes. Donc, ici, il y a redondance. Mais l'implode
+    # se fait peut-être ici avaec des notes motifiées dans set_properties
+    # et/ou rationnalize_durees.
+    # Donc, soit on le supprime ici si @notes n'est pas modifié par les
+    # deux appels précédents, soit on supprime l'implode dans 
+    # `set_with_string' pour ne pas répéter une procédure.
+    
   end
     
   # => Définir les propriétés du motif
   def set_properties hash
-    return if hash.nil?
+    return if hash.nil? || hash.empty?
     # Valeurs qui ne doivent pas être traitées par params
     slured  = hash.delete(:slured)
     legated = hash.delete(:legato)
@@ -103,14 +108,18 @@ class Motif < NoteClass
   # @TODO:  faire une recherche sur les liaisons (première et dernière
   #         notes)
   # @TODO: faire une recherche sur les dynamiques (idem)
+  # 
   def set_with_string notes
     return if notes.to_s.blank?
     notes     = LINote::to_llp notes
     @exploded = LINote::explode(notes, @octave)
-    prem      = @exploded.first
-    @octave   = prem.octave + prem.delta
-    prem.set :delta => 0
-    @notes    = LINote::implode @exploded
+    @exploded.each do |ln|
+      next if ln.rest?
+      @octave = ln.octave + ln.delta
+      ln.set :delta => 0
+      break
+    end
+    @notes = LINote::implode @exploded
   end
   
   # => Définit une propriété quelconque du motif
@@ -126,6 +135,45 @@ class Motif < NoteClass
   # => Retourne la valeur de la propriété +prop+
   def get prop
     instance_variable_get("@#{prop}")
+  end
+  
+  # => Définit l'octave du Motif
+  # 
+  # @note1  La méthode est surtout utile pour les méthodes crochets,
+  #         où il faut aussi, peut-être, modifier les octaves des
+  #         LINotes, ce qui correspond à modifier les propriétés
+  #         :octave
+  # 
+  # @param  oct   Nouvelle octave du Motif
+  # 
+  def set_octave oct
+    # puts "\nJe mets l'octave à #{oct}"
+    # @FIXME: ci-dessous, c'est complètement nul... On ne peut pas 
+    # modifier l'octave des LINotes aussi violemment. Il faut :
+    #   1.  S'assurer que le programme gère bien les octaves (c'est loin
+    #       d'être le cas pour le moment)
+    #   2.  Calculer une différence d'octave, pour le motif, entre 
+    #       l'ancien et le nouveau
+    #   3.  Reporter cette différence sur les LINotes.
+    return if oct.nil? || @octave == oct
+    diff = oct - @octave
+    @octave = oct
+    update_octave_linotes diff
+    # puts "= Motif devient : #{self.inspect}"
+  end
+  
+  # =>  Actualise l'octave des LINotes du Motif après un changement
+  #     d'octave du motif de +diff+
+  # 
+  # @param  diff    La différence d'octave, c'est-à-dire le nombre
+  #                 d'octave à ajouter (négatif si octaves à retrancher)
+  # 
+  def update_octave_linotes diff
+    explode.each do |ln|
+      # puts "\n= ln avant: #{ln.inspect}"
+      ln.set_octave ln.octave + diff
+      # puts "= ln APRES: #{ln.inspect}"
+    end
   end
   
   # Corrige les notes pour qu'elles soient au format LilyPond
@@ -511,7 +559,9 @@ class Motif < NoteClass
       # La première note fait partie d'un accord, on cherche la
       # dernière note de l'accord pour lui appliquer la durée
       exploded.each do |ln|
-        ln.set( :duree_post => duree ) and break if ln.end_accord?
+        next unless ln.end_accord?
+        ln.set( :duree_post => duree )
+        break
       end
     end
     exploded

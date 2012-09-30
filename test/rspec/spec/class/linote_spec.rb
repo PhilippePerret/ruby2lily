@@ -230,28 +230,37 @@ describe LINote do
 					compare_notes_et_data donne[0], donne[1]
 				end
 			end
-		end
+
+
+			it ":implode doit accepter des Strings et les écrire tels quels" do
+			  motif = Motif::new "c d e f g a b"
+				ary = motif.explode + ["||"]
+				LINote::implode(ary).should == "c d e f g a b ||"
+			end
+			
+		end #/ describe :implode et :explode
 		
 		# Test des propriétés d'octaves affectés par :explode
 		[
 			# suite				liste des notes obtenues
-			# 						note, octave, delta, real_octave
-			["c",					[ 'c 4 0 4' ] ],
-			["a c",				[ 'a 4 0 4', 'c 5 0 5'] 		],
+			# 						note, octave, delta
+			["c",					[ 'c 4 0' ] ],
+			["a c",				[ 'a 4 0', 'c 5 0'] 		],
 			# Deltas
-			["c,",				['c 3 0 3']									],
-			["cis'",			['c 5 0 5']									],
-			["a c,",			[ 'a 4 0 4', 'c 5 -1 4'] 		],
-			["a c'' g,",	[ 'a 4 0 4', 'c 5 2 7', 'g 6 -1 5'] ],
-			["c, g'",			['c 3 0 3', 'g 2 1 3']			],
+			["c,",				['c 3 0']									],
+			["cis'",			['c 5 0']									],
+			["a c,",			[ 'a 4 0', 'c 4 -1'] 		],
+			["a c'' g,",	[ 'a 4 0', 'c 7 2', 'g 5 -1'] ],
+			["c, g'",			['c 3 0', 'g 3 1']			],
 			# Accords
 			["a b, c, <g'' bis,>", 
-					['a 4 0 4', 'b 4 -1 3', 'c 4 -1 3', 'g 2 2 4', 'b 4 -1 3']],
-			["<a b c> e",	['a 4 0 4', 'b 4 0 4', 'c 5 0 5', 'e 4 0 4']],
-			["<a b> <c, d> <g' f> a,,", ['a 4 0 4', 'b 4 0 4', 'c 5 -1 4', 'd 4 0 4', 'g 3 1 4', 'f 4 0 4', 'a 4 -2 2']],
+					['a 4 0', 'b 3 -1', 'c 3 -1', 'g 4 2', 'b 3 -1']],
+			["<a b c> e",	['a 4 0', 'b 4 0', 'c 5 0', 'e 4 0']],
+			["<c e g> <c e g>", ['c 4 0', 'e 4 0', 'g 4 0', 'c 4 0', 'e 4 0', 'g 4 0']],
+			["<a b> <c, d> <g' f> a,,", ['a 4 0', 'b 4 0', 'c 4 -1', 'd 4 0', 'g 4 1', 'f 4 0', 'a 2 -2']],
 
 			# Dernier (pour la virgule)
-			["c", ['c 4 0 4']]
+			["c", ['c 4 0']]
 		].each do |d|
 			suite, expected = d
 			it ":explode doit affecter les bons octaves pour la suite «#{suite}»" do
@@ -266,8 +275,6 @@ describe LINote do
 						unless linote.octave == oct.to_i
 					errors << "= Le delta attendu est #{delta}, linote.delta est : #{linote.delta}" \
 						unless linote.delta == delta.to_i
-					errors << "= L'octave réelle attendue est #{real_oct}, linote.real_octave est : #{linote.real_octave}" \
-						unless linote.real_octave == real_oct.to_i
 					unless errors.empty?
 						puts "\n\nERREUR AFFECTATION OCTAVES (#{__FILE__}:#{__LINE__})"
 						puts "= Suite : #{suite}"
@@ -277,7 +284,6 @@ describe LINote do
 						linote.note.should 				== note
 						linote.octave.should 			== oct.to_i
 						linote.delta.should 			== delta.to_i
-						linote.real_octave.should	== real_oct.to_i
 					end
 				end
 			end
@@ -683,6 +689,36 @@ describe LINote do
 		  ln = LINote::new "c"
 			ln.duration.should be_nil
 			ln.delta.should == 0
+		end
+		
+		# :set_octave
+		it "doit répondre à :set_octave" do
+		  @ln.should respond_to :set_octave
+		end
+		it ":set_octave doit modifier @octave" do
+		  ln = LINote::new "c", :octave => 0
+			ln.octave.should == 0
+			ln.set_octave 2
+			ln.octave.should == 2
+		end
+		it ":set_octave donne la bonne valeur quand delta" do
+		  ln = LINote::new "c", :delta => -1, :octave => 2
+			ln.octave.should == 2
+			ln.delta.should == -1
+			ln.set_octave 6
+			ln.octave.should == 6
+			ln.delta.should == -1
+		end
+		
+		# :set_delta
+		it "doit répondre à :set_delta" do
+		  @ln.should respond_to :set_delta
+		end
+		it ":set_delta doit définir le delta" do
+		  ln = LINote::new "c", :delta => 0
+			ln.delta.should == 0
+			ln.set_delta 2
+			ln.delta.should == 2
 		end
 		# :mark_delta
 		it "doit répondre à :mark_delta" do
@@ -1219,7 +1255,6 @@ describe LINote do
 			hash_ln[:alter].should 		== "isis"
 			hash_ln[:delta].should 		== 2
 			hash_ln[:octave].should 	== nil
-			hash_ln[:real_octave].should == nil
 		end
 		
 		# :clone
@@ -1280,34 +1315,7 @@ describe LINote do
 			ln.get(:octave).should == 2
 			ln.get(:duration).should == "4~"
 		end
-		
-		# :octave
-		it "doit répondre à :octave" do
-		  @ln.should respond_to :octave
-			# @note: c'est une méthode et une propriété
-		end
-	  [
-			#note, octave, delta, real_oct, instrument, expected
-			["c",  nil,    0,     4,        nil,         4],
-			["c",  1,      0,     1,        nil,         1],
-			["c",  -2,     0,     -2,       nil,         -2],
-			["c",  nil,    1,     nil,      nil,          nil],
-			["c",  nil,    -2,    nil,      nil,          nil],
-			["c",  nil,    -2,    4,      	nil,          6]
-			# @TODO: des tests doivent être ajoutés ici avec un instrument
-		].each do |d|
-			note, oct, delta, real_oct, instrument, oct_expected = d
-			texte = ":octave de #{note} "
-			texte << (oct.nil? ? "sans octave" : "d'octave #{oct}")
-			texte << (delta == 0 ? "" : " avec delta « #{delta} »")
-			texte << " doit renvoyer #{oct_expected}"
-			it texte do
-				ln = LINote::new note
-				ln.set :octave => oct, :real_octave => real_oct, :delta => delta
-				ln.octave(instrument).should == oct_expected
-			end
-		end
-		
+				
 		# :natural_octave_after
 		it "doit répondre à :natural_octave_after" do
 		  @ln.should respond_to :natural_octave_after
@@ -1331,8 +1339,8 @@ describe LINote do
 		---------------------------------------
 		DEFA
 		ary.to_array.each do |d|
-			ln1 = LINote::new( d[:note1], :real_octave => d[:o1])
-			ln2 = LINote::new( d[:note2], :real_octave => 0)
+			ln1 = LINote::new( d[:note1], :octave => d[:o1])
+			ln2 = LINote::new( d[:note2], :octave => 0)
 			octave_expected = d[:expected]
 			message = "#{ln2.note}-#{ln2.octave}.natural_octave_after" \
 								<< "(#{ln1.note}-#{ln1.octave}) doit retourner " \
@@ -1368,13 +1376,13 @@ describe LINote do
 		DEFA
 		ary.to_array.each do |d|
 			delta_expected = d[:delta] || 0
-			ln1 = LINote::new(d[:note1], :real_octave => d[:o1])
-			ln2 = LINote::new(d[:note2], :real_octave => d[:o2])
+			ln1 = LINote::new(d[:note1], :octave => d[:o1])
+			ln2 = LINote::new(d[:note2], :octave => d[:o2])
 			texte = "#{d[:note2]}-#{d[:o2]}:as_next_of" \
 							<< "(#{d[:note1]}-#{d[:o1]})" \
 							<< " doit mettre le delta à #{delta_expected}"
 			it texte do
-				ln2.as_next_of ln1
+				ln2.as_next_of ln1 # @TODO: ici, il faut certainement indiquer que c'est le delta à modifier
 				ln2.delta.should == delta_expected
 		  end
 		end
@@ -1608,7 +1616,7 @@ describe LINote do
 				ln.up(6).with_alter.should == "b"
 				res = ln.up(7)
 				res.with_alter.should == "c"
-				res.real_octave.should == 1
+				res.octave.should == 1
 				ln.up(8).with_alter.should == "d"
 				ln.up(9).with_alter.should == "e"
 				ln.up(10).with_alter.should == "f"
@@ -1617,14 +1625,14 @@ describe LINote do
 				ln.up(13).with_alter.should == "b"
 				res = ln.up(14)
 				res.with_alter.should == "c"
-				res.real_octave.should == 2
+				res.octave.should == 2
 			end
 			it "doit répondre à :down" do
 			  @ln.should respond_to :down
 			end
 			it ":down doit descendre la note dans la tonalité choisie" do
 			  iv_set(SCORE, :key => "C")
-				ln = LINote::new "d"
+				ln = LINote::new "d", :octave => 3
 				ln.down(1).with_alter.should == "c"
 			  iv_set(SCORE, :key => "D")
 				ln.down(1).with_alter.should == "cis"
@@ -1635,7 +1643,7 @@ describe LINote do
 				ln.down(6).with_alter.should == "e"
 				res = ln.down(7)
 				res.with_alter.should == "d"
-				res.real_octave.should == 3
+				res.octave.should == 2
 			end
 		end # / Describe changement de hauteur
 		

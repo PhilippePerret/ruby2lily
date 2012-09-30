@@ -422,6 +422,11 @@ class LINote < NoteClass
     in_accord       = false
     current_octave  ||= 4
     accord_start    = nil # indice de la première note de l'accord trouvé
+    
+    # La première note de l'accord courant (if any)
+    first_ln_accord = nil
+    # La dernière vraiment note (donc => hors silences), if any
+    last_real_note  = nil
 
     ary_str.each do |membre|
       ln = llp_to_linote( membre )
@@ -435,6 +440,7 @@ class LINote < NoteClass
         # boucle.
         in_accord = true
         ln.set :in_accord => true
+        first_ln_accord = ln
       elsif in_accord 
         ln.set :in_accord => true
         if ln.end_accord?
@@ -456,63 +462,36 @@ class LINote < NoteClass
       
       # Réglage de l'octave
       # --------------------
-      # @note:  `current_octave' contient la valeur courante de l'octave
-      #         en tenant compte des accords, sachant qu'en Lilypond,
-      #         c'est seulement la première note de l'accord qui décide
-      #         de la hauteur de référence de la note suivante.
-      #         En conséquence, l'octave courante ne change pas quand
-      #         on est à l'intérieur d'un accord et que ce n'est pas la
-      #         première note de l'accord.
-      #         Dans tous les autres cas, l'octave courante change si
-      #         on franchit un do.
-      # 
-      octave_for_ln = nil
-      
-      if inote > 0
-        prev_ln = data[ inote - 1 ]
-        # La linote de référence (pour comparaison d'octave) est 
-        # soit la note précédente soit la première note de l'accord
-        # précédent (if any)
-        # puts "\n\n= Étude octave de linote[#{inote}] #{ln.inspect}"
-        # puts "= accord_start: #{accord_start}" if prev_ln.end_accord?
-        ln_ref  = prev_ln.end_accord? ? data[accord_start] : prev_ln
-        if ln.in_accord?
-          # --- Intérieur d'un accord ---
-          if ln.start_accord?
-            # puts "\n\nNatural octave after appelé avec ln_ref:#{ln_ref.inspect}"
-            current_octave  = ln.natural_octave_after( ln_ref )
-            # puts "current_octave mis à : #{current_octave} pour #{ln.inspect}"
-          else
-            # À l'intérieur d'un accord (sauf première note), on définit
-            # l'octave pour la linote, mais on ne touche pas à l'octave
-            # courante.
-            # puts "\n\nNatural octave after appelé avec prev_ln:#{prev_ln.inspect}"
-            octave_for_ln = ln.natural_octave_after( prev_ln )
-            # puts "octave_for_ln mis à #{octave_for_ln}"
-          end
-        else
-          # --- Extérieur d'un accord ---
-          # 
-          # => Modification de l'octave si nécessaire
-          # puts "\n\nNatural octave after (extérieur accord) appelé avec ln_ref:#{ln_ref.inspect}"
-          current_octave = ln.natural_octave_after ln_ref
-          # puts "current_octave mis à : #{current_octave}"
+      # @note: `last_real_note' prendra la valeur de la note précédente
+      # (hors silence) ou la première note de l'accord précédent suivant
+      # le cas.
+      unless ln.rest?
+        unless last_real_note.nil?
+          octave_ln = ln.natural_octave_after( last_real_note ) + ln.delta
+        else # Toute première note
+          octave_ln = current_octave + ln.delta
+          ln.set :delta => 0
         end
-      else
-        # --- Toute première note ---
-        # L'octave courante est calculée d'après son delta, lequel delta
-        # doit être toujours mis à zéro
-        current_octave = current_octave + ln.delta
-        ln.set :delta => 0
-        # puts "\ncurrent_octave mis à #{current_octave} par la toute première note"
+        ln.set :octave => octave_ln
       end
-      ln.set :octave      => (octave_for_ln ||= current_octave) 
-      ln.set :real_octave => octave_for_ln + ln.delta
-      
       # Ajout à la liste des linotes
       # -----------------------------
       data << ln
       accord_start = (0 + inote) if ln.start_accord?
+      
+      # Définition de la prochaine note de référence pour l'octave
+      # -----------------------------------------------------------
+      # Si ln courante est un silence, on ne la prend pas en note de
+      # référence. Ensuite, si ln est la fin d'un accord, on prend en
+      # note de référence la première note de l'accord. Sinon, dans le
+      # cas "normal", on prend simplement la ln en prochaine note de
+      # référence pour l'octave.
+      last_real_note =  if ln.end_accord? 
+                          first_ln_accord
+                        else 
+                          ln
+                        end unless ln.rest?
+
       inote += 1
     end
     data
@@ -521,7 +500,26 @@ class LINote < NoteClass
   # =>  Reconstitue le string LilyPond à partir de la liste des
   #     Linotes envoyées
   def self.implode liste_linotes
-    liste_linotes.collect { |linote| linote.to_llp }.join(' ')
+    last_ln = nil
+    liste_linotes.collect do |linote|
+      case linote.class.to_s
+      when "LINote" then linote.to_llp
+        # ATTENTION: Ci-dessus, il ne faut absolument pas que implode
+        # modifie en quoi que ce soit les linote de la liste. Cette
+        # liste doit être corrigée si nécessaire si des deltas ou des
+        # octaves doivent être modifiés. Implode doit se contenter de
+        # rassembler les notes, la méthode `to_llp' ajoutant les deltas
+        # si nécessaire à des notes déjà fondues les unes avec les 
+        # autres.
+      when "String" then linote
+        # La liste envoyée à `implode' peut avoir été agrémentée de
+        # marques particulières, comme par exemple les changements de
+        # clef ou les barres de mesures spéciales. Ce sont chaque fois
+        # des strings simples (@TODO: à l'avenir, penser à faire un
+        # objet de classe de ces éléments — voir si c'est vraiment utile)
+      else  fatal_error(:linote_or_string_expected)
+      end
+    end.join(' ')
   end
   
   # =>  Mémorise la durée qui devra être appliquée plus tard (à la fin
@@ -604,7 +602,7 @@ class LINote < NoteClass
       # c'est le premier, il faut peut-être mettre un delta d'octave
       # sur le second motif
       if ln_avant.nil?
-        ln_apres.set :delta => motif2.octave - motif1.octave
+        ln_apres.set :delta => (motif2.octave||4) - (motif1.octave||4)
       end
     else
       # Les deux motifs ont au moins une note
@@ -820,8 +818,11 @@ class LINote < NoteClass
   # -------------------------------------------------------------------
   #   Instance
   # -------------------------------------------------------------------
-  attr_reader :note, :duration, :alter, :delta, :pre, :post,
-              :duree_post, :duree_chord, :dyna, :legato
+  attr_reader :note, :duration, :alter, 
+              :delta, :octave,
+              :pre, :post,
+              :duree_post, :duree_chord, :dyna, :legato,
+              :clef
   
   @note       = nil   # La note simple (SEULEMENT a-g / r)
   @alter      = nil   # Altération de la note (p.e. "eses" ou "is")
@@ -846,22 +847,17 @@ class LINote < NoteClass
   @dyna       = nil   # Hash gérant la dynamique de la linote. Nil ou 
                       # la définition de :start, :start_intensite, :end
                       # et :end_intensite.
-  @real_octave = nil  # L'octave réelle de la note, quelle que soit son
-                      # delta. C'est en fait la somme de @octave et de
-                      # @delta. La note "a'" par exemple obtiendra comme
-                      # valeurs : 
-                      # note:"a", delta:-1 octave:4 real_octave:3
-  @octave     = nil   # Fixé par d'autre méthode ou à l'instanciation si
-                      # dans les paramètres. Si on l'appelle par la
-                      # méthode `octave', l'octave est compté à partir
-                      # de l'octave 4 ou l'octave fournie, en ajoutant 
-                      # le delta
+  @octave     = nil   # Octave de la note
   @delta      = nil   # Delta d'octave (un Fixnum, 0 par défaut ou quand
                       # la linote suit naturellement la précédente)
   @legato     = nil   # Valeur du légato (if any). Nil si pas de légato,
                       # 1: début de slure, 2: fin de slure, 3: début de
                       # légato, 4: fin de légato.
-                      
+  @clef       = nil   # Éventuellement la clé que doit utiliser la 
+                      # linote pour s'afficher. Pour le moment, cette
+                      # clé n'est définie que dans <instrument>.explode
+                      # pour que dans <instrument>.mesures les 
+                      # changements de clé soient pris en compte.
   # Instanciation
   # --------------
   # @param  valeur  SOIT : (String)
@@ -903,17 +899,13 @@ class LINote < NoteClass
   
   # 
   def get_from_valeur_or_params valeur, params
+    
     unless params.nil?
-      @octave       = params[:octave]       if params.has_key? :octave
-      @real_octave  = params[:real_octave]  if params.has_key? :real_octave
+      @octave = params[:octave] if params.has_key? :octave
     end
     unless valeur.class != Hash
-      @octave       = valeur[:octave]       if valeur.has_key? :octave
-      @real_octave  = valeur[:real_octave]  if valeur.has_key? :real_octave
+      @octave = valeur[:octave] if valeur.has_key? :octave
     end
-    # puts "\n\nAPRÈS get_from_valeur_or_params:"
-    # puts "= @octave: #{@octave}"
-    # puts "= @real_octave: #{@real_octave}"
   end
   # => Permet de définir les valeurs
   # @usage      <linote>.set <hash_paires_prop_value>
@@ -930,6 +922,21 @@ class LINote < NoteClass
     end
   end
 
+  # =>  Met l'octave de la LINote à +oct+
+  # 
+  def set_octave oct
+    return if oct.nil?
+    @octave       = oct
+  end
+  
+  # =>  Définit le delta de la LINote (en motifiant l'octave réelle si
+  #     nécessaire)
+  # 
+  def set_delta delta
+    @delta = delta
+    set_octave( @octave ) unless @delta.nil?
+  end
+  
   # => Return la valeur d'une propriété
   def get prop
     instance_variable_get("@#{prop}")
@@ -946,20 +953,15 @@ class LINote < NoteClass
   def abs
     return nil if self.note == "r"
     begin
-      # puts "\nself.index: #{self.index}"
-      # puts "self.real_octave: #{self.real_octave}"
-      oct_ref = unless real_octave.nil? 
-                  real_octave
-                else
-                  4 + (@delta || 0)
-                end
+      oct_ref = unless @octave.nil? then @octave
+                else 4 + (@delta || 0) end
       valeur = self.index + (oct_ref + 1) * 12
     rescue Exception => e
       puts "\n\nIMPOSSIBLE D'OBTENIR LA VALEUR ABSOLU DE :"
       puts "= Erreur: #{e.message}"
       puts "= #{self.inspect}"
       puts "= self.index: #{self.index}"
-      puts "= self.real_octave: #{self.real_octave}"
+      puts "= self.octave: #{self.octave}"
       raise
     end
     # Traitement spécial pour le franchissement d'obstacle
@@ -1112,19 +1114,16 @@ class LINote < NoteClass
   # =>  Définit le delta de +self+ pour que la linote suive +linote+ en
   #     fonction de leurs octaves respectives
   # 
-  # @return   self
+  # @return   self avec delta modifé
+  # 
   def as_next_of linote, params = nil
     fatal_error(:param_method_linote_should_be_linote, :ln => self, 
                 :method => "as_next_of") unless linote.class == LINote
     params ||= {}
     instrument = params[:instrument]
     
-    # Octave naturelle de +self+ si elle suivait sans delta +linote+
     self_natural_octave = natural_octave_after linote, instrument
-  
-    # La différence d'octave pour savoir si un delta est nécessaire
-    @delta = self.real_octave - self_natural_octave
-    
+    @delta = (self.octave || 4) - self_natural_octave
     self
   end
   
@@ -1155,7 +1154,7 @@ class LINote < NoteClass
     add_octave      = new_octave ? (au_dessus ? 1 : -1) : 0
     # En fonction de l'octave de +linote+, l'octave qu'aurait +self+ 
     # sans delta
-    linote.real_octave + add_octave
+    linote.octave + add_octave
   end
   
   # => Retourne un clone de la LINote courante
@@ -1173,7 +1172,7 @@ class LINote < NoteClass
       hash = hash.merge( prop => instance_variable_get("@#{prop}") )
     end
     # Propriétés qui doivent être éventuellement calculées
-    hash = hash.merge :octave => octave, :real_octave => real_octave
+    hash = hash.merge :octave => octave
   end
   
   # => Renvoie la note avec son altération
@@ -1187,58 +1186,6 @@ class LINote < NoteClass
   # SI ELLE L'EST UN JOUR.
   def as_note
     Note::new @note, :octave => octave, :duration => @duration, :alter => @alter
-  end
-  
-  # =>  Return l'OCTAVE RÉELLE de la LINote
-  # 
-  # @param  instrument  La classe de l'instrument optionnelle. 
-  #                     Si définie, l'octave par défaut prise en 
-  #                     référence peut varier suivant l'instrument.
-  # 
-  def real_octave instrument = nil
-    prop = instrument.nil? ? "real_octave" : "real_octave_#{instrument.class}"
-    get(prop.to_sym) || lambda {
-      @delta = 0 if @delta.nil?
-      real_oct = 
-        oct_ref = instrument.nil? ? @octave : instrument.octave_defaut
-        oct_ref + @delta unless oct_ref.nil?
-      set prop => real_oct
-      return real_oct
-    }.call
-  end
-  
-  # =>  Return l'octave de la note
-  #     @ATTENTION: maintenant, cette octave ne représente plus l'octave
-  #     réelle de la note, mais sa valeur sans le delta. C'est la
-  #     propriété @real_octave qui contient l'octave absolue de la LINote
-  # 
-  # @return entier représentant l'octave de la note
-  # 
-  # @param  instrument    L'instrument (objet Instrument) optionnel,
-  #                       définissant l'octave par défaut si nécessaire
-  # 
-  def octave instrument = nil
-    if instrument.nil?
-      @octave = if    @octave != nil      then @octave
-                elsif @real_octave != nil && @delta != nil 
-                  @real_octave - @delta
-                else nil end
-      # puts "\n\nOctave retourné par la méthode octave: #{@octave}"
-      # puts "(real_octave: #{@real_octave})"
-      return @octave
-      # return @octave unless @octave.nil?
-      # return (@real_octave - (@delta || 0)) unless @real_octave.nil?
-      # return 4
-    end
-    get("octave_#{intrument.class}".to_sym) || lambda {
-      oct = unless @real_octave.nil?
-              @real_octave - @delta
-            else
-              instrument.octave_defaut
-            end
-      set "octave_#{intrument.class}".to_sym => oct
-      return oct
-    }.call
   end
   
   # =>  Return la marque à appliquer à la note pour la reconstituer
@@ -1592,8 +1539,7 @@ class LINote < NoteClass
     new_ln.set :note  => GAMME_DIATONIQUE[index_new]
     new_ln.set :alter => LINote::alteration_for_notes_in_key[new_ln.note]
     unless octave_sup == 0
-      new_ln.set :real_octave => (new_ln.real_octave || 4) + octave_sup
-      new_ln.set :octave      => (new_ln.octave      || 4) + octave_sup
+      new_ln.set :octave => (new_ln.octave || 4) + octave_sup
     end
     new_ln
   end

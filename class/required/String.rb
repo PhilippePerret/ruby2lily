@@ -46,7 +46,12 @@ class String
     rescue Exception => e
       # Ex-commenter le passage ci-dessous pour voir le message d'erreur
       # en cas de problème d'additions de notes string
+      
+      # = débug =
       # puts "\nERREUR dans « + » de string : #{e.message} "
+      # puts e.backtrace.join("\n")
+      # = / débug =
+      
       return "#{self}#{foo}"
     end
   end

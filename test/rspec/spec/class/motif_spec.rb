@@ -26,7 +26,7 @@ describe Motif do
 		it "avec deux arguments, les notes et les paramètres" do
 		  mo = Motif::new "d b a", :octave => 1, :duration => "4.", :slured => true
 			mo.class.should == Motif
-			mo.notes.should == "d b a" # FIXME: DEVRAIT ÊTRE COMME ICI : SANS DURÉE NI SLUR
+			mo.notes.should == "d b a"
 			mo.should be_slured
 			mo.octave.should == 1
 			mo.duration.should == "4."
@@ -40,12 +40,17 @@ describe Motif do
 		it "avec seulement des silences, doit être possible" do
 		  expect{Motif::new("r r r r")}.not_to raise_error
 		end
-		it "quand première note avec durée, on la prend" do
+		it "quand première note avec durée, on la retire et on la conserve" do
 		  suite = "r1 r r r"
 			mo = Motif::new suite
 			mo.notes.should == "r r r r"
 			mo.duration.should == "1"
 			mo.to_s.should == "\\relative c' { r1 r r r }"
+		end
+		it "doit pouvoir accepter des accords" do
+		  mo = Motif.new "<e g c>4 <e g c> <e g c>"
+			mo.to_llp.should == "<e g c>4 <e g c> <e g c>"
+			mo.to_s.should == "\\relative c' { <e g c>4 <e g c> <e g c> }"
 		end
 		it "<motif> doit répondre à :rationnalize_durees" do
 		  mo = Motif::new "c d e"
@@ -272,6 +277,32 @@ describe Motif do
 			mo.to_s.				should == "\\relative c,, { c8(\\< d e f)\\! }"
 		end
 		
+		# set_octave
+		it "doit répondre à :set_octave" do
+		  @m.should respond_to :set_octave
+		end
+		it ":set_octave doit motidifier l'octave du motif" do
+		  mo = Motif::new "c", :octave => 1
+			mo.octave.should == 1
+			mo.set_octave(4)
+			mo.octave.should == 4
+		end
+		it ":set_octave doit rectifier l'octave des LINotes (if any)" do
+		  mo = Motif::new "c d e c, d e'", :octave => 3
+			mo.octave.should == 3
+			explosion = mo.explode
+			ln = explosion[0]
+			ln.note.should == "c"
+			ln.octave.should == 3
+			ln.delta.should == 0
+			mo.set_octave 0
+			ln = explosion[0]
+			ln.note.should == "c"
+			ln.octave.should == 0
+			ln = explosion[1]
+			ln.note.should == "d"
+			ln.octave.should == 0
+		end
 		# :set_clef
 		it "doit répondre à :set_clef" do
 		  @m.should respond_to :set_clef
@@ -325,7 +356,7 @@ describe Motif do
 				[
 					["c", 3, "c", 3],
 					["<a c e>", 2, "a", 2],
-					["r <b d fis>4 r c c", 1, "r", 1]
+					["r <b d fis>4 r c c", 1, "r", nil]
 					# @todo: peut-être d'autres tests ici
 				].each do |d|
 					suite, octave_motif, first, octave_note = d
@@ -409,19 +440,19 @@ describe Motif do
 		  mo.last_note.class.should == LINote
 		end
 		ary_str = <<-DEFA
-			suite						oct/N		last	real_last		oct_last/N
+			suite						oct/N		last	real_last		oct_last
 		-------------------------------------------------------------------
 			c-d-e						3				e			e						3
-			c-d-r						3				r			r						3
+			c-d-r						3				r			r						-
 			a-b-c						2				c			c						3
 			a-c-e						3				e			e						4
 			<b-d-fis>				1				fis		fis					2
-			d-<d-fis-a>8-r	2				r			r						2
+			d-<d-fis-a>8-r	2				r			r						-
 			d-<d-fis-a>8		2				a			a						2
 			d-<g-bb-d>4 	 	2				d			d						3
-			d-<g-bb-d>4-r 	2				r			r						2
+			d-<g-bb-d>4-r 	2				r			r						-
 			d-d,-d,					1				d			d						-1
-			d-d,-d,-r				1				r			r						-1
+			d-d,-d,-r				1				r			r						-
 			e-e'-f'					2				f			f						4
 			d(-<d,-fis'-aeses,,>8-gis') 	2		gis		gis		2
 			gis-aeses				3				aeses	aeses				3
@@ -433,6 +464,7 @@ describe Motif do
 			last					= data.delete(:last)
 			real_last			= data.delete(:real_last)
 			octave_last		= data.delete(:oct_last)
+			octave_last = octave_last.to_i unless octave_last.nil?
 			it ":last_note (non strict) de « #{suite}»-oct:#{octave_motif} doit retourner #{last}-#{octave_last}" do
 				$DEBUG = false
 				begin
@@ -441,7 +473,7 @@ describe Motif do
 					real_last_note 	= mot.real_last_note( strict = false)
 					raise if 			last_note.class						!= LINote \
 										||	real_last_note.class			!= LINote \
-					 					||	last_note.real_octave			!= octave_last \
+					 					||	last_note.octave					!= octave_last \
 										|| 	last_note.with_alter 			!= last \
 										||	real_last_note.with_alter	!= real_last
 				rescue
@@ -454,7 +486,7 @@ describe Motif do
 				end
 				last_note.with_alter.should 			== last
 				real_last_note.with_alter.should	== real_last
-				last_note.real_octave.should			== octave_last
+				last_note.octave.should						== octave_last
 			end
 		end
 		
@@ -488,7 +520,7 @@ describe Motif do
 					real_last_note 	= mot.real_last_note(strict=true)
 					raise if 			last_note.class						!= LINote \
 										||	real_last_note.class			!= LINote \
-					 					||	last_note.real_octave			!= octave_last \
+					 					||	last_note.octave					!= octave_last \
 										|| 	last_note.with_alter 			!= last \
 										||	real_last_note.with_alter	!= real_last
 				rescue
@@ -503,7 +535,7 @@ describe Motif do
 				end
 				last_note.class.should 						== LINote
 				real_last_note.class.should 			== LINote
-				last_note.real_octave.should			== octave_last
+				last_note.octave.should						== octave_last
 				last_note.with_alter.should 			== last
 				real_last_note.with_alter.should 	== real_last
 			end
