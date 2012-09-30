@@ -29,6 +29,24 @@ class Score
       :time   => '4/4'
     }
     
+    BAR_TYPES = {
+      :normal => '|',
+      :end_repeat => ':|',
+      :start_repeat => '|:',
+      :end_and_start_repeat => ':|:',
+      :end_and_start_repeat_thin => ':|.|:',
+      :thin_thick_double_repeat  => ':|.:',
+      :thick => '.',
+      :double => '||',
+      :start  => '|.',
+      :end    => '.|',
+      :thick_double_bar => '.|.',
+      :thin_thick_thin => '|.|',
+      :dotted => ':',
+      :dashed => 'dashed',
+      :tick_as_bar => "'",
+      :segno  => 'S'
+    }
   end # / si tests
 
   # -------------------------------------------------------------------
@@ -111,6 +129,11 @@ class Score
   @to_mesure      = nil     # Mesure de fin pour l'affichage (défaut: nil)
   @displayed_instruments=nil  # Les instruments à afficher. Si nil: tous
   
+  @bars           = nil     # Liste des barres de mesure spéciales à
+                            # ajouter. C'est un Hash contenant en clé
+                            # l'indice de la mesure (1-start) et en
+                            # valeur la barre à ajouter
+                            
   def initialize params = nil
     
   end
@@ -185,4 +208,15 @@ class Score
   def duree_absolue_mesure
     Score::duree_absolue_mesure( @time )
   end
+  
+  # =>  Définit ou renvoie les barres de mesure
+  # 
+  # @param  hdata   SI NIL : retourne la valeur de @bars
+  #                 SI DÉFINI : ajoute à ou définit @bars
+  def bars hdata = nil
+    return @bars if hdata.nil?
+    @bars ||= {}
+    @bars = @bars.merge hdata
+  end
+  
 end

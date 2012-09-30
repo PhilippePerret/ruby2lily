@@ -210,6 +210,16 @@ describe Score do
 				iv_set(score, :time => "2/8")
 				score.duree_absolue_mesure.should == 1.0
 			end
+		end # / describe méthodes de calcul
+		
+		describe "Barres de mesure" do
+		  it "doit répondre à :bars" do
+		    @s.should respond_to :bars
+		  end
+			it ":bars doit définir les barres de mesure" do
+			  @s.bars 8 => '||', 16 => '|:', 32 => ':|'
+				iv_get(@s, :bars).should == {8 => '||', 16 => '|:', 32 => ':|'}
+			end
 		end
 	end
 end
