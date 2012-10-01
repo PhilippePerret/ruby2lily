@@ -280,15 +280,8 @@ class Instrument
     # certainement qu'on est en train de travailler sur un passage qui
     # n'est pas encore défini pour un instrument donné. Donc pour qui
     # ces mesures n'existent pas encore. L'erreur générée empêcherait
-    # tout bonnement de voir ce qui se passe en même temps que ces
-    # mesure.
-    # if linotes_expected.empty?
-    #   fatal_error(:mesure_first_too_big, 
-    #               :expected => first, :last => (index_mesure - 1))
-    # elsif index_mesure <= last
-    #   fatal_error(:mesure_last_too_big, 
-    #                 :expected => last, :last => (index_mesure - 1))
-    # end
+    # tout bonnement de voir ce qui se passe pour les autres instruments
+    # sur ces mesures.
     
     # Si la liste n'a pas le bon nombre de mesures, on ajoute ce qui
     # manque
@@ -303,8 +296,9 @@ class Instrument
     end
     
     # Récupération de la première linote
-    # @note:  linotes_expected peut contenir des simples textes (comme
+    # @note 1 linotes_expected peut contenir des simples textes (comme
     #         par exemple des barres spéciales)
+    # @note 2 Il se peut, dans l'absolu, qu'il n'y ait pas de first_ln
     first_ln = nil
     linotes_expected.each do |ln| 
       (first_ln=ln) and break if ln.class == LINote
@@ -319,26 +313,31 @@ class Instrument
     # Si un slure, un legato ou une dynamique courait avant, sans être
     # fermé, il faut l'ajouter à la première note, sauf si cette première
     # contient justement la marque de fin de la chose
-    first_ln.send(
-      first_ln.slure_end? ? 'erase_slure_end' : 'start_slure'
-      ) if slure_run_before
-    first_ln.send(
-      first_ln.legato_end? ? 'erase_legato_end' : 'start_legato'
-      ) if legato_run_before
-    # @TODO: voir s'il n'est pas dangereux, pour les marques d'intensité,
-    # d'éraser complètement la dynamique
-    first_ln.send(
-      first_ln.dynamique_end? ? 'erase_dynamique' :
-      "start_#{crescendo_run_before ? '' : 'de'}crescendo"
-    ) if dyna_run_before
+    unless first_ln.nil?
+      first_ln.send(
+        first_ln.slure_end? ? 'erase_slure_end' : 'start_slure'
+        ) if slure_run_before
+      first_ln.send(
+        first_ln.legato_end? ? 'erase_legato_end' : 'start_legato'
+        ) if legato_run_before
+      # @TODO: voir s'il n'est pas dangereux, pour les marques d'intensité,
+      # d'éraser complètement la dynamique
+      first_ln.send(
+        first_ln.dynamique_end? ? 'erase_dynamique' :
+        "start_#{crescendo_run_before ? '' : 'de'}crescendo"
+      ) if dyna_run_before
+    end
     
     # Récupération de la dernière linote
-    # @note:  linotes_expected peut contenir des simples textes (comme
+    # @note 1 `linotes_expected' peut contenir des simples textes (comme
     #         par exemple des barres spéciales). Il faut donc chercher
     #         la première linote en partant de la fin
+    # @note 2 Il se peut, dans l'absolu, qu'il n'y ait pas de last_ln
     last_ln = nil
-    linotes_expected.reverse.each do |ln| 
-      (last_ln=ln) and break if ln.class == LINote
+    linotes_expected.reverse.each do |ln|
+      next unless ln.class == LINote
+      last_ln = ln
+      break
     end
 
     # Si la dernière linote commence un slure, un legato ou une dynamique,
@@ -351,26 +350,27 @@ class Instrument
     # La solution serait d'introduire des clones plutôt que les 
     # vraies LINotes du motif.
     #
-    last_ln.set(:legato => nil)   if last_ln.slure_start? || last_ln.legato_start?
-    last_ln.set(:dyna => nil)     if last_ln.dynamique_start?
+    unless last_ln.nil?
+      last_ln.set(:legato => nil)   if last_ln.slure_start? || last_ln.legato_start?
+      last_ln.set(:dyna => nil)     if last_ln.dynamique_start?
     
-    # Si la durée de la dernière note est "~", il faut la supprimer
-    last_ln.set(:duration => nil) if last_ln.duration == "~"
+      # Si la durée de la dernière note est "~", il faut la supprimer
+      last_ln.set(:duration => nil) if last_ln.duration == "~"
     
-    # puts "\nlast_ln après premier test: #{last_ln.inspect}"
+      # puts "\nlast_ln après premier test: #{last_ln.inspect}"
     
-    # Faut-il ajouter une fin de slure, de legato ou de dynamique ?
-    if slure_run_in || legato_run_in || dyna_run_in
-      # @note: l'ordre est important, ci-dessous
-      last_ln.end_slure     if slure_run_in
-      last_ln.end_legato    if legato_run_in
-      if dyna_run_in
-        # Mais ça peut être la note elle-même qui a généré ce départ de
-        # dynamique.
-        last_ln.end_dynamique 
+      # Faut-il ajouter une fin de slure, de legato ou de dynamique ?
+      if slure_run_in || legato_run_in || dyna_run_in
+        # @note: l'ordre est important, ci-dessous
+        last_ln.end_slure     if slure_run_in
+        last_ln.end_legato    if legato_run_in
+        if dyna_run_in
+          # Mais ça peut être la note elle-même qui a généré ce départ de
+          # dynamique.
+          last_ln.end_dynamique 
+        end
       end
     end
-
     linotes_expected = LINote::implode linotes_expected
 
     # # = débug =

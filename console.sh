@@ -11,7 +11,7 @@
 cd ~/Sites/cgi-bin/lilypond/test/rspec;pwd
 
 # LA TOTALE
-rspec spec
+# rspec spec
 
 # rspec spec/class/String_spec.rb
 
@@ -23,8 +23,7 @@ rspec spec
 
 # rspec spec/class/score_spec.rb
 
-# DEUX SPECS À CORRIGER :
-# rspec spec/class/instrument_spec.rb -e "Sélection de mesures"
+rspec spec/class/instrument_spec.rb
 # rspec spec/class/instrument_spec.rb -e "doit renvoyer les bonnes notes avec des liaisons de durée (~)"
 # rspec spec/class/linote_spec.rb
 
