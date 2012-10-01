@@ -99,7 +99,7 @@ describe Instrument do
 			it "Motif unique doit renvoyer les bonnes notes" do
 				@voix << "a4 b c d eis4-^ f g a"
 				res = @voix.mesures(2, 2)
-				res.to_s.should == "eis4-^ f g a"
+				res.to_s.should == "\\relative c' { eis4-^ f g a }"
 			end
 			it ":mesure(s) doit accepter un seul paramètre" do
 				@voix << "a4 b c d eis4-^ f g a"
@@ -107,19 +107,19 @@ describe Instrument do
 			end
 			it ":mesure(s) avec un seul paramètre doit retourner la mesure seule" do
 				@voix << "a4 b c d eis4-^ f g a"
-			  @voix.mesure(1).to_s.should == "a4 b c d"
-			  @voix.mesure(2).to_s.should == "eis4-^ f g a"
+			  @voix.mesure(1).to_s.should == "\\relative c' { a4 b c d }"
+			  @voix.mesure(2).to_s.should == "\\relative c' { eis4-^ f g a }"
 			end
 			it "doit renvoyer les bonnes notes avec deux motifs" do
 				@voix << Motif::new("c c c c d d d d")
 				@voix << Motif::new("e e e e f f f f")
 				res = @voix.mesures(2, 3)
-				res.to_s.should == "d d d d e e e e"
+				res.to_s.should == "\\relative c' { d d d d } \\relative c' { e e e e }"
 			end
 			it "doit pouvoir traiter seulement des silences" do
 			  @voix << Motif::new("r r r r r r r r r r r r r r r r r")
 				res = @voix.mesures(2,3)
-				res.to_s.should == "r r r r r r r r"
+				res.to_s.should == "\\relative c' { r r r r r r r r }"
 			end
 			it "doit insérer la barre de mesure spéciale si nécessaire" do
 				SCORE::bars 3 => '||'
@@ -127,44 +127,44 @@ describe Instrument do
 				@voix << Motif::new("e e e e f f f f")
 				res = @voix.mesures(2, 3)
 				iv_set(SCORE, :bars => nil)
-				res.to_s.should == "d d d d \\bar \"||\" e e e e"
+				res.to_s.should == "\\relative c' { d d d d \\bar \"||\" } \\relative c' { e e e e }"
 			end
 			it "doit renvoyer les bonnes notes avec des liaisons de durée (~)" do
 			  @voix << Motif::new("c c~ c c~ c b b b")
-				@voix.mesure(1).should == "c c~ c c"
+				@voix.mesure(1).should == "\\relative c' { c c~ c c }"
 			end
 			it "doit renvoyer les bonnes notes avec un motif sans durée commençant par un tilde" do
 			  @voix << Motif::new("c~ c c c b b b b")
-				@voix.mesure(1).should == "c~ c c c"
+				@voix.mesure(1).should == "\\relative c' { c~ c c c }"
 			end
 			it "une liaison de durée à la fin (~) doit être supprimée" do
 			  @voix << Motif::new("c c c c b b b b~ b c c c", :duration => "4")
-				@voix.mesure(2).should_not == "b b b b~"
-				@voix.mesure(2).should == "b b b b"
+				@voix.mesure(2).should_not == "\\relative c' { b b b b~ }"
+				@voix.mesure(2).should == "\\relative c' { b b b b }"
 			end
 			it "doit renvoyer jusqu'à la dernière si last = -1" do
 				@voix << Motif::new("c c c c d d d d")
 				@voix << Motif::new("e e e e f f f f")
 				res = @voix.mesures(1, -1)
-				res.to_s.should == "c c c c d d d d e e e e f f f f"
+				res.to_s.should == "\\relative c' { c c c c d d d d } \\relative c' { e e e e f f f f }"
 			end
 			it "doit tenir compte des accords" do
 			  @voix << Motif::new("<c e g>1 <a c e>2")
 				@voix << Motif::new("<e g b>2 <b d fis>1")
-				@voix.mesures(1).to_s.should == "<c e g>1"
-				@voix.mesures(2).to_s.should == "<a c e>2 <e g b>2"
-				@voix.mesures(3).to_s.should == "<b d fis>1"
+				@voix.mesures(1).to_s.should == "\\relative c' { <c e g>1 }"
+				@voix.mesures(2).to_s.should == "\\relative c' { <a c e>2 } \\relative c' { <e g b>2 }"
+				@voix.mesures(3).to_s.should == "\\relative c' { <b d fis>1 }"
 			end
 			it "doit bien gérer les accords" do
 			  @voix << Motif::new("<c e g> <d fis la> <e sol si>", :duration => "1")
-				@voix.mesures(2,3).should == "<d fis a> <e g b>"
+				@voix.mesures(2,3).should == "\\relative c' { <d fis a> <e g b> }"
 			end
 			it "doit tenir compte d'une durée définie avant" do
 			  @voix << Motif::new("a a a a b1 c d e f")
-				@voix.mesure(1).to_s.should == "a a a a"
-				@voix.mesure(2).to_s.should == "b1"
-				@voix.mesure(4).to_s.should == "d"
-				@voix.mesure(5,6).to_s.should == "e f"
+				@voix.mesure(1).to_s.should == "\\relative c' { a a a a }"
+				@voix.mesure(2).to_s.should == "\\relative c' { b1 }"
+				@voix.mesure(4).to_s.should == "\\relative c' { d }"
+				@voix.mesure(5,6).to_s.should == "\\relative c' { e f }"
 			end
 			it "ne doit pas produire d'erreur si last est trop grand" do
 			  @voix << Motif::new("a a a a")
@@ -177,87 +177,87 @@ describe Instrument do
 			it "doit ajouter juste ce qu'il faut de silence" do
 			  pending "à implémenter"
 				@voix << Motif::new("a a a a a a")
-				@voix.msure(2).should == "a a r2"
+				@voix.msure(2).should == "\\relative c' { a a r2 }"
 			end
 			it "doit conserver un slure compris dans les mesures" do
 			  @voix << Motif::new("a a a a b b( b b c c) c c d d d d")
-				@voix.mesures(2,3).should == "b b( b b c c) c c"
+				@voix.mesures(2,3).should == "\\relative c' { b b( b b c c) c c }"
 			end
 			it "doit conserver un legato compris dans les mesures" do
 			  @voix << Motif::new( "a a a a b b b\\( b c\\) c c c d d d d")
-				@voix.mesures(2,3).should == "b b b\\( b c\\) c c c"
+				@voix.mesures(2,3).should == "\\relative c' { b b b\\( b c\\) c c c }"
 			end
 			it "doit conserver un crescendo compris dans les mesures" do
 			  @voix << Motif::new( "a a a a b b\\< b b c c\\! c c d d d d")
-				@voix.mesures(2,3).should == "b b\\< b b c c\\! c c"
+				@voix.mesures(2,3).should == "\\relative c' { b b\\< b b c c\\! c c }"
 			end
 			it "doit conserver une marque de dynamique comprise dans les mesures" do
 			  @voix << Motif::new( "a a a a b b\\< b b c c\\! c c d d d d")
-				@voix.mesures(2,3).should == "b b\\< b b c c\\! c c"
+				@voix.mesures(2,3).should == "\\relative c' { b b\\< b b c c\\! c c }"
 			end
 			it "doit ajouter un début de dynamique qui commence avant" do
 			  @voix << Motif::new("a\\< a a a b b b\\! b")
-				@voix.mesure(2).should ==      "b\\< b b\\! b"
+				@voix.mesure(2).should == "\\relative c' { b\\< b b\\! b }"
 			end
 			it "doit ajouter une fin de dynamique qui finirait après" do
 			  @voix << Motif::new("a a a a b\\< b b b c c c c\\!")
-				@voix.mesure(2).should ==   "b\\< b b b\\!"
+				@voix.mesure(2).should ==   "\\relative c' { b\\< b b b\\! }"
 			end
 			it "doit ajouter un début de slure qui commence avant" do
 			  @voix << Motif::new("a( a a a b b b) b")
-				@voix.mesure(2).should == "b( b b) b"
+				@voix.mesure(2).should == "\\relative c' { b( b b) b }"
 			end
 			it "doit ajouter une fin de slure qui finirait après" do
 			  @voix << Motif::new("a a a a b( b b b c c c) c")
-				@voix.mesure(2).should == "b( b b b)"
+				@voix.mesure(2).should == "\\relative c' { b( b b b) }"
 			end
 			it "doit ajouter un début de legato qui commence avant" do
 			  @voix << Motif::new("a\\( a a a b b b\\) b")
-				@voix.mesure(2).should == "b\\( b b\\) b"
+				@voix.mesure(2).should == "\\relative c' { b\\( b b\\) b }"
 			end
 			it "doit ajouter une fin de legato qui finirait après" do
 			  @voix << Motif::new("a a a a b b\\( b b c c c c d d d\\) d")
-				@voix.mesure(2, 3).should == "b b\\( b b c c c c\\)"
+				@voix.mesure(2, 3).should == "\\relative c' { b b\\( b b c c c c\\) }"
 			end
 			it "doit supprimer le slure s'il termine sur la première note" do
 			  @voix << Motif::new("a( a a a b) b b b")
-				@voix.mesure(2).should == "b b b b"
+				@voix.mesure(2).should == "\\relative c' { b b b b }"
 			end
 			it "doit supprimer le legato s'il termine sur la première note" do
 			  @voix << Motif::new("a a a a\\( b\\) b b b")
-				@voix.mesure(2).should == "b b b b"
+				@voix.mesure(2).should == "\\relative c' { b b b b }"
 			end
 			it "doit supprimer le slure s'il commence sur la dernière note" do
 			  @voix << Motif::new( "a a a a b b b b( c c c) c" )
-				@voix.mesure(2).should == "b b b b"
+				@voix.mesure(2).should == "\\relative c' { b b b b }"
 			end
 			it "doit supprimer le slure des deux côtés si nécessaire" do
 			  @voix << Motif::new( "a a a( a b) b b b( c c c) c" )
-				@voix.mesure(2).should == "b b b b"
+				@voix.mesure(2).should == "\\relative c' { b b b b }"
 			end
 			it "doit supprimer le legato s'il commence sur la dernière note" do
 			  @voix << Motif::new( "a a a a b b b b\\( c c\\) c c" )
-				@voix.mesure(2).should == "b b b b"
+				@voix.mesure(2).should == "\\relative c' { b b b b }"
 			end
 			it "doit supprimer le legato des deux côtés si nécessaire" do
 			  @voix << Motif::new( "a a\\( a a b\\) b b b\\( c c\\) c c" )
-				@voix.mesure(2).should == "b b b b"
+				@voix.mesure(2).should == "\\relative c' { b b b b }"
 			end
 			it "doit supprimer la dynamique si elle termine sur la première note" do
 			  @voix << Motif::new( "a a\\> a a b\\! b b b c c c c" )
-				@voix.mesure(2).should == "b b b b"
+				@voix.mesure(2).should == "\\relative c' { b b b b }"
 			end
 			it "doit supprimer la dynamique si elle commence sur la dernière note" do
 			  @voix << Motif::new( "a a a a b b b b\\< c c\\! c c" )
-				@voix.mesure(2).should == "b b b b"
+				@voix.mesure(2).should == "\\relative c' { b b b b }"
 			end
 			it "doit supprimer la dynamique des deux côtés si nécessaire" do
 			  @voix << Motif::new( "a a\\< a a b\\! b b b\\> c c c\\!" )
-				@voix.mesure(2).should == "b b b b"
+				@voix.mesure(2).should == "\\relative c' { b b b b }"
 			end
 			it "doit ajouter toutes les marques manquantes (slure, legato, dynamique)" do
 			  @voix << Motif::new("a\\( a( a\\< a b b)\\) b\\! b\\> c c c c\\( d d d\\! d\\)")
-				@voix.mesures(2,3).should == "b\\((\\< b)\\) b\\! b\\> c c c c\\!"
+				@voix.mesures(2,3).should == "\\relative c' { b\\((\\< b)\\) b\\! b\\> c c c c\\! }"
 			end
 		end
 
@@ -370,32 +370,6 @@ describe Instrument do
 			# :motifs_to_llp
 			it "doit répondre à :motifs_to_llp" do
 			  @instru.should respond_to :to_llp
-			end
-			# :to_lilypond
-		  it "doit répondre à to_lilypond" do
-		    @instru.should respond_to :to_lilypond
-		  end
-			it ":to_lilypond doit retourner un code valide" do
-			  score = @instru.to_lilypond
-				score.class.should == String
-				score.should == 
-					"\\new Staff {\n\t\\relative c' {" \
-					<< "\n\t\t\\clef \"treble\"" \
-					<< "\n\t\t\\time 4/4\n\t\t" \
-					<< "\n\t}\n}"
-				suite = "c d e f g a b c"
-				@instru << suite
-				@instru.to_lilypond.should == 
-					"\\new Staff {\n\t\\relative c' {" \
-					<< "\n\t\t\\clef \"treble\"" \
-					<< "\n\t\t\\time 4/4\n\t\t" \
-					<< "\\relative c' { #{suite} }" \
-					<<"\n\t}\n}"
-				# @note: des tests plus poussés sont effectués par le biais
-				# des partitions.
-			end
-			it "doit inscrire le code pour les mesures si extrait" do
-			  pending "à implémenter"
 			end
 			
 			# :staff_header
