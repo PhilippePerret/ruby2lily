@@ -38,4 +38,6 @@ cd ~/Sites/cgi-bin/lilypond/test/rspec;pwd
 # rspec spec/operation/multiplication_spec.rb
 
 # --- INSTRUMENTS ---
-rspec spec/class/instruments/voice_spec.rb
+# rspec spec/class/instruments/voice_spec.rb
+
+# rspec spec/ruby2lily/liby/ligne_commande_spec.rb
