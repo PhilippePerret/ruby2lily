@@ -108,8 +108,13 @@ else
   dbg '----> score'
   score # une méthode de la partition
   dbg '----> Liby::score_ruby_to_score_lilypond'
-  Liby::score_ruby_to_score_lilypond
-
+  begin
+    Liby::score_ruby_to_score_lilypond
+  rescue Exception => e
+    puts "ERREUR: #{e.message}"
+    puts e.backtrace.join("\n")
+    exit
+  end
   # Génération du pdf
   # ------------------
   dbg '----> Liby::generate_pdf'
