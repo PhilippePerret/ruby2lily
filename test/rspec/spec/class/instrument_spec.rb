@@ -116,13 +116,18 @@ describe Instrument do
 				res = @voix.mesures(2, 3)
 				res.to_s.should == "d d d d e e e e"
 			end
+			it "doit pouvoir traiter seulement des silences" do
+			  @voix << Motif::new("r r r r r r r r r r r r r r r r r")
+				res = @voix.mesures(2,3)
+				res.to_s.should == "r r r r r r r r"
+			end
 			it "doit insérer la barre de mesure spéciale si nécessaire" do
 				SCORE::bars 3 => '||'
 				@voix << Motif::new("c c c c d d d d")
 				@voix << Motif::new("e e e e f f f f")
 				res = @voix.mesures(2, 3)
-				res.to_s.should == "d d d d \\bar \"||\" e e e e"
 				iv_set(SCORE, :bars => nil)
+				res.to_s.should == "d d d d \\bar \"||\" e e e e"
 			end
 			it "doit renvoyer les bonnes notes avec des liaisons de durée (~)" do
 			  @voix << Motif::new("c c~ c c~ c b b b")
