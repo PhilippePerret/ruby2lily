@@ -3,7 +3,7 @@ Ruby2Lily READ-ME FILE
 
 Projet de programme pour simplifier l'utilisation de Lilypond grâce à Ruby.
 
-- Version 1.1.1 (stable)
+- Version 1.1.2 (stable)
 
 Exemple rapide
 ---------------
