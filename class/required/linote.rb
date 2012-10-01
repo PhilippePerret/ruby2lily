@@ -929,14 +929,6 @@ class LINote < NoteClass
     @octave       = oct
   end
   
-  # =>  Définit le delta de la LINote (en motifiant l'octave réelle si
-  #     nécessaire)
-  # 
-  def set_delta delta
-    @delta = delta
-    set_octave( @octave ) unless @delta.nil?
-  end
-  
   # => Return la valeur d'une propriété
   def get prop
     instance_variable_get("@#{prop}")

@@ -710,16 +710,6 @@ describe LINote do
 			ln.delta.should == -1
 		end
 		
-		# :set_delta
-		it "doit répondre à :set_delta" do
-		  @ln.should respond_to :set_delta
-		end
-		it ":set_delta doit définir le delta" do
-		  ln = LINote::new "c", :delta => 0
-			ln.delta.should == 0
-			ln.set_delta 2
-			ln.delta.should == 2
-		end
 		# :mark_delta
 		it "doit répondre à :mark_delta" do
 		  @ln.should respond_to :mark_delta
