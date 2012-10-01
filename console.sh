@@ -11,7 +11,7 @@
 cd ~/Sites/cgi-bin/lilypond/test/rspec;pwd
 
 # LA TOTALE
-rspec spec
+# rspec spec
 
 # rspec spec/class/String_spec.rb
 
@@ -36,3 +36,6 @@ rspec spec
 # rspec spec/operation/crochets_spec.rb
 # rspec spec/class/noteclass_spec.rb
 # rspec spec/operation/multiplication_spec.rb
+
+# --- INSTRUMENTS ---
+rspec spec/class/instruments/voice_spec.rb
