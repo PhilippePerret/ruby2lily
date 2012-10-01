@@ -309,13 +309,26 @@ class Liby
     # @param  val   String contenant "<mesure départ>-<mesure fin>"
     #               On peut aussi donner seulement la mesure de départ,
     #               "<départ>", ou la mesure de fin "-<mesure fin>"
+    #               On peut également utiliser le signe « + » pour 
+    #               définir le nombre de mesures à afficher
+    # 
     def treat_option_mesures val
       if val.to_s.blank?
         fatal_error(:commandline_lack_mesures_definition) 
       end
-      # Récupération des valeurs et test
-      begin
+      # Récupération des valeurs
+      if val.index('+') != nil
+        from, to = val.split('+')
+        signe = '+'
+      elsif val.index('-') != nil
         from, to = val.split('-')
+        signe = '-'
+      else
+        from  = val
+        to    = nil
+      end
+      # Test des valeurs transmises
+      begin
         from =  if from.to_s.blank? then nil
                 else 
                   raise unless from.integer?
@@ -324,7 +337,7 @@ class Liby
         to =    if to.to_s.blank? then nil
                 else 
                   raise unless to.integer? 
-                  to.to_i
+                  signe == "+" ? from + to.to_i : to.to_i
                 end
       rescue Exception => e
         fatal_error(:commandline_bad_mesures_definition)

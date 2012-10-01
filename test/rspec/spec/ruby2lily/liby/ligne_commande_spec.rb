@@ -82,6 +82,14 @@ describe "Liby - Ligne de commande" do
 			SCORE.from_mesure.should 	== 15
 			SCORE.to_mesure.should 		== 25
 		end
+		it "les mesures doivent pouvoir être définies à l'aide du signe « + »" do
+			init_argv_with [@path_partition_test, "--mesures=15+16"]
+			Liby.analyze_command_line
+			Liby.analyze_options_extrait
+			cv_get(Liby, :path_ruby_score).should == @path_partition_test
+			SCORE.from_mesure.should 	== 15
+			SCORE.to_mesure.should 		== 31
+		end
 		it ":analyze_command_line doit générer une erreur si -m ne définit pas de mesure" do
 			init_argv_with [@path_partition_test, "--mesures"]
 			err = Liby::ERRORS[:commandline_lack_mesures_definition]
