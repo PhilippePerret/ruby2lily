@@ -162,11 +162,13 @@ class Liby
     def fatal_error id_err, params = nil
       err = error( id_err, params )
       puts err.to_s.as_red
-      # Backtrace de l'erreur
-      begin
-        raise
-      rescue Exception => e
-        puts e.backtrace.join("\n")
+      # Backtrace de l'erreur (sauf en mode test)
+      unless $MODE_TEST
+        begin
+          raise
+        rescue Exception => e
+          puts e.backtrace.join("\n")
+        end
       end
       # Sortie de l'erreur
       if err === true
